@@ -5,38 +5,35 @@
 #include "gfx/api.h"
 #include "gfx/shader.h"
 #include "gfx/mesher.h"
+#include "core/filesys.h"
 
 static const String VS = R"(
 #version 330 core
 layout (location = 0) in vec3 vPosition;
+layout (location = 1) in vec3 vNormal;
+layout (location = 2) in vec3 vTangent;
+layout (location = 3) in vec2 vTexCoord;
+layout (location = 4) in vec4 vColor;
 out vec3 oPosition;
 void main() {
-	gl_Position = vec4(vPosition * 2.0 - 1.0, 1.0);
+	gl_Position = vec4(vPosition, 1.0);
 	oPosition = vPosition;
 }
 )";
+
 static const String FS = R"(
 #version 330 core
 out vec4 fragColor;
 in vec3 oPosition;
 void main() {
-	fragColor = vec4(oPosition, 1.0);
+	fragColor = vec4(1.0);
 }
 )";
-
-template <>
-struct VertexAppender<Vec3> {
-	static void append(Vector<float>& data, const Vec3& v) {
-		data.push_back(v.x);
-		data.push_back(v.y);
-		data.push_back(v.z);
-	}
-};
 
 class TestApp : public IApplicationAdapter {
 public:
 	void init() {
-		glClearColor(0.04f, 0.45f, 0.53f, 1.0f);
+		glClearColor(0.04f, 0.25f, 0.53f, 1.0f);
 
 		prog = uptr<ShaderProgram>(new ShaderProgram());
 		prog->add(VS, api::ShaderType::VertexShader);
@@ -44,14 +41,11 @@ public:
 		prog->link();
 
 		model = uptr<Model>(new Model());
-		model->format()->put("vPosition", AttributeType::AttrVector3, false, 0);
-
-		model->addVertex(Vec3(0, 0, 0));
-		model->addVertex(Vec3(1, 0, 0));
-		model->addVertex(Vec3(1, 1, 0));
-		model->addVertex(Vec3(0, 1, 0));
-		model->addTriangle(0, 1, 2);
-		model->addTriangle(2, 3, 0);
+		/*model->addVertex(Vertex(Vec3(0, 0, 0)));
+		model->addVertex(Vertex(Vec3(1, 0, 0)));
+		model->addVertex(Vertex(Vec3(1, 1, 0)));
+		model->addTriangle(0, 1, 2);*/
+		model->addFromFile("cube.obj");
 		model->flush();
 		
 		glDisable(GL_CULL_FACE);
@@ -68,7 +62,7 @@ public:
 
 		prog->bind();
 		model->bind();
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, model->indexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	uptr<ShaderProgram> prog;

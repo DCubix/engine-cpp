@@ -30,18 +30,19 @@ bool VFS::exists(const String& fileName) {
 	return PHYSFS_exists(fileName.c_str()) != 0;
 }
 
-opt<VirtualFile> VFS::open(const String& fileName) {
+uptr<VirtualFile> VFS::open(const String& fileName) {
 	PHYSFS_file* file = PHYSFS_openRead(fileName.c_str());
 	
 	if (file == NULL) {
 		return {};
 	}
 
-	VirtualFile f;
-	f.size = fsize(PHYSFS_fileLength(file));
-	f.fh = file;
+	VirtualFile* f = new VirtualFile;
+	f->size = fsize(PHYSFS_fileLength(file));
+	f->fh = file;
+	f->fileName = fileName;
 
-	return f;
+	return uptr<VirtualFile>(f);
 }
 
 u8* VirtualFile::readAll() {
@@ -54,62 +55,64 @@ void VirtualFile::close() {
 	PHYSFS_close(fh);
 }
 
-opt<RealFile> FIO::openFile(const String& fileName, FileMode mode, bool binary) {
-	int m = 0;
-	if (binary) {
-		m = std::ios::binary;
-	}
-
+uptr<RealFile> FIO::openFile(const String& fileName, FileMode mode, bool binary) {
+	String m = "";
+	
 	bool getSize = false;
 	switch (mode) {
-		case FileModeRead: m |= std::ios::in; getSize = true; break;
-		case FileModeWrite: m |= std::ios::out; break;
-		case FileModeAppend: m |= std::ios::app; break;
+		case FileModeRead: m = "r"; getSize = true; break;
+		case FileModeWrite: m = "w"; break;
+		case FileModeAppend: m = "a"; break;
+	}
+	if (binary) {
+		m += "b";
 	}
 
-	std::fstream *fs = new std::fstream(fileName, m);
-	
-	if (fs->bad()) {
+	FILE *fs = fopen(fileName.c_str(), m.c_str());
+	if (!fs) {
 		return {};
 	}
 
 	size_t flsize = 0;
 	if (getSize) {
-		size_t beg = fs->tellg();
-		fs->seekg(0, std::ios::end);
-		size_t end = fs->tellg();
+		size_t beg = ftell(fs);
+		fseek(fs, 0, SEEK_END);
+		size_t end = ftell(fs);
 		flsize = end - beg;
+		rewind(fs);
 	}
 
-	RealFile rf(fs);
-	rf.size = flsize;
+	RealFile* rf = new RealFile(fs);
+	rf->size = flsize;
+	rf->fileName = fileName;
 
-	return rf;
+	return uptr<RealFile>(rf);
 }
 
 u8* RealFile::readAll() {
 	u8* data = new u8[size];
-	fh->read((char*)data, size);
+	memset(data, 0, sizeof(u8) * size);
+	fread(data, sizeof(u8), size, fh);
 	return data;
 }
 
 opt<String> RealFile::getLine() {
-	if (fh->eof()) return {};
+	if (feof(fh)) return {};
 	char ln[1024];
-	fh->getline(ln, 1024);
+	fgets(ln, 1024, fh);
 	return String(ln);
 }
 
 void RealFile::write(u8* data, size_t count) {
-	fh->write(reinterpret_cast<char*>(data), count);
+	fwrite(data, 1, count, fh);
 }
 
 void RealFile::write(const String& data) {
-	(*fh) << data;
+	fwrite(data.c_str(), sizeof(char), data.size(), fh);
 }
 
 void RealFile::close() {
-	fh->close();
+	fclose(fh);
 }
 
 NS_END

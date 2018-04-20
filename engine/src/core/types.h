@@ -42,7 +42,7 @@ template <typename T> using sptr = std::shared_ptr<T>;
 
 #define mov(x) std::move(x)
 #define tup(...) std::make_tuple(__VA_ARGS__)
-#define b(x) ((u8*)x)
+#define bstr(x) ((u8*)x)
 
 #ifdef USE_NAMESPACE
 #define NS_BEGIN namespace eng {

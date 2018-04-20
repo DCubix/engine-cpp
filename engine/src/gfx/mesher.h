@@ -2,8 +2,15 @@
 #define MESHER_H
 
 #include "shader.h"
+
 #include "../core/types.h"
 #include "../math/vec.h"
+
+#include "../core/filesys.h"
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 NS_BEGIN
 
@@ -15,6 +22,7 @@ enum AttributeType {
 };
 
 struct VertexAttribute {
+	String name;
 	i32 location;
 	u32 size;
 	bool normalized;
@@ -30,19 +38,38 @@ public:
 	void unbind(ShaderProgram* shader);
 
 private:
-	Map<String, VertexAttribute> m_attributes;
+	Vector<VertexAttribute> m_attributes;
 	u32 m_stride;
 };
 
-template <typename V>
-static void appendVertex(Vector<float>& data, const V& v) {
-	data.insert(data.begin(), v.begin(), v.end());
-}
+struct Vertex {
+	Vec3 position;
+	Vec3 normal;
+	Vec3 tangent;
+	Vec2 texCoord;
+	Vec4 color;
 
-template <typename V> struct VertexAppender {
-	static void append(Vector<float>& data, const V& v) {
-		appendVertex(data, v);
-	}
+	Vertex() 
+		: position(Vec3()), normal(Vec3()), tangent(Vec3()), texCoord(Vec2()), color(Vec4(1.0f)) 
+	{}
+	Vertex(const Vec3& pos)
+		: position(pos), normal(Vec3()), tangent(Vec3()), texCoord(Vec2()), color(Vec4(1.0f))
+	{}
+	Vertex(const Vec3& pos, const Vec3& nrm)
+		: position(pos), normal(nrm), tangent(Vec3()), texCoord(Vec2()), color(Vec4(1.0f))
+	{}
+	Vertex(const Vec3& pos, const Vec3& nrm, const Vec3& tan)
+		: position(pos), normal(nrm), tangent(tan), texCoord(Vec2()), color(Vec4(1.0f))
+	{}
+	Vertex(const Vec3& pos, const Vec3& nrm, const Vec3& tan, const Vec2& uv)
+		: position(pos), normal(nrm), tangent(tan), texCoord(uv), color(Vec4(1.0f))
+	{}
+	Vertex(const Vec3& pos, const Vec3& nrm, const Vec3& tan, const Vec2& uv, const Vec4& col)
+		: position(pos), normal(nrm), tangent(tan), texCoord(uv), color(col)
+	{}
+	Vertex(const Vec3& pos, const Vec2& uv)
+		: position(pos), texCoord(uv), normal(Vec3()), tangent(Vec3()), color(Vec4(1.0f))
+	{}
 };
 
 class Model {
@@ -50,12 +77,20 @@ public:
 	Model(bool dynamic = false, bool indexed = true, bool vao = true);
 	virtual ~Model();
 
-	template <typename V> void addVertex(const V& vert) {
-		VertexAppender<V>::append(m_vertexData, vert);
-	}
+	void addVertex(const Vertex& vert);
 
 	void addIndex(i32 index);
 	void addTriangle(i32 i0, i32 i1, i32 i2);
+
+	void addData(const Vector<Vertex>& vertices, const Vector<i32>& indices);
+
+	void addFromFile(const String& file);
+	void addFromFile(VirtualFile* file);
+
+	void calculateNormals(PrimitiveType primitive = PrimitiveType::Triangles);
+	void calculateTangents(PrimitiveType primitive = PrimitiveType::Triangles);
+	void transformTexCoords(const Mat4& t);
+
 	void flush(i32 voff = 0, i32 ioff = 0);
 
 	void bind(ShaderProgram* shader = nullptr);
@@ -63,17 +98,21 @@ public:
 
 	bool indexed() const { return m_indexed; }
 	bool useVertexArray() const { return m_useVertexArrays; }
-	VertexFormat* format() { return m_format.get(); }
 
-	template <typename V> V* getVertex(u32 index) {
-		u32 off = index * (m_format->stride() / 4);
-		return (V*) &m_vertexData[off];
+	const Vertex& vertex(u32 index) const {
+		return m_vertexData[index];
 	}
 
-	i32 getIndex(u32 index) const { return m_indexData[index]; }
+	Vertex& vertex(u32 index) {
+		return m_vertexData[index];
+	}
+
+	i32 index(u32 index) const { return m_indexData[index]; }
+	u32 vertexCount() const { return m_vertexData.size(); }
+	u32 indexCount() const { return m_indexData.size(); }
 
 private:
-	Vector<float> m_vertexData;
+	Vector<Vertex> m_vertexData;
 	Vector<i32> m_indexData;
 	uptr<VertexFormat> m_format;
 
@@ -81,6 +120,11 @@ private:
 
 	GLuint m_vbo, m_ibo, m_vao;
 	i32 m_vboSize, m_iboSize;
+
+	void triNormal(i32 i0, i32 i1, i32 i2);
+	void triTangent(i32 i0, i32 i1, i32 i2);
+
+	void addAIScene(const aiScene* scene);
 };
 
 NS_END

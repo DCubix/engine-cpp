@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-#include <fstream>
+#include <cstdio>
 
 extern "C" {
 	#include <physfs.h>
@@ -16,6 +16,7 @@ using fsize = PHYSFS_uint64;
 struct VirtualFile {
 	VirtualFile() {}
 
+	String fileName;
 	fsize size;
 	PHYSFS_file *fh;
 
@@ -41,7 +42,7 @@ public:
 
 	static bool exists(const String& fileName);
 
-	static opt<VirtualFile> open(const String& fileName);
+	static uptr<VirtualFile> open(const String& fileName);
 };
 
 enum FileMode {
@@ -51,10 +52,11 @@ enum FileMode {
 };
 
 struct RealFile {
-	RealFile(std::fstream *fh) : fh(fh) {}
+	RealFile(FILE *fh) : fh(fh) {}
 
+	String fileName;
 	size_t size;
-	std::fstream *fh;
+	FILE *fh;
 
 	u8* readAll();
 	opt<String> getLine();
@@ -66,13 +68,13 @@ struct RealFile {
 	void writeObject(T val) {
 		char* buf = new char[sizeof(T)];
 		memcpy(buf, &val, sizeof(T));
-		fh->write(buf, sizeof(T));
+		fwrite(buf, sizeof(T), 1, fh);
 	}
 
 	template <typename T>
 	void readObject(T* obj) {
 		char* buf = new char[sizeof(T)];
-		fh->read(buf, sizeof(T));
+		fread(buf, sizeof(T), 1, fh);
 		memcpy(obj, buf, sizeof(T));
 	}
 
@@ -81,9 +83,9 @@ struct RealFile {
 
 class FIO {
 public:
-	static opt<RealFile> openFile(const String& fileName,
-								  FileMode mode = FileMode::FileModeRead,
-								  bool binary = false);
+	static uptr<RealFile> openFile(const String& fileName,
+							FileMode mode = FileMode::FileModeRead,
+							bool binary = false);
 };
 
 NS_END
