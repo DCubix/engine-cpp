@@ -23,6 +23,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+[Bb]uild/
 
 # Visual Studio 2015 cache/options directory
 .vs/
@@ -287,4 +288,4 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
-*.txt
+*.obj

@@ -49,7 +49,7 @@ float dot(const Vec<N>& o) const { \
 	return sum; \
 } \
 float len() const { \
-	return std::sqrtf(dot(*this)); \
+	return sqrtf(dot(*this)); \
 } \
 Vec<N> normalized() const { \
 	float l = len(); \
@@ -77,7 +77,7 @@ struct Vec<2> {
 	Vec(float v) : Vec(v, v) {}
 	Vec() : Vec(0) {}
 	
-	static Vec2 fromAngle(float a) { return Vec2(std::cosf(a), std::sinf(a)); }
+	static Vec2 fromAngle(float a) { return Vec2(cosf(a), sinf(a)); }
 
 	float angle() const { return std::atan2(y, x); }
 	float perpDot(const Vec2& o) const { return x * o.y - y * o.x; }

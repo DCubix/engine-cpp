@@ -63,7 +63,9 @@ Mat4 Mat4::scaling(const Vec3& s) {
 }
 
 Mat4 Mat4::rotationX(float a) {
-	auto[s, c] = sinCos(a);
+	auto t = sinCos(a);
+	float s = std::get<0>(t);
+	float c = std::get<1>(t);
 	return Mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, c, -s, 0.0f,
@@ -73,7 +75,9 @@ Mat4 Mat4::rotationX(float a) {
 }
 
 Mat4 Mat4::rotationY(float a) {
-	auto[s, c] = sinCos(a);
+	auto t = sinCos(a);
+	float s = std::get<0>(t);
+	float c = std::get<1>(t);
 	return Mat4(
 		c, 0.0f, -s, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -83,7 +87,9 @@ Mat4 Mat4::rotationY(float a) {
 }
 
 Mat4 Mat4::rotationZ(float a) {
-	auto[s, c] = sinCos(a);
+	auto t = sinCos(a);
+	float s = std::get<0>(t);
+	float c = std::get<1>(t);
 	return Mat4(
 		c, -s, 0.0f, 0.0f,
 		s, c, 0.0f, 0.0f,
@@ -93,7 +99,9 @@ Mat4 Mat4::rotationZ(float a) {
 }
 
 Mat4 Mat4::axisAngle(const Vec3& axis, float a) {
-	auto[s, c] = sinCos(a);
+	auto tp = sinCos(a);
+	float s = std::get<0>(tp);
+	float c = std::get<1>(tp);
 	float t = 1.0f - c;
 	Vec3 ax = axis.normalized();
 	float x = ax.x;
@@ -138,7 +146,7 @@ Mat4 Mat4::frustum(float l, float r, float t, float b, float n, float f) {
 }
 
 Mat4 Mat4::perspective(float fov, float asp, float n, float f) {
-	float ymax = n * std::tanf(fov);
+	float ymax = n * tanf(fov);
 	float xmax = ymax * asp;
 	return Mat4::frustum(-xmax, xmax, -ymax, ymax, n, f);
 }
@@ -159,7 +167,10 @@ Mat4 Mat4::lookAt(const Vec3& eye, const Vec3& at, const Vec3& up) {
 }
 
 Mat4 Mat4::transposed() const {
-	auto[a, b, c, d] = rows;
+	Vec4 a = rows[0];
+	Vec4 b = rows[1];
+	Vec4 c = rows[2];
+	Vec4 d = rows[3];
 	return Mat4(
 		a.x, b.x, c.x, d.x,
 		a.y, b.y, c.y, d.y,

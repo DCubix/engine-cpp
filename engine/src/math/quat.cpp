@@ -4,15 +4,15 @@ NS_BEGIN
 
 Quat::Quat(const Vec3& axis, float a) {
 	float angle = a / 2.0f;
-	float s = std::sinf(angle);
+	float s = sinf(angle);
 	x = axis.x * s;
 	y = axis.y * s;
 	z = axis.z * s;
-	w = std::cosf(a);
+	w = cosf(a);
 }
 
 float Quat::magnitude() const {
-	return std::sqrtf(x * x + y * y + z * z + w * w);
+	return sqrtf(x * x + y * y + z * z + w * w);
 }
 
 Quat Quat::normalized() const {

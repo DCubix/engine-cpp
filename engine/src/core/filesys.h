@@ -26,7 +26,7 @@ struct VirtualFile {
 	template <typename T>
 	T readObject() {
 		u8* data = new u8[sizeof(T)];
-		PHYSFS_read(fh, data, sizeof(T), 1);
+		PHYSFS_readBytes(fh, data, sizeof(T));
 		T ret; memcpy(&ret, data, sizeof(T));
 		return ret;
 	}

@@ -1,5 +1,6 @@
-﻿#include "app.h"
+#include "app.h"
 
+#include "types.h"
 #include "input.h"
 
 extern "C" {
@@ -10,12 +11,13 @@ NS_BEGIN
 
 #if defined(ENG_DEBUG) && defined(GL_ARB_debug_output)
 
-static void __stdcall eng_gl_debug_cb(GLenum source​, GLenum type, GLuint id,
-							GLenum severity, GLsizei length,
-							const GLchar* msg, const void* ud)
-{
+static void APIENTRY eng_gl_debug_cb(
+		GLenum source, GLenum type, GLuint id,
+		GLenum severity, GLsizei length,
+		const GLchar* msg, const void* ud
+) {
 	String src = "";
-	switch (source​) {
+	switch (source) {
 		case GL_DEBUG_SOURCE_API_ARB: src = "API"; break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB: src = "WINDOW SYSTEM"; break;
 		case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB: src = "SHADER COMPILER"; break;
@@ -86,6 +88,7 @@ void Application::run() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	
 #ifdef ENG_DEBUG
 	int contextFlags = 0;
 	SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &contextFlags);
@@ -119,7 +122,7 @@ void Application::run() {
 		GL_FALSE
 	);
 
-	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
+//	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
 #endif
 
 	if (GLVersion.major < 3) {

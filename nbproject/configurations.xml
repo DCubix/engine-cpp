@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="engine/src" name="0">
+      <df name="core">
+        <df name="logging">
+          <in>log.cpp</in>
+        </df>
+        <in>app.cpp</in>
+        <in>engine.cpp</in>
+        <in>filesys.cpp</in>
+        <in>input.cpp</in>
+        <in>msg.cpp</in>
+        <in>types.cpp</in>
+      </df>
+      <df name="gfx">
+        <df name="glad">
+          <in>glad.c</in>
+        </df>
+        <in>api.cpp</in>
+        <in>mesher.cpp</in>
+        <in>shader.cpp</in>
+      </df>
+      <df name="math">
+        <in>mat.cpp</in>
+        <in>quat.cpp</in>
+        <in>vec.cpp</in>
+      </df>
+      <in>main.cpp</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>.gitignore</itemPath>
+      <itemPath>CMakeLists.txt</itemPath>
+      <itemPath>modules/FindAssimp.cmake</itemPath>
+      <itemPath>LICENSE</itemPath>
+      <itemPath>build/Makefile</itemPath>
+      <itemPath>README.md</itemPath>
+      <itemPath>nbproject/private/launcher.properties</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>engine/src</Elem>
+  </sourceRootList>
+  <projectmakefile>build/Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <flagsDictionary>
+        <element flagsID="0" commonFlags="-O2 -g"/>
+        <element flagsID="1" commonFlags="-O2 -std=gnu++1z"/>
+        <element flagsID="2" commonFlags="-std=c++14"/>
+      </flagsDictionary>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>build</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>build\engine.exe</executablePath>
+          <cTool>
+            <incDir>
+              <pElem>engine/deps/assimp/include</pElem>
+              <pElem>engine/deps/physfs/include</pElem>
+              <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+              <pElem>build</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>NDEBUG</Elem>
+            </preprocessorList>
+          </cTool>
+        </makeTool>
+        <preBuild>
+          <preBuildCommandWorkingDir>build</preBuildCommandWorkingDir>
+          <preBuildCommand>${CMAKE} -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 ..</preBuildCommand>
+        </preBuild>
+      </makefileType>
+      <item path="engine/src/core/app.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/engine.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/filesys.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/input.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/logging/log.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/msg.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/core/types.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/gfx/api.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/gfx/glad/glad.c" ex="false" tool="0" flavor2="0">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="engine/src/gfx/mesher.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/gfx/shader.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="engine/src/main.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="2">
+        </ccTool>
+      </item>
+      <item path="engine/src/math/mat.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+          <incDir>
+            <pElem>engine/deps/assimp/include</pElem>
+            <pElem>engine/deps/physfs/include</pElem>
+            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+            <pElem>build</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>NDEBUG</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="engine/src/math/quat.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="2">
+        </ccTool>
+      </item>
+      <item path="engine/src/math/vec.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="2">
+        </ccTool>
+      </item>
+      <folder path="0/core">
+        <ccTool>
+          <incDir>
+            <pElem>engine/deps/assimp/include</pElem>
+            <pElem>engine/deps/physfs/include</pElem>
+            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+            <pElem>build</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>NDEBUG</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/gfx">
+        <ccTool>
+          <incDir>
+            <pElem>engine/deps/assimp/include</pElem>
+            <pElem>engine/deps/physfs/include</pElem>
+            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+            <pElem>build</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>NDEBUG</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+    </conf>
+  </confs>
+</configurationDescriptor>

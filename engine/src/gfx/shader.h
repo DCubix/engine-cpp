@@ -11,18 +11,21 @@ using namespace api;
 
 NS_BEGIN
 
+#define glUniform(T, ...) glUniform##T(location, __VA_ARGS__)
+
 class Uniform {
 	friend class ShaderProgram;
-
-	void set(i32 v);
-	void set(float v);
-	void set(Vec2 v);
-	void set(Vec3 v);
-	void set(Vec4 v);
-	void set(Mat4 v);
+public:
+	void set(i32 v) { glUniform(1i, v); }
+	void set(float v) { glUniform(1f, v); }
+	void set(Vec2 v) { glUniform(2f, v.x, v.y); }
+	void set(Vec3 v) { glUniform(3f, v.x, v.y, v.z); }
+	void set(Vec4 v) { glUniform(4f, v.x, v.y, v.z, v.w); }
+	void set(Mat4 v) { glUniform(Matrix4fv, 1, false, v.val); }
 
 protected:
 	i32 location;
+	Uniform(i32 loc) : location(loc) {}
 };
 
 class ShaderProgram {
@@ -38,6 +41,8 @@ public:
 
 	i32 getAttributeLocation(const String& name);
 	i32 getUniformLocation(const String& name);
+
+	opt<Uniform> get(const String& name);
 
 	ShaderProgram(const ShaderProgram&) = delete;
 	ShaderProgram& operator =(const ShaderProgram&) = delete;

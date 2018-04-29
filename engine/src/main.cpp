@@ -15,9 +15,14 @@ layout (location = 2) in vec3 vTangent;
 layout (location = 3) in vec2 vTexCoord;
 layout (location = 4) in vec4 vColor;
 out vec3 oPosition;
+out vec3 oNormal;
+uniform mat4 mProj;
+uniform mat4 mView;
+uniform mat4 mModel;
 void main() {
-	gl_Position = vec4(vPosition, 1.0);
-	oPosition = vPosition;
+	gl_Position = mProj * mView * mModel * vec4(vPosition, 1.0);
+	oPosition = (mView * mModel * vec4(vPosition, 1.0)).xyz;
+	oNormal = normalize(mView * mModel * vec4(vNormal, 0.0)).xyz;
 }
 )";
 
@@ -25,14 +30,22 @@ static const String FS = R"(
 #version 330 core
 out vec4 fragColor;
 in vec3 oPosition;
+in vec3 oNormal;
 void main() {
-	fragColor = vec4(1.0);
+	vec3 n = normalize(oNormal);
+	vec3 v = normalize(-oPosition);
+	float nv = max(dot(n, v), 0.0);
+	fragColor = vec4(vec3(nv), 1.0);
 }
 )";
 
 class TestApp : public IApplicationAdapter {
 public:
 	void init() {
+		proj = Mat4::perspective(radians(45), 640.0f / 480.0f, 0.01f, 200.0f);
+		view = Mat4::translation(Vec3(0, 0, -2));
+		mdl = Mat4::rotationY(radians(45));
+
 		glClearColor(0.04f, 0.25f, 0.53f, 1.0f);
 
 		prog = uptr<ShaderProgram>(new ShaderProgram());
@@ -40,15 +53,12 @@ public:
 		prog->add(FS, api::ShaderType::FragmentShader);
 		prog->link();
 
-		model = uptr<Model>(new Model());
-		/*model->addVertex(Vertex(Vec3(0, 0, 0)));
-		model->addVertex(Vertex(Vec3(1, 0, 0)));
-		model->addVertex(Vertex(Vec3(1, 1, 0)));
-		model->addTriangle(0, 1, 2);*/
-		model->addFromFile("cube.obj");
-		model->flush();
-		
-		glDisable(GL_CULL_FACE);
+		model = MeshFactory()
+			.addFromFile("monkey.obj")
+			.build();
+
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	void update(float timeDelta) {
@@ -58,15 +68,20 @@ public:
 	}
 
 	void render() {
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		prog->bind();
+		prog->get("mProj").value().set(proj);
+		prog->get("mView").value().set(view);
+		prog->get("mModel").value().set(mdl);
+
 		model->bind();
 		glDrawElements(GL_TRIANGLES, model->indexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	uptr<ShaderProgram> prog;
-	uptr<Model> model;
+	uptr<Mesh> model;
+	Mat4 proj, view, mdl;
 };
 
 int main(int argc, char** argv) {

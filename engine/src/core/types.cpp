@@ -1,6 +1,6 @@
 #include "types.h"
 
-#include "SDL.h"
+#include <SDL2/SDL.h>
 
 const String Util::currentDateTime() {
 	time_t now = time(0);

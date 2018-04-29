@@ -17,7 +17,7 @@ Logger Logger::logger = Logger(Logger::logFile);
 Logger::Logger() : m_output(&std::cout) {
 }
 
-Logger::Logger(std::ostream& output) : m_output(&output) {
+Logger::Logger(std::ostream* output) : m_output(output) {
 	if (m_output->bad()) {
 		assert(false);
 	}

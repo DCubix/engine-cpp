@@ -19,11 +19,11 @@ void VFS::deInit() {
 }
 
 void VFS::addArchive(const String& fileName) {
-	PHYSFS_addToSearchPath(fileName.c_str(), 1);
+	PHYSFS_mount(fileName.c_str(), NULL, 1);
 }
 
 void VFS::removeArchive(const String& fileName) {
-	PHYSFS_removeFromSearchPath(fileName.c_str());
+	PHYSFS_unmount(fileName.c_str());
 }
 
 bool VFS::exists(const String& fileName) {

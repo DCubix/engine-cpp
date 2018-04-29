@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="engine/src" name="0">
+      <df name="core">
+        <df name="logging">
+          <in>log.cpp</in>
+          <in>log.h</in>
+          <in>termcolor.hpp</in>
+        </df>
+        <in>app.cpp</in>
+        <in>app.h</in>
+        <in>engine.cpp</in>
+        <in>engine.h</in>
+        <in>filesys.cpp</in>
+        <in>filesys.h</in>
+        <in>input.cpp</in>
+        <in>input.h</in>
+        <in>json.hpp</in>
+        <in>msg.cpp</in>
+        <in>msg.h</in>
+        <in>types.cpp</in>
+        <in>types.h</in>
+      </df>
+      <df name="gfx">
+        <df name="glad">
+          <in>glad.c</in>
+          <in>glad.h</in>
+        </df>
+        <in>api.cpp</in>
+        <in>api.h</in>
+        <in>mesher.cpp</in>
+        <in>mesher.h</in>
+        <in>shader.cpp</in>
+        <in>shader.h</in>
+      </df>
+      <df name="math">
+        <in>consts.h</in>
+        <in>mat.cpp</in>
+        <in>mat.h</in>
+        <in>quat.cpp</in>
+        <in>quat.h</in>
+        <in>vec.cpp</in>
+        <in>vec.h</in>
+      </df>
+      <in>main.cpp</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>build/Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>3</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>build</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>

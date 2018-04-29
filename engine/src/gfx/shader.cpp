@@ -70,5 +70,11 @@ i32 ShaderProgram::getUniformLocation(const String& name) {
 	return m_uniforms[name];
 }
 
+opt<Uniform> ShaderProgram::get(const String& name) {
+	i32 loc = getUniformLocation(name);
+	if (loc == -1) return {};
+	return Uniform(loc);
+}
+
 NS_END
 

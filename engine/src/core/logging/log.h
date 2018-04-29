@@ -17,7 +17,7 @@ enum LogLevel {
 class Logger {
 public:
 	Logger();
-	Logger(std::ostream& output);
+	Logger(std::ostream* output);
 	~Logger();
 
 	void print(LogLevel level, const char* file, const char* function, int line, const String& msg);

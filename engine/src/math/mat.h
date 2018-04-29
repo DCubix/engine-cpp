@@ -7,7 +7,7 @@
 NS_BEGIN
 
 static auto sinCos(float a) {
-	return tup(std::sinf(a), std::cosf(a));
+	return tup(sinf(a), cosf(a));
 }
 
 static float radians(float a) {
