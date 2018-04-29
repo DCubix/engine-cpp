@@ -1,118 +1,123 @@
 #include "filesys.h"
 
+#include "logging/log.h"
+
 NS_BEGIN
 
-void VFS::init(const String& archiveFile) {
-	if (!PHYSFS_isInit()) {
-		PHYSFS_init(NULL);
-	}
+VFS VFS::g_instance;
 
-	if (!archiveFile.empty()) {
-		VFS::addArchive(archiveFile);
+void VFS::mount(const String& virtualPath, const String& physPath) {
+	if (PHYSFS_mount(physPath.c_str(), virtualPath.c_str(), 1) == 0) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 	}
 }
 
-void VFS::deInit() {
-	if (PHYSFS_isInit()) {
-		PHYSFS_deinit();
+void VFS::mountDefault() {
+	if (PHYSFS_mount(PHYSFS_getBaseDir(), NULL, 1) == 0) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 	}
 }
 
-void VFS::addArchive(const String& fileName) {
-	PHYSFS_mount(fileName.c_str(), NULL, 1);
+void VFS::unmount(const String& virtualPath) {
+	if (PHYSFS_unmount(virtualPath.c_str()) == 0) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+	}
 }
 
-void VFS::removeArchive(const String& fileName) {
-	PHYSFS_unmount(fileName.c_str());
+bool VFS::checkFile() {
+	return m_file == NULL;
 }
 
-bool VFS::exists(const String& fileName) {
-	return PHYSFS_exists(fileName.c_str()) != 0;
+bool VFS::openRead(const String& path) {
+	if (!checkFile()) { LogError("A file is already open!"); return false; }
+	m_file = PHYSFS_openRead(path.c_str());
+	if (!m_file) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		return false;
+	}
+	return true;
 }
 
-uptr<VirtualFile> VFS::open(const String& fileName) {
-	PHYSFS_file* file = PHYSFS_openRead(fileName.c_str());
+bool VFS::openWrite(const String& path) {
+	if (!checkFile()) { LogError("A file is already open!"); return false; }
+	m_file = PHYSFS_openWrite(path.c_str());
+	if (!m_file) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		return false;
+	}
+	return true;
+}
+
+bool VFS::openAppend(const String& path) {
+	if (!checkFile()) { LogError("A file is already open!"); return false; }
+	m_file = PHYSFS_openAppend(path.c_str());
+	if (!m_file) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		return false;
+	}
+	return true;
+}
+
+u8* VFS::read(fsize* size) {
+	if (checkFile()) {
+		LogError("File was not open.");
+		return nullptr;
+	}
 	
-	if (file == NULL) {
-		return {};
+	fsize flen = PHYSFS_fileLength(m_file);
+
+	u8* data = new u8[flen];
+	if (PHYSFS_readBytes(m_file, data, flen) == -1) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		delete[] data;
+		data = nullptr;
 	}
 
-	VirtualFile* f = new VirtualFile;
-	f->size = fsize(PHYSFS_fileLength(file));
-	f->fh = file;
-	f->fileName = fileName;
-
-	return uptr<VirtualFile>(f);
-}
-
-u8* VirtualFile::readAll() {
-	u8* data = new u8[size];
-	PHYSFS_readBytes(fh, data, size);
+	if (size) *size = flen;
 	return data;
 }
 
-void VirtualFile::close() {
-	PHYSFS_close(fh);
-}
-
-uptr<RealFile> FIO::openFile(const String& fileName, FileMode mode, bool binary) {
-	String m = "";
+String VFS::readText() {
+	if (checkFile()) {
+		LogError("File was not open.");
+		return nullptr;
+	}
 	
-	bool getSize = false;
-	switch (mode) {
-		case FileModeRead: m = "r"; getSize = true; break;
-		case FileModeWrite: m = "w"; break;
-		case FileModeAppend: m = "a"; break;
+	fsize flen = PHYSFS_fileLength(m_file);
+	
+	char* data = new char[flen / sizeof(char)];
+	if (PHYSFS_readBytes(m_file, data, flen * sizeof(char)) == -1) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		delete[] data;
+		data = nullptr;
+		return "";
 	}
-	if (binary) {
-		m += "b";
+	data[flen] = 0;
+	return String(data);
+}
+
+void VFS::write(const u8* buffer, fsize size) {
+	if (checkFile()) {
+		LogError("File was not open.");
+		return;
 	}
-
-	FILE *fs = fopen(fileName.c_str(), m.c_str());
-	if (!fs) {
-		return {};
+	
+	if (PHYSFS_writeBytes(m_file, buffer, size) == -1) {
+		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 	}
+}
 
-	size_t flsize = 0;
-	if (getSize) {
-		size_t beg = ftell(fs);
-		fseek(fs, 0, SEEK_END);
-		size_t end = ftell(fs);
-		flsize = end - beg;
-		rewind(fs);
+void VFS::writeText(const String& text) {
+	write((const u8*)text.c_str(), text.size() * sizeof(char));
+}
+
+bool VFS::close() {
+	if (checkFile()) {
+		LogError("File was not open.");
+		return false;
 	}
-
-	RealFile* rf = new RealFile(fs);
-	rf->size = flsize;
-	rf->fileName = fileName;
-
-	return uptr<RealFile>(rf);
-}
-
-u8* RealFile::readAll() {
-	u8* data = new u8[size];
-	memset(data, 0, sizeof(u8) * size);
-	fread(data, sizeof(u8), size, fh);
-	return data;
-}
-
-opt<String> RealFile::getLine() {
-	if (feof(fh)) return {};
-	char ln[1024];
-	fgets(ln, 1024, fh);
-	return String(ln);
-}
-
-void RealFile::write(u8* data, size_t count) {
-	fwrite(data, 1, count, fh);
-}
-
-void RealFile::write(const String& data) {
-	fwrite(data.c_str(), sizeof(char), data.size(), fh);
-}
-
-void RealFile::close() {
-	fclose(fh);
+	PHYSFS_close(m_file);
+	return true;
 }
 
 NS_END

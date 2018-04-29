@@ -7,10 +7,12 @@
           <in>log.cpp</in>
         </df>
         <in>app.cpp</in>
+        <in>builder.h</in>
         <in>engine.cpp</in>
         <in>filesys.cpp</in>
         <in>input.cpp</in>
         <in>msg.cpp</in>
+        <in>optional.hpp</in>
         <in>types.cpp</in>
       </df>
       <df name="gfx">
@@ -18,6 +20,8 @@
           <in>glad.c</in>
         </df>
         <in>api.cpp</in>
+        <in>image.cpp</in>
+        <in>image.h</in>
         <in>mesher.cpp</in>
         <in>shader.cpp</in>
       </df>
@@ -87,6 +91,8 @@
         <ccTool flags="1">
         </ccTool>
       </item>
+      <item path="engine/src/core/builder.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/core/engine.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
@@ -107,6 +113,8 @@
         <ccTool flags="1">
         </ccTool>
       </item>
+      <item path="engine/src/core/optional.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/core/types.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
@@ -118,6 +126,10 @@
       <item path="engine/src/gfx/glad/glad.c" ex="false" tool="0" flavor2="0">
         <cTool flags="0">
         </cTool>
+      </item>
+      <item path="engine/src/gfx/image.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="engine/src/gfx/image.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/gfx/mesher.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">

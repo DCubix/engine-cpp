@@ -7,4 +7,16 @@
         <activeConfTypeElem>0</activeConfTypeElem>
         <activeConfIndexElem>0</activeConfIndexElem>
     </data>
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/shader.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/mesher.h</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/main.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/core/app.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/mesher.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/shader.h</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/core/types.h</file>
+        </group>
+    </open-files>
 </project-private>

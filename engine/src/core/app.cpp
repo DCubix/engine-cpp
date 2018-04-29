@@ -1,11 +1,15 @@
 #include "app.h"
 
+#include "builder.h"
 #include "types.h"
 #include "input.h"
 
 extern "C" {
 	#include "../gfx/glad/glad.h"
 }
+
+#include "../gfx/shader.h"
+#include "../gfx/mesher.h"
 
 NS_BEGIN
 
@@ -136,6 +140,12 @@ void Application::run() {
 	m_running = true;
 	LogInfo("Application Started...");
 	eng_mainloop();
+	
+	// Free resources
+	Builder<ShaderProgram>::clean();
+	Builder<Mesh>::clean();
+	VFS::get().shutdown();
+	
 	LogInfo("Application Finished.");
 }
 

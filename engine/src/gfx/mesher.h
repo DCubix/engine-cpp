@@ -3,6 +3,7 @@
 
 #include "shader.h"
 
+#include "../core/builder.h"
 #include "../core/types.h"
 #include "../math/vec.h"
 
@@ -30,6 +31,8 @@ struct VertexAttribute {
 
 class VertexFormat {
 public:
+	VertexFormat() : m_stride(0) {}
+	
 	void put(const String& name, AttributeType type, bool normalized, i32 location = -1);
 
 	u32 stride() const { return m_stride; }
@@ -73,65 +76,80 @@ struct Vertex {
 };
 
 class Mesh {
-	friend class MeshFactory;
 public:
-	virtual ~Mesh();
+	Mesh() = default;
+	Mesh(GLuint vbo, GLuint ibo, GLuint vao) : m_vbo(vbo), m_ibo(ibo), m_vao(vao) {
+		m_format.put("vPosition", AttributeType::AttrVector3, false, 0);
+		m_format.put("vNormal", AttributeType::AttrVector3, false, 1);
+		m_format.put("vTangent", AttributeType::AttrVector3, false, 2);
+		m_format.put("vTexCoord", AttributeType::AttrVector2, false, 3);
+		m_format.put("vColor", AttributeType::AttrVector4, false, 4);
+	}
 
-	void bind(ShaderProgram* shader = nullptr);
-	void unbind(ShaderProgram* shader = nullptr);
+	Mesh& addVertex(const Vertex& vert);
 
-	bool indexed() const { return m_indexed; }
-	bool useVertexArray() const { return m_useVertexArrays; }
+	Mesh& addIndex(i32 index);
+	Mesh& addTriangle(i32 i0, i32 i1, i32 i2);
+
+	Mesh& addData(const Vector<Vertex>& vertices, const Vector<i32>& indices);
+
+	Mesh& addFromFile(const String& file);
+
+	Mesh& calculateNormals(PrimitiveType primitive = PrimitiveType::Triangles);
+	Mesh& calculateTangents(PrimitiveType primitive = PrimitiveType::Triangles);
+	Mesh& transformTexCoords(const Mat4& t);
+	
+	void flush();
+	
+	void bind();
+	void unbind();
 
 	u8* map();
 	void unmap();
 
 	u32 vertexCount() const { return m_vertexCount; }
 	u32 indexCount() const { return m_indexCount; }
+	
+	i32 index(u32 i) const { return m_indexData[i]; }
 
 protected:
-	Mesh(bool indexed = true, bool vao = true);
-
-	uptr<VertexFormat> m_format;
-
-	bool m_indexed, m_useVertexArrays;
+	VertexFormat m_format;
 
 	GLuint m_vbo, m_ibo, m_vao;
 	i32 m_vertexCount, m_indexCount;
-};
-
-
-class MeshFactory {
-public:
-	MeshFactory() = default;
-
-	MeshFactory& addVertex(const Vertex& vert);
-
-	MeshFactory& addIndex(i32 index);
-	MeshFactory& addTriangle(i32 i0, i32 i1, i32 i2);
-
-	MeshFactory& addData(const Vector<Vertex>& vertices, const Vector<i32>& indices);
-
-	MeshFactory& addFromFile(const String& file);
-	MeshFactory& addFromFile(VirtualFile* file);
-
-	MeshFactory& calculateNormals(PrimitiveType primitive = PrimitiveType::Triangles);
-	MeshFactory& calculateTangents(PrimitiveType primitive = PrimitiveType::Triangles);
-	MeshFactory& transformTexCoords(const Mat4& t);
-
-	uptr<Mesh> build(bool indexed = true, bool vao = true);
-
-	i32 index(u32 i) const { return m_indexData[i]; }
-
-private:
+	
 	Vector<Vertex> m_vertexData;
 	Vector<i32> m_indexData;
-
+	
 	void triNormal(i32 i0, i32 i1, i32 i2);
 	void triTangent(i32 i0, i32 i1, i32 i2);
 
 	void addAIScene(const aiScene* scene);
+};
 
+template <>
+class Builder<Mesh> {
+public:
+	static Mesh create() {
+		g_vbos.push_back(GLBuffer::create());
+		g_ibos.push_back(GLBuffer::create());
+		g_vaos.push_back(GLVertexArray::create());
+		return Mesh(g_vbos.back(), g_ibos.back(), g_vaos.back());
+	}
+	
+	static void clean() {
+		for (GLuint b : g_vbos) {
+			GLBuffer::destroy(b);
+		}
+		for (GLuint b : g_ibos) {
+			GLBuffer::destroy(b);
+		}
+		for (GLuint b : g_vaos) {
+			GLVertexArray::destroy(b);
+		}
+	}
+private:
+	static Vector<GLuint> g_vbos, g_ibos, g_vaos;
 };
 
 NS_END

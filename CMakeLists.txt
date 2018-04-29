@@ -24,6 +24,7 @@ file(GLOB SRC
 	"engine/src/*.h"
 	"engine/src/*.cpp"
 	"engine/src/core/*.h"
+	"engine/src/core/*.hpp"
 	"engine/src/core/*.cpp"
 	"engine/src/core/logging/*.h"
 	"engine/src/core/logging/*.cpp"

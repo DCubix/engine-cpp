@@ -10,6 +10,7 @@
         </df>
         <in>app.cpp</in>
         <in>app.h</in>
+        <in>builder.h</in>
         <in>engine.cpp</in>
         <in>engine.h</in>
         <in>filesys.cpp</in>
@@ -19,6 +20,7 @@
         <in>json.hpp</in>
         <in>msg.cpp</in>
         <in>msg.h</in>
+        <in>optional.hpp</in>
         <in>types.cpp</in>
         <in>types.h</in>
       </df>
@@ -29,6 +31,8 @@
         </df>
         <in>api.cpp</in>
         <in>api.h</in>
+        <in>image.cpp</in>
+        <in>image.h</in>
         <in>mesher.cpp</in>
         <in>mesher.h</in>
         <in>shader.cpp</in>
@@ -71,6 +75,8 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
@@ -86,7 +92,8 @@
         </runcommandpicklist>
         <runcommand>"${OUTPUT_PATH}"</runcommand>
         <rundir>build</rundir>
-        <buildfirst>false</buildfirst>
+        <buildfirst>true</buildfirst>
+        <console-type>2</console-type>
         <terminal-type>0</terminal-type>
         <remove-instrumentation>0</remove-instrumentation>
         <environment>

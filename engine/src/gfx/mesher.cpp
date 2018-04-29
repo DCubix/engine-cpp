@@ -4,6 +4,10 @@
 
 NS_BEGIN
 
+Vector<GLuint> Builder<Mesh>::g_vbos;
+Vector<GLuint> Builder<Mesh>::g_ibos;
+Vector<GLuint> Builder<Mesh>::g_vaos;
+
 void VertexFormat::put(const String& name, AttributeType type, bool normalized, i32 location) {
 	VertexAttribute attr;
 	attr.size = type;
@@ -44,45 +48,12 @@ void VertexFormat::unbind(ShaderProgram* shader) {
 	}
 }
 
-Mesh::~Mesh() {
-	if (m_vbo) GLBuffer::destroy(m_vbo);
-	if (m_ibo && m_indexed) GLBuffer::destroy(m_ibo);
-	if (m_vao && m_useVertexArrays) GLVertexArray::destroy(m_vao);
+void Mesh::bind() {
+	glBindVertexArray(m_vao);
 }
 
-Mesh::Mesh(bool indexed, bool vao)
-	: m_indexed(indexed), m_useVertexArrays(vao)
-{
-	m_format = uptr<VertexFormat>(new VertexFormat());
-	m_vbo = GLBuffer::create();
-	if (indexed) m_ibo = GLBuffer::create();
-	if (vao) m_vao = GLVertexArray::create();
-
-	m_format->put("vPosition", AttributeType::AttrVector3, false, 0);
-	m_format->put("vNormal", AttributeType::AttrVector3, false, 1);
-	m_format->put("vTangent", AttributeType::AttrVector3, false, 2);
-	m_format->put("vTexCoord", AttributeType::AttrVector2, false, 3);
-	m_format->put("vColor", AttributeType::AttrVector4, false, 4);
-}
-
-void Mesh::bind(ShaderProgram* shader) {
-	if (m_useVertexArrays) {
-		glBindVertexArray(m_vao);
-	} else {
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-		m_format->bind(shader);
-		if (m_indexed) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	}
-}
-
-void Mesh::unbind(ShaderProgram* shader) {
-	if (m_useVertexArrays) {
-		glBindVertexArray(0);
-	} else {
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		m_format->unbind(shader);
-		if (m_indexed) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	}
+void Mesh::unbind() {
+	glBindVertexArray(0);
 }
 
 u8* Mesh::map() {
@@ -95,24 +66,54 @@ void Mesh::unmap() {
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
-MeshFactory& MeshFactory::addVertex(const Vertex& vert) {
+void Mesh::flush() {
+	if (m_vertexData.empty()) return;
+
+	glBindVertexArray(m_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+
+	m_format.bind();
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+	glBindVertexArray(0);
+
+	i32 vsize = m_format.stride() * m_vertexData.size();
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	glBufferData(GL_ARRAY_BUFFER, vsize, m_vertexData.data(), GL_STATIC_DRAW);
+
+	i32 isize = 4 * m_indexData.size();
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, isize, m_indexData.data(), GL_STATIC_DRAW);
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	m_vertexCount = m_vertexData.size();
+	m_indexCount = m_indexData.size();
+
+	m_vertexData.clear();
+	m_indexData.clear();
+}
+
+Mesh& Mesh::addVertex(const Vertex& vert) {
 	m_vertexData.push_back(vert);
 	return *this;
 }
 
-MeshFactory& MeshFactory::addIndex(i32 index) {
+Mesh& Mesh::addIndex(i32 index) {
 	m_indexData.push_back(index);
 	return *this;
 }
 
-MeshFactory& MeshFactory::addTriangle(i32 i0, i32 i1, i32 i2) {
+Mesh& Mesh::addTriangle(i32 i0, i32 i1, i32 i2) {
 	m_indexData.push_back(i0);
 	m_indexData.push_back(i1);
 	m_indexData.push_back(i2);
 	return *this;
 }
 
-MeshFactory& MeshFactory::addData(const Vector<Vertex>& vertices, const Vector<i32>& indices) {
+Mesh& Mesh::addData(const Vector<Vertex>& vertices, const Vector<i32>& indices) {
 	i32 off = m_vertexData.size();
 	m_vertexData.insert(m_vertexData.end(), vertices.begin(), vertices.end());
 	for (auto i : indices) {
@@ -121,14 +122,22 @@ MeshFactory& MeshFactory::addData(const Vector<Vertex>& vertices, const Vector<i
 	return *this;
 }
 
-MeshFactory& MeshFactory::addFromFile(const String& file) {
+Mesh& Mesh::addFromFile(const String& file) {
 	Assimp::Importer imp;
-	const aiScene* scene = imp.ReadFile(
-		file.c_str(),
-		aiPostProcessSteps::aiProcess_Triangulate |
-		aiPostProcessSteps::aiProcess_FlipUVs |
-		aiPostProcessSteps::aiProcess_CalcTangentSpace |
-		aiPostProcessSteps::aiProcess_FlipWindingOrder
+	
+	String ext = file.substr(file.find_last_of('.')+1);
+	
+	VFS::get().openRead(file);
+	fsize len;
+	u8* data = VFS::get().read(&len);
+	VFS::get().close();
+	
+	const aiScene* scene = imp.ReadFileFromMemory(data, len,
+			aiPostProcessSteps::aiProcess_Triangulate |
+			aiPostProcessSteps::aiProcess_FlipUVs |
+			aiPostProcessSteps::aiProcess_CalcTangentSpace |
+			aiPostProcessSteps::aiProcess_FlipWindingOrder,
+			ext.c_str()
 	);
 	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) {
 		LogError(imp.GetErrorString());
@@ -139,25 +148,7 @@ MeshFactory& MeshFactory::addFromFile(const String& file) {
 	return *this;
 }
 
-MeshFactory& MeshFactory::addFromFile(VirtualFile* file) {
-	Assimp::Importer imp;
-	const aiScene* scene = imp.ReadFileFromMemory(
-		file->readAll(), file->size,
-		aiPostProcessSteps::aiProcess_Triangulate |
-		aiPostProcessSteps::aiProcess_FlipUVs |
-		aiPostProcessSteps::aiProcess_CalcTangentSpace |
-		aiPostProcessSteps::aiProcess_FlipWindingOrder
-	);
-	if (scene == nullptr) {
-		LogError(imp.GetErrorString());
-		return *this;
-	}
-	addAIScene(scene);
-
-	return *this;
-}
-
-MeshFactory& MeshFactory::calculateNormals(PrimitiveType primitive) {
+Mesh& Mesh::calculateNormals(PrimitiveType primitive) {
 	switch (primitive) {
 		case PrimitiveType::Points:
 		case PrimitiveType::Lines:
@@ -207,7 +198,7 @@ MeshFactory& MeshFactory::calculateNormals(PrimitiveType primitive) {
 	return *this;
 }
 
-MeshFactory& MeshFactory::calculateTangents(PrimitiveType primitive) {
+Mesh& Mesh::calculateTangents(PrimitiveType primitive) {
 	switch (primitive) {
 		case PrimitiveType::Points:
 		case PrimitiveType::Lines:
@@ -257,51 +248,14 @@ MeshFactory& MeshFactory::calculateTangents(PrimitiveType primitive) {
 	return *this;
 }
 
-MeshFactory& MeshFactory::transformTexCoords(const Mat4& t) {
+Mesh& Mesh::transformTexCoords(const Mat4& t) {
 	for (auto& v : m_vertexData) {
 		v.texCoord = (t * Vec4(v.texCoord.x, v.texCoord.y, 0.0f, 1.0f)).xy;
 	}
 	return *this;
 }
 
-uptr<Mesh> MeshFactory::build(bool indexed, bool vao) {
-	if (m_vertexData.empty()) return nullptr;
-
-	uptr<Mesh> mesh(new Mesh(indexed, vao));
-
-	if (vao) {
-		glBindVertexArray(mesh->m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, mesh->m_vbo);
-
-		mesh->m_format->bind();
-
-		if (indexed) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->m_ibo);
-		glBindVertexArray(0);
-	}
-
-	i32 vsize = mesh->m_format->stride() * m_vertexData.size();
-
-	glBindBuffer(GL_ARRAY_BUFFER, mesh->m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, vsize, m_vertexData.data(), GL_STATIC_DRAW);
-
-	if (indexed) {
-		i32 isize = 4 * m_indexData.size();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->m_ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, isize, m_indexData.data(), GL_STATIC_DRAW);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	mesh->m_vertexCount = m_vertexData.size();
-	mesh->m_indexCount = m_indexData.size();
-
-	m_vertexData.clear();
-	m_indexData.clear();
-
-	return mesh;
-}
-
-void MeshFactory::triNormal(i32 i0, i32 i1, i32 i2) {
+void Mesh::triNormal(i32 i0, i32 i1, i32 i2) {
 	Vec3 v0 = m_vertexData[i0].position;
 	Vec3 v1 = m_vertexData[i1].position;
 	Vec3 v2 = m_vertexData[i2].position;
@@ -315,7 +269,7 @@ void MeshFactory::triNormal(i32 i0, i32 i1, i32 i2) {
 	m_vertexData[i2].normal += n;
 }
 
-void MeshFactory::triTangent(i32 i0, i32 i1, i32 i2) {
+void Mesh::triTangent(i32 i0, i32 i1, i32 i2) {
 	Vec3 v0 = m_vertexData[i0].position;
 	Vec3 v1 = m_vertexData[i1].position;
 	Vec3 v2 = m_vertexData[i2].position;
@@ -344,7 +298,7 @@ void MeshFactory::triTangent(i32 i0, i32 i1, i32 i2) {
 	m_vertexData[i2].tangent += t;
 }
 
-void MeshFactory::addAIScene(const aiScene* scene) {
+void Mesh::addAIScene(const aiScene* scene) {
 	i32 off = m_vertexData.size();
 
 	const aiVector3D aiZeroVector(0.0f, 0.0f, 0.0f);

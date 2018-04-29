@@ -42,23 +42,25 @@ void main() {
 class TestApp : public IApplicationAdapter {
 public:
 	void init() {
-		proj = Mat4::perspective(radians(45), 640.0f / 480.0f, 0.01f, 200.0f);
-		view = Mat4::translation(Vec3(0, 0, -2));
-		mdl = Mat4::rotationY(radians(45));
+		VFS::get().mountDefault(); // mounts to where the application resides
+		
+		proj = Mat4::perspective(radians(30), 640.0f / 480.0f, 0.02f, 600.0f);
+		view = Mat4::translation(Vec3(0, 0, -4));
+		mdl = Mat4::rotationY(radians(25));
 
 		glClearColor(0.04f, 0.25f, 0.53f, 1.0f);
 
-		prog = uptr<ShaderProgram>(new ShaderProgram());
-		prog->add(VS, api::ShaderType::VertexShader);
-		prog->add(FS, api::ShaderType::FragmentShader);
-		prog->link();
+		prog = Builder<ShaderProgram>::create();
+		prog.add(VS, api::ShaderType::VertexShader)
+			.add(FS, api::ShaderType::FragmentShader)
+			.link();
 
-		model = MeshFactory()
-			.addFromFile("monkey.obj")
-			.build();
+		model = Builder<Mesh>::create();
+		model.addFromFile("cube.obj").flush();
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
 	}
 
 	void update(float timeDelta) {
@@ -70,17 +72,17 @@ public:
 	void render() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		prog->bind();
-		prog->get("mProj").value().set(proj);
-		prog->get("mView").value().set(view);
-		prog->get("mModel").value().set(mdl);
+		prog.bind();
+		prog.get("mProj").value().set(proj);
+		prog.get("mView").value().set(view);
+		prog.get("mModel").value().set(mdl);
 
-		model->bind();
-		glDrawElements(GL_TRIANGLES, model->indexCount(), GL_UNSIGNED_INT, nullptr);
+		model.bind();
+		glDrawElements(GL_TRIANGLES, model.indexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
-	uptr<ShaderProgram> prog;
-	uptr<Mesh> model;
+	ShaderProgram prog;
+	Mesh model;
 	Mat4 proj, view, mdl;
 };
 

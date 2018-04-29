@@ -1,6 +1,7 @@
 #ifndef API_H
 #define API_H
 
+#include "../core/builder.h"
 #include "../core/types.h"
 
 extern "C" {
@@ -101,6 +102,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 	};
 
 	static i32 getDataTypeSize(DataType dt);
+	
 }
 
 NS_END

@@ -1,13 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#if defined(DEBUG) || defined(_DEBUG)
+#if defined(DEBUG) || defined(_DEBUG) || defined(NDEBUG)
 #	define ENG_DEBUG
-#endif
-#ifdef NDEBUG
-#	ifndef ENG_DEBUG
-#		define ENG_DEBUG
-#	endif
 #endif
 
 #include <cstdint>
@@ -22,8 +17,9 @@
 #include <functional>
 #include <tuple>
 #include <algorithm>
-#include <experimental/optional>
 #include <memory>
+//#include "optional.hpp"
+#include <experimental/optional>
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;

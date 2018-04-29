@@ -2,41 +2,7 @@
 
 NS_BEGIN
 
-ShaderProgram::ShaderProgram() {
-	m_program = GLProgram::create();
-	m_valid = false;
-}
-
-ShaderProgram::~ShaderProgram() {
-	if (m_program) {
-		GLProgram::destroy(m_program);
-	}
-}
-
-void ShaderProgram::add(const String& source, ShaderType type) {
-	const char *c_str = source.c_str();
-	GLuint s = GLShader::create(type);
-	glShaderSource(s, 1, &c_str, NULL);
-	glCompileShader(s);
-
-	GLint err;
-	glGetShaderiv(s, GL_COMPILE_STATUS, &err);
-
-	if (err != GL_FALSE) {
-		glAttachShader(m_program, s);
-		m_valid = true;
-	} else {
-		m_valid = false;
-	}
-
-	GLShader::destroy(s);
-}
-
-void ShaderProgram::link() {
-	if (m_valid) {
-		glLinkProgram(m_program);
-	}
-}
+Vector<GLuint> Builder<ShaderProgram>::g_programs;
 
 void ShaderProgram::bind() {
 	glUseProgram(m_program);
@@ -74,6 +40,32 @@ opt<Uniform> ShaderProgram::get(const String& name) {
 	i32 loc = getUniformLocation(name);
 	if (loc == -1) return {};
 	return Uniform(loc);
+}
+
+ShaderProgram& ShaderProgram::add(const String& source, ShaderType type) {
+	const char *c_str = source.c_str();
+	GLuint s = GLShader::create(type);
+	glShaderSource(s, 1, &c_str, NULL);
+	glCompileShader(s);
+
+	GLint err;
+	glGetShaderiv(s, GL_COMPILE_STATUS, &err);
+
+	if (err != GL_FALSE) {
+		glAttachShader(m_program, s);
+		m_valid = true;
+	} else {
+		m_valid = false;
+	}
+
+	GLShader::destroy(s);
+
+	return *this;
+}
+
+void ShaderProgram::link() {
+	if (!m_valid) return;
+	glLinkProgram(m_program);
 }
 
 NS_END
