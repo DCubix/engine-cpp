@@ -117,6 +117,7 @@ bool VFS::close() {
 		return false;
 	}
 	PHYSFS_close(m_file);
+	m_file = nullptr;
 	return true;
 }
 

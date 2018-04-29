@@ -81,6 +81,21 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		CubeMapPZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 		CubeMapNZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 	};
+	
+	enum TextureWrap {
+		None = 0,
+		Repeat = GL_REPEAT,
+		Clamp = GL_CLAMP_TO_EDGE
+	};
+	
+	enum TextureFilter {
+		Nearest = GL_NEAREST,
+		Linear = GL_LINEAR,
+		NearestMipNearest = GL_NEAREST_MIPMAP_NEAREST,
+		NearestMipLinear = GL_NEAREST_MIPMAP_LINEAR,
+		LinearMipLinear = GL_LINEAR_MIPMAP_LINEAR,
+		LinearMipNearest = GL_LINEAR_MIPMAP_NEAREST
+	};
 
 	enum FramebufferTarget {
 		Framebuffer = GL_FRAMEBUFFER,

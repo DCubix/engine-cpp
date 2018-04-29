@@ -10,6 +10,7 @@ extern "C" {
 
 #include "../gfx/shader.h"
 #include "../gfx/mesher.h"
+#include "../gfx/texture.h"
 
 NS_BEGIN
 
@@ -126,8 +127,10 @@ void Application::run() {
 		GL_FALSE
 	);
 
-//	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
+	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
 #endif
+	
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	if (GLVersion.major < 3) {
 		SDL_Quit();
@@ -144,6 +147,7 @@ void Application::run() {
 	// Free resources
 	Builder<ShaderProgram>::clean();
 	Builder<Mesh>::clean();
+	Builder<Texture>::clean();
 	VFS::get().shutdown();
 	
 	LogInfo("Application Finished.");

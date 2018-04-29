@@ -19,11 +19,16 @@
         <df name="glad">
           <in>glad.c</in>
         </df>
+        <df name="stb">
+          <in>stb.c</in>
+          <in>stb_image.h</in>
+          <in>stb_image_write.h</in>
+        </df>
         <in>api.cpp</in>
-        <in>image.cpp</in>
-        <in>image.h</in>
         <in>mesher.cpp</in>
         <in>shader.cpp</in>
+        <in>texture.cpp</in>
+        <in>texture.h</in>
       </df>
       <df name="math">
         <in>mat.cpp</in>
@@ -127,10 +132,6 @@
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="engine/src/gfx/image.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/image.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="engine/src/gfx/mesher.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
@@ -138,6 +139,19 @@
       <item path="engine/src/gfx/shader.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
+      </item>
+      <item path="engine/src/gfx/stb/stb.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="engine/src/gfx/stb/stb_image.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/gfx/stb/stb_image_write.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="engine/src/gfx/texture.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="engine/src/gfx/texture.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/main.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="2">

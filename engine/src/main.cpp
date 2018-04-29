@@ -5,6 +5,7 @@
 #include "gfx/api.h"
 #include "gfx/shader.h"
 #include "gfx/mesher.h"
+#include "gfx/texture.h"
 #include "core/filesys.h"
 
 static const String VS = R"(
@@ -16,6 +17,7 @@ layout (location = 3) in vec2 vTexCoord;
 layout (location = 4) in vec4 vColor;
 out vec3 oPosition;
 out vec3 oNormal;
+out vec2 oUV;
 uniform mat4 mProj;
 uniform mat4 mView;
 uniform mat4 mModel;
@@ -23,6 +25,7 @@ void main() {
 	gl_Position = mProj * mView * mModel * vec4(vPosition, 1.0);
 	oPosition = (mView * mModel * vec4(vPosition, 1.0)).xyz;
 	oNormal = normalize(mView * mModel * vec4(vNormal, 0.0)).xyz;
+	oUV = vTexCoord;
 }
 )";
 
@@ -31,11 +34,15 @@ static const String FS = R"(
 out vec4 fragColor;
 in vec3 oPosition;
 in vec3 oNormal;
+in vec2 oUV;
+
+uniform sampler2D tTex;
+
 void main() {
 	vec3 n = normalize(oNormal);
 	vec3 v = normalize(-oPosition);
 	float nv = max(dot(n, v), 0.0);
-	fragColor = vec4(vec3(nv), 1.0);
+	fragColor = vec4(vec3(nv), 1.0) * texture(tTex, oUV);
 }
 )";
 
@@ -57,6 +64,13 @@ public:
 
 		model = Builder<Mesh>::create();
 		model.addFromFile("cube.obj").flush();
+		
+		rock_ground = Builder<Texture>::create();
+		rock_ground.bind(TextureTarget::Texture2D)
+			.setFromFile("rock_ground.jpg")
+			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
+			.setWrap()
+			.unbind();
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
@@ -73,9 +87,13 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		prog.bind();
+		
+		rock_ground.bind(0);
+		
 		prog.get("mProj").value().set(proj);
 		prog.get("mView").value().set(view);
 		prog.get("mModel").value().set(mdl);
+		prog.get("tTex").value().set(0);
 
 		model.bind();
 		glDrawElements(GL_TRIANGLES, model.indexCount(), GL_UNSIGNED_INT, nullptr);
@@ -83,6 +101,7 @@ public:
 
 	ShaderProgram prog;
 	Mesh model;
+	Texture rock_ground;
 	Mat4 proj, view, mdl;
 };
 

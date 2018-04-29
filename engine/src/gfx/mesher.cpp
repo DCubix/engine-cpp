@@ -139,6 +139,9 @@ Mesh& Mesh::addFromFile(const String& file) {
 			aiPostProcessSteps::aiProcess_FlipWindingOrder,
 			ext.c_str()
 	);
+	
+	delete[] data;
+	
 	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) {
 		LogError(imp.GetErrorString());
 		return *this;

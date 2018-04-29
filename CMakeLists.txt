@@ -33,6 +33,8 @@ file(GLOB SRC
 	"engine/src/gfx/*.cpp"
 	"engine/src/gfx/glad/*.h"
 	"engine/src/gfx/glad/*.c"
+	"engine/src/gfx/stb/*.h"
+	"engine/src/gfx/stb/*.c"
 	"engine/src/math/*.h"
 	"engine/src/math/*.cpp"
 )

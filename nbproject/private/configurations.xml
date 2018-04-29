@@ -29,14 +29,19 @@
           <in>glad.c</in>
           <in>glad.h</in>
         </df>
+        <df name="stb">
+          <in>stb.c</in>
+          <in>stb_image.h</in>
+          <in>stb_image_write.h</in>
+        </df>
         <in>api.cpp</in>
         <in>api.h</in>
-        <in>image.cpp</in>
-        <in>image.h</in>
         <in>mesher.cpp</in>
         <in>mesher.h</in>
         <in>shader.cpp</in>
         <in>shader.h</in>
+        <in>texture.cpp</in>
+        <in>texture.h</in>
       </df>
       <df name="math">
         <in>consts.h</in>
