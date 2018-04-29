@@ -6,7 +6,7 @@
 template <typename T>
 class Builder {
 public:
-	static T create() {}
+	static T build() {}
 	static void clean() {}
 };
 

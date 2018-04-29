@@ -15,7 +15,29 @@ struct ImageData {
 	int w, h, comp;
 	bool hdr;
 };
-		
+
+class Sampler {
+	friend class Texture;
+public:
+	Sampler() = default;
+	Sampler(GLuint id) : m_id(id) {}
+	
+	Sampler& setWrap(
+			TextureWrap s = TextureWrap::Repeat,
+			TextureWrap t = TextureWrap::Repeat,
+			TextureWrap r = TextureWrap::None
+	);
+	Sampler& setFilter(TextureFilter min, TextureFilter mag);
+	
+	Sampler& setSeamlessCubemap(bool enable);
+	
+	void bind(u32 slot) const { glBindSampler(slot, m_id); }
+	void unbind(u32 slot) const { glBindSampler(slot, 0); }
+	
+protected:
+	GLuint m_id;
+};
+
 class Texture {
 public:
 	Texture() = default;
@@ -25,18 +47,10 @@ public:
 	Texture& setFromFile(const String& file);
 	Texture& setNull(int w, int h, GLint ifmt, GLenum fmt, DataType data);
 	
-	Texture& setWrap(
-			TextureWrap s = TextureWrap::Repeat,
-			TextureWrap t = TextureWrap::Repeat,
-			TextureWrap r = TextureWrap::None
-	);
-	
-	Texture& setFilter(TextureFilter min, TextureFilter mag);
-	
 	Texture& generateMipmaps();
 	
 	Texture& bind(TextureTarget target);
-	void bind(u32 slot = 0);
+	void bind(const Sampler& sampler, u32 slot = 0);
 	void unbind();
 	
 	TextureTarget target() const { return m_target; }
@@ -49,7 +63,7 @@ private:
 template <>
 class Builder<Texture> {
 public:
-	static Texture create() {
+	static Texture build() {
 		g_textures.push_back(GLTexture::create());
 		return Texture(g_textures.back());
 	}
@@ -61,6 +75,23 @@ public:
 	}
 private:
 	static Vector<GLuint> g_textures;
+};
+
+template <>
+class Builder<Sampler> {
+public:
+	static Sampler build() {
+		g_samplers.push_back(GLSampler::create());
+		return Sampler(g_samplers.back());
+	}
+	
+	static void clean() {
+		for (GLuint b : g_samplers) {
+			GLSampler::destroy(b);
+		}
+	}
+private:
+	static Vector<GLuint> g_samplers;
 };
 
 NS_END

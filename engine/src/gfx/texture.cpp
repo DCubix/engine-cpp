@@ -6,6 +6,26 @@
 NS_BEGIN
 
 Vector<GLuint> Builder<Texture>::g_textures;
+Vector<GLuint> Builder<Sampler>::g_samplers;
+
+Sampler& Sampler::setWrap(TextureWrap s, TextureWrap t, TextureWrap r) {
+	glSamplerParameteri(m_id, GL_TEXTURE_WRAP_S, s);
+	glSamplerParameteri(m_id, GL_TEXTURE_WRAP_T, t);
+	if (r != TextureWrap::None)
+		glSamplerParameteri(m_id, GL_TEXTURE_WRAP_R, r);
+	return *this;
+}
+
+Sampler& Sampler::setFilter(TextureFilter min, TextureFilter mag) {
+	glSamplerParameteri(m_id, GL_TEXTURE_MIN_FILTER, min);
+	glSamplerParameteri(m_id, GL_TEXTURE_MAG_FILTER, mag);
+	return *this;
+}
+
+Sampler& Sampler::setSeamlessCubemap(bool enable) {
+	glSamplerParameteri(m_id, GL_TEXTURE_CUBE_MAP_SEAMLESS, enable ? 1 : 0);
+	return *this;
+}
 
 static ImageData loadImage(const String& file) {
 	VFS::get().openRead(file);
@@ -105,28 +125,9 @@ Texture& Texture::setNull(int w, int h, GLint ifmt, GLenum fmt, DataType data) {
 	return *this;
 }
 
-Texture& Texture::setWrap(TextureWrap s, TextureWrap t, TextureWrap r) {
-	glTexParameteri(m_target, GL_TEXTURE_WRAP_S, s);
-	glTexParameteri(m_target, GL_TEXTURE_WRAP_T, t);
-	if (r != TextureWrap::None)
-		glTexParameteri(m_target, GL_TEXTURE_WRAP_R, r);
-	return *this;
-}
-
-Texture& Texture::setFilter(TextureFilter min, TextureFilter mag) {
-	glTexParameteri(m_target, GL_TEXTURE_MIN_FILTER, min);
-	glTexParameteri(m_target, GL_TEXTURE_MAG_FILTER, mag);
-	if (min == TextureFilter::LinearMipLinear ||
-		min == TextureFilter::LinearMipNearest ||
-		min == TextureFilter::NearestMipLinear ||
-		min == TextureFilter::NearestMipNearest) {
-		glGenerateMipmap(m_target);
-	}
-	return *this;
-}
-
 Texture& Texture::generateMipmaps() {
 	glGenerateMipmap(m_target);
+	return *this;
 }
 
 Texture& Texture::bind(TextureTarget target) {
@@ -135,9 +136,10 @@ Texture& Texture::bind(TextureTarget target) {
 	return *this;
 }
 
-void Texture::bind(u32 slot) {
+void Texture::bind(const Sampler& sampler, u32 slot) {
 	glActiveTexture(GL_TEXTURE0 + slot);
 	glBindTexture(m_target, m_id);
+	sampler.bind(slot);
 }
 
 void Texture::unbind() {

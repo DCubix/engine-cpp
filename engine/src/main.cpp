@@ -57,19 +57,23 @@ public:
 
 		glClearColor(0.04f, 0.25f, 0.53f, 1.0f);
 
-		prog = Builder<ShaderProgram>::create();
+		prog = Builder<ShaderProgram>::build();
 		prog.add(VS, api::ShaderType::VertexShader)
 			.add(FS, api::ShaderType::FragmentShader)
 			.link();
 
-		model = Builder<Mesh>::create();
+		model = Builder<Mesh>::build();
 		model.addFromFile("cube.obj").flush();
 		
-		rock_ground = Builder<Texture>::create();
+		rock_ground_smp = Builder<Sampler>::build();
+		rock_ground_smp
+				.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
+				.setWrap();
+		
+		rock_ground = Builder<Texture>::build();
 		rock_ground.bind(TextureTarget::Texture2D)
 			.setFromFile("rock_ground.jpg")
-			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
-			.setWrap()
+			.generateMipmaps()
 			.unbind();
 
 		glEnable(GL_CULL_FACE);
@@ -81,6 +85,8 @@ public:
 		if (Input::isKeyPressed(SDLK_ESCAPE)) {
 			MessageSystem::ston().submitAndSend("app_quit");
 		}
+		
+//		mdl = mdl * Mat4::rotationY(timeDelta);
 	}
 
 	void render() {
@@ -88,7 +94,7 @@ public:
 
 		prog.bind();
 		
-		rock_ground.bind(0);
+		rock_ground.bind(rock_ground_smp, 0);
 		
 		prog.get("mProj").value().set(proj);
 		prog.get("mView").value().set(view);
@@ -102,6 +108,7 @@ public:
 	ShaderProgram prog;
 	Mesh model;
 	Texture rock_ground;
+	Sampler rock_ground_smp;
 	Mat4 proj, view, mdl;
 };
 

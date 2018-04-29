@@ -54,7 +54,7 @@ protected:
 template <>
 class Builder<ShaderProgram> {
 public:
-	static ShaderProgram create() {
+	static ShaderProgram build() {
 		g_programs.push_back(GLProgram::create());
 		return ShaderProgram(g_programs.back());
 	}

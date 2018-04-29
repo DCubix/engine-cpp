@@ -130,8 +130,6 @@ void Application::run() {
 	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
 #endif
 	
-	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
 	if (GLVersion.major < 3) {
 		SDL_Quit();
 		LogFatal("Your GPU doesn't seem to support OpenGL 3.3 Core.");
@@ -148,6 +146,7 @@ void Application::run() {
 	Builder<ShaderProgram>::clean();
 	Builder<Mesh>::clean();
 	Builder<Texture>::clean();
+	Builder<Sampler>::clean();
 	VFS::get().shutdown();
 	
 	LogInfo("Application Finished.");

@@ -22,6 +22,7 @@ struct GL##name { \
 DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 
 	DEF_GL_TYPE_TRAIT(Texture, glGenTextures, glDeleteTextures);
+	DEF_GL_TYPE_TRAIT(Sampler, glGenSamplers, glDeleteSamplers);
 	DEF_GL_TYPE_TRAIT(Buffer, glGenBuffers, glDeleteBuffers);
 	DEF_GL_TYPE_TRAIT(Framebuffer, glGenFramebuffers, glDeleteFramebuffers);
 	DEF_GL_TYPE_TRAIT(VertexArray, glGenVertexArrays, glDeleteVertexArrays);
@@ -85,7 +86,8 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 	enum TextureWrap {
 		None = 0,
 		Repeat = GL_REPEAT,
-		Clamp = GL_CLAMP_TO_EDGE
+		ClampToEdge = GL_CLAMP_TO_EDGE,
+		ClampToBorder = GL_CLAMP_TO_BORDER
 	};
 	
 	enum TextureFilter {

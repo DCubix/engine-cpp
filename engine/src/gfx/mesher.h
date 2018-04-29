@@ -130,7 +130,7 @@ protected:
 template <>
 class Builder<Mesh> {
 public:
-	static Mesh create() {
+	static Mesh build() {
 		g_vbos.push_back(GLBuffer::create());
 		g_ibos.push_back(GLBuffer::create());
 		g_vaos.push_back(GLVertexArray::create());
