@@ -135,7 +135,7 @@ Mat4 Mat4::ortho2D(float width, float height) {
 Mat4 Mat4::frustum(float l, float r, float t, float b, float n, float f) {
 	float n2 = 2.0f * n;
 	float w = r - l;
-	float h = t - b;
+	float h = b - t;
 	float d = f - n;
 	return Mat4(
 		n2 / w, 0.0f, 0.0f, 0.0f,

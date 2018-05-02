@@ -6,7 +6,8 @@
 
 NS_BEGIN
 
-struct Quat {
+class Quat {
+public:
 	union {
 		float val[4];
 		struct { float x, y, z, w; };

@@ -37,6 +37,8 @@ file(GLOB SRC
 	"engine/src/gfx/stb/*.c"
 	"engine/src/math/*.h"
 	"engine/src/math/*.cpp"
+	"engine/src/components/*.h"
+	"engine/src/components/*.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

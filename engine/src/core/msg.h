@@ -6,8 +6,11 @@
 NS_BEGIN
 
 class Message {
+	friend class MessageSystem;
 public:
 	String type;
+protected:
+	float time;
 };
 
 class IObject {
@@ -20,12 +23,11 @@ public:
 	MessageSystem() {}
 
 	void subscribe(IObject* obj);
-	void submit(const String& type, Message* msg = nullptr);
-	void submitAndSend(const String& type, Message* msg = nullptr);
+	void submit(const String& type, Message* msg = nullptr, float delay = 0);
 
-	void send();
-
-	static MessageSystem& ston() { return *s_ston; }
+	void processQueue(float dt);
+	
+	static MessageSystem& get() { return *s_ston; }
 private:
 	MessageSystem(const MessageSystem&) = delete;
 	MessageSystem& operator =(const MessageSystem&) = delete;

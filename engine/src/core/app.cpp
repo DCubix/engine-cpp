@@ -60,7 +60,7 @@ Application::Application(IApplicationAdapter* adapter, ApplicationConfig config)
 	m_applicationAdapter = uptr<IApplicationAdapter>(mov(adapter));
 	m_config = mov(config);
 
-	MessageSystem::ston().subscribe(this);
+	MessageSystem::get().subscribe(this);
 }
 
 void Application::run() {
@@ -179,6 +179,8 @@ void Application::eng_mainloop() {
 			Input::update();
 
 			m_applicationAdapter->update(float(timeStep));
+			MessageSystem::get().processQueue(float(timeStep));
+			
 			canRender = true;
 		}
 

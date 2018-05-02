@@ -77,7 +77,7 @@ struct Vertex {
 
 class Mesh {
 public:
-	Mesh() = default;
+	Mesh() : m_vbo(0), m_ibo(0), m_vao(0) {}
 	Mesh(GLuint vbo, GLuint ibo, GLuint vao) : m_vbo(vbo), m_ibo(ibo), m_vao(vao) {
 		m_format.put("vPosition", AttributeType::AttrVector3, false, 0);
 		m_format.put("vNormal", AttributeType::AttrVector3, false, 1);

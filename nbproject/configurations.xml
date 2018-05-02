@@ -2,17 +2,22 @@
 <configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="engine/src" name="0">
+      <df name="components">
+        <in>transform.cpp</in>
+        <in>transform.h</in>
+      </df>
       <df name="core">
         <df name="logging">
           <in>log.cpp</in>
         </df>
         <in>app.cpp</in>
         <in>builder.h</in>
+        <in>ecs.cpp</in>
+        <in>ecs.h</in>
         <in>engine.cpp</in>
         <in>filesys.cpp</in>
         <in>input.cpp</in>
         <in>msg.cpp</in>
-        <in>optional.hpp</in>
         <in>types.cpp</in>
       </df>
       <df name="gfx">
@@ -92,11 +97,22 @@
           <preBuildCommand>${CMAKE} -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 ..</preBuildCommand>
         </preBuild>
       </makefileType>
+      <item path="engine/src/components/transform.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="engine/src/components/transform.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/core/app.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
       </item>
       <item path="engine/src/core/builder.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/core/ecs.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="engine/src/core/ecs.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/core/engine.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
@@ -117,8 +133,6 @@
       <item path="engine/src/core/msg.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
-      </item>
-      <item path="engine/src/core/optional.hpp" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/core/types.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">

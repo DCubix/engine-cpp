@@ -135,8 +135,7 @@ Mesh& Mesh::addFromFile(const String& file) {
 	const aiScene* scene = imp.ReadFileFromMemory(data, len,
 			aiPostProcessSteps::aiProcess_Triangulate |
 			aiPostProcessSteps::aiProcess_FlipUVs |
-			aiPostProcessSteps::aiProcess_CalcTangentSpace |
-			aiPostProcessSteps::aiProcess_FlipWindingOrder,
+			aiPostProcessSteps::aiProcess_CalcTangentSpace,
 			ext.c_str()
 	);
 	

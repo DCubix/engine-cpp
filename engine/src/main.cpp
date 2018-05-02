@@ -1,12 +1,16 @@
 #include <iostream>
 
+#include "core/ecs.h"
+#include "components/transform.h"
+
 #include "core/input.h"
 #include "core/app.h"
+#include "core/filesys.h"
 #include "gfx/api.h"
 #include "gfx/shader.h"
 #include "gfx/mesher.h"
 #include "gfx/texture.h"
-#include "core/filesys.h"
+
 
 static const String VS = R"(
 #version 330 core
@@ -38,10 +42,12 @@ in vec2 oUV;
 
 uniform sampler2D tTex;
 
+const vec3 lightDir = vec3(1.0);
+
 void main() {
 	vec3 n = normalize(oNormal);
-	vec3 v = normalize(-oPosition);
-	float nv = max(dot(n, v), 0.0);
+	vec3 v = normalize(lightDir);
+	float nv = max(dot(n, v), 0.2);
 	fragColor = vec4(vec3(nv), 1.0) * texture(tTex, oUV);
 }
 )";
@@ -50,6 +56,15 @@ class TestApp : public IApplicationAdapter {
 public:
 	void init() {
 		VFS::get().mountDefault(); // mounts to where the application resides
+		
+		Entity& e = eworld.create()
+				.assign<Transform>();
+		
+		e.get<Transform>()->position = Vec3(3.0f, 4.0f, 2.0f);
+		
+		eworld.each([=](Entity& ent, Transform& t) {
+			LogInfo(t.position.x);
+		});
 		
 		proj = Mat4::perspective(radians(30), 640.0f / 480.0f, 0.02f, 600.0f);
 		view = Mat4::translation(Vec3(0, 0, -4));
@@ -63,16 +78,16 @@ public:
 			.link();
 
 		model = Builder<Mesh>::build();
-		model.addFromFile("cube.obj").flush();
+		model.addFromFile("test.glb").flush();
 		
-		rock_ground_smp = Builder<Sampler>::build();
-		rock_ground_smp
+		texture_smp = Builder<Sampler>::build();
+		texture_smp
 				.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
 				.setWrap();
 		
-		rock_ground = Builder<Texture>::build();
-		rock_ground.bind(TextureTarget::Texture2D)
-			.setFromFile("rock_ground.jpg")
+		texture = Builder<Texture>::build();
+		texture.bind(TextureTarget::Texture2D)
+			.setFromFile("tex_col.png")
 			.generateMipmaps()
 			.unbind();
 
@@ -83,10 +98,10 @@ public:
 
 	void update(float timeDelta) {
 		if (Input::isKeyPressed(SDLK_ESCAPE)) {
-			MessageSystem::ston().submitAndSend("app_quit");
+			MessageSystem::get().submit("app_quit");
 		}
 		
-//		mdl = mdl * Mat4::rotationY(timeDelta);
+		mdl = mdl * Mat4::rotationY(timeDelta);
 	}
 
 	void render() {
@@ -94,7 +109,7 @@ public:
 
 		prog.bind();
 		
-		rock_ground.bind(rock_ground_smp, 0);
+		texture.bind(texture_smp, 0);
 		
 		prog.get("mProj").value().set(proj);
 		prog.get("mView").value().set(view);
@@ -107,9 +122,11 @@ public:
 
 	ShaderProgram prog;
 	Mesh model;
-	Texture rock_ground;
-	Sampler rock_ground_smp;
+	Texture texture;
+	Sampler texture_smp;
 	Mat4 proj, view, mdl;
+	
+	EntityWorld eworld;
 };
 
 int main(int argc, char** argv) {

@@ -2,6 +2,10 @@
 <configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="engine/src" name="0">
+      <df name="components">
+        <in>transform.cpp</in>
+        <in>transform.h</in>
+      </df>
       <df name="core">
         <df name="logging">
           <in>log.cpp</in>
@@ -11,6 +15,8 @@
         <in>app.cpp</in>
         <in>app.h</in>
         <in>builder.h</in>
+        <in>ecs.cpp</in>
+        <in>ecs.h</in>
         <in>engine.cpp</in>
         <in>engine.h</in>
         <in>filesys.cpp</in>
@@ -20,7 +26,6 @@
         <in>json.hpp</in>
         <in>msg.cpp</in>
         <in>msg.h</in>
-        <in>optional.hpp</in>
         <in>types.cpp</in>
         <in>types.h</in>
       </df>
@@ -80,8 +85,6 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
-        <gdb_signals>
-        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
