@@ -1,4 +1,7 @@
-R"(float saturate(float x) {
+R"(const float PI = 3.141592654;
+const float Epsilon = 0.00001;
+
+float saturate(float x) {
 	return max(min(x, 1.0), 0.0);
 }
 
@@ -38,6 +41,28 @@ vec2 transformUV(TextureSlotOptions opt, vec2 uv) {
 	return opt.uv_transform.xy + uv * opt.uv_transform.zw;
 }
 
+struct Material {
+	float roughness;
+	float metallic;
+	float emission;
+	vec3 albedo;
+};
+
+struct Light {
+	vec3 color;
+	float intensity;
+	
+	float radius;
+
+	vec3 position;
+	vec3 direction;
+
+	float lightCutoff;
+	float spotCutoff;
+
+	int type;
+};
+
 #define TexSlot2D(name) uniform TextureSlot2D t##name;
 #define TexSlotCube(name) uniform TextureSlotCube t##name;
 
@@ -57,10 +82,28 @@ float lambert(vec3 n, vec3 l) {
 	return saturate(dot(n, l));
 }
 
-vec3 worldPosition(mat4 projection, mat4 view, vec2 uv, float z){
+vec3 worldPosition(mat4 projection, mat4 view, vec2 uv, float z) {
     vec4 wp = inverse(projection * view) * vec4(uv * 2.0 - 1.0, z, 1.0);
     return (wp.xyz / wp.w);
 }
+
+float lightAttenuation(Light light, vec3 L, float dist) {
+	float r = light.radius;
+	float d = max(dist - r, 0.0);
+
+	// calculate basic attenuation
+	float denom = d / r + 1.0;
+	float attenuation = 1.0 / (denom * denom);
+
+	// scale and bias attenuation such that:
+	//   attenuation == 0 at extent of max influence
+	//   attenuation == 1 when d == 0
+	attenuation = (attenuation - light.lightCutoff) / (1.0 - light.lightCutoff);
+	attenuation = max(attenuation, 0.0);
+
+	return attenuation;
+}
+
 #endif
 
 )"

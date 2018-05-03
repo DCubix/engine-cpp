@@ -3,6 +3,8 @@
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="engine/src" name="0">
       <df name="components">
+        <in>light.cpp</in>
+        <in>light.h</in>
         <in>transform.cpp</in>
         <in>transform.h</in>
       </df>
@@ -43,8 +45,6 @@
         <in>api.h</in>
         <in>framebuffer.cpp</in>
         <in>framebuffer.h</in>
-        <in>light.cpp</in>
-        <in>light.h</in>
         <in>material.cpp</in>
         <in>material.h</in>
         <in>mesher.cpp</in>
@@ -64,7 +64,11 @@
         <in>vec.h</in>
       </df>
       <df name="shaders">
+        <in>brdf.glsl</in>
         <in>common.glsl</in>
+        <in>finalF.glsl</in>
+        <in>lightingF.glsl</in>
+        <in>lightingV.glsl</in>
       </df>
       <df name="systems">
         <in>renderer.cpp</in>
@@ -98,6 +102,8 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>

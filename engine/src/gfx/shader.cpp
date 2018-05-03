@@ -40,10 +40,8 @@ i32 ShaderProgram::getUniformLocation(const String& name) {
 	return m_uniforms[name];
 }
 
-opt<Uniform> ShaderProgram::get(const String& name) {
-	i32 loc = getUniformLocation(name);
-	if (loc == -1) return {};
-	return Uniform(loc);
+Uniform ShaderProgram::get(const String& name) {
+	return Uniform(getUniformLocation(name));
 }
 
 ShaderProgram& ShaderProgram::add(const String& source, ShaderType type) {
@@ -59,6 +57,7 @@ ShaderProgram& ShaderProgram::add(const String& source, ShaderType type) {
 		glAttachShader(m_program, s);
 		m_valid = true;
 	} else {
+		LogInfo(source);
 		m_valid = false;
 	}
 

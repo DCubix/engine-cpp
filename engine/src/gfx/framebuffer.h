@@ -44,6 +44,9 @@ public:
 	Texture& getDepthAttachment() { return m_depthAttachment; }
 	Texture& getStencilAttachment() { return m_stencilAttachment; }
 	
+	u32 width() const { return m_width; }
+	u32 height() const { return m_height; }
+	
 private:
 	GLuint m_fbo;
 	FrameBufferTarget m_boundTarget;

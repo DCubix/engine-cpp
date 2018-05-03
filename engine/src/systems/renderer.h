@@ -6,15 +6,18 @@
 #include "../gfx/mesher.h"
 #include "../gfx/shader.h"
 #include "../gfx/framebuffer.h"
+#include "../gfx/material.h"
+
+#include "../components/light.h"
 
 NS_BEGIN
 
 struct Drawable3D : public Component {
 	Drawable3D() = default;
-	Drawable3D(Mesh* mesh, ShaderProgram* shader) : mesh(mesh), shader(shader) {}
+	Drawable3D(Mesh mesh, Material material) : mesh(mesh), material(material) {}
 	
-	Mesh* mesh;
-	ShaderProgram* shader;
+	Mesh mesh;
+	Material material;
 };
 
 enum class CameraType {
@@ -48,7 +51,11 @@ private:
 	FrameBuffer m_gbuffer, m_lightBuffer;
 	
 	// Shaders
-	ShaderProgram m_gbufferShader;
+	ShaderProgram m_gbufferShader, m_lightBufferShader, m_finalShader;
+	
+	// Misc
+	Mesh m_plane;
+	Sampler m_screenTextureSampler;
 };
 
 NS_END

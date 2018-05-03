@@ -3,6 +3,8 @@
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="engine/src" name="0">
       <df name="components">
+        <in>light.cpp</in>
+        <in>light.h</in>
         <in>transform.cpp</in>
         <in>transform.h</in>
       </df>
@@ -32,8 +34,6 @@
         <in>api.cpp</in>
         <in>framebuffer.cpp</in>
         <in>framebuffer.h</in>
-        <in>light.cpp</in>
-        <in>light.h</in>
         <in>material.cpp</in>
         <in>material.h</in>
         <in>mesher.cpp</in>
@@ -47,7 +47,11 @@
         <in>vec.cpp</in>
       </df>
       <df name="shaders">
+        <in>brdf.glsl</in>
         <in>common.glsl</in>
+        <in>finalF.glsl</in>
+        <in>lightingF.glsl</in>
+        <in>lightingV.glsl</in>
       </df>
       <df name="systems">
         <in>renderer.cpp</in>
@@ -110,6 +114,10 @@
           <preBuildCommand>${CMAKE} -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 ..</preBuildCommand>
         </preBuild>
       </makefileType>
+      <item path="engine/src/components/light.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="engine/src/components/light.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/components/transform.cpp"
             ex="false"
             tool="1"
@@ -163,10 +171,6 @@
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="engine/src/gfx/light.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/light.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="engine/src/gfx/material.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="engine/src/gfx/material.h" ex="false" tool="3" flavor2="0">
@@ -217,7 +221,15 @@
         <ccTool flags="2">
         </ccTool>
       </item>
+      <item path="engine/src/shaders/brdf.glsl" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/shaders/common.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/finalF.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/lightingF.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/lightingV.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/systems/renderer.cpp" ex="false" tool="1" flavor2="0">
       </item>

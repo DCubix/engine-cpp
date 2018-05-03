@@ -20,9 +20,11 @@ struct TextureSlot {
 	Vec4 uvTransform;
 	Texture texture;
 	TextureSlotType type;
+	Sampler sampler;
 	
 	TextureSlot()
-		: enabled(false), uvTransform(Vec4(0, 0, 1, 1)), type(TextureSlotType::Albedo0)
+		: enabled(false), uvTransform(Vec4(0, 0, 1, 1)), type(TextureSlotType::Albedo0),
+		sampler(Texture::DEFAULT_SAMPLER)
 	{}
 };
 
@@ -39,9 +41,9 @@ public:
 	Material& setTextureUVTransform(u32 index, Vec4 uvt);
 	Material& setTexture(u32 index, const Texture& texture);
 	Material& setTextureType(u32 index, TextureSlotType type);
+	Material& setTextureSampler(u32 index, Sampler sampler);
 	
-private:
-	Array<TextureSlot, TextureSlotCount> m_textures;
+	Array<TextureSlot, TextureSlotCount> textures;
 };
 
 NS_END

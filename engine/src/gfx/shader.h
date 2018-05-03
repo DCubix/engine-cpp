@@ -43,7 +43,7 @@ public:
 	i32 getAttributeLocation(const String& name);
 	i32 getUniformLocation(const String& name);
 
-	opt<Uniform> get(const String& name);
+	Uniform get(const String& name);
 
 	bool valid() const { return m_valid; }
 	

@@ -140,6 +140,11 @@ void Application::run() {
 	LogInfo("OpenGL ", glGetString(GL_VERSION), ", GLSL ", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	m_running = true;
+	
+	Texture::DEFAULT_SAMPLER = Builder<Sampler>::build()
+			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
+			.setWrap();
+	
 	LogInfo("Application Started...");
 	eng_mainloop();
 	

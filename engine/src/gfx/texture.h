@@ -60,10 +60,13 @@ public:
 	u32 width() const { return m_width; }
 	u32 height() const { return m_height; }
 	
+	static Sampler DEFAULT_SAMPLER;
+	
 private:
 	GLuint m_id;
 	TextureTarget m_target;
 	u32 m_width, m_height;
+	
 };
 
 template <>

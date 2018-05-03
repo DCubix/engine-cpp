@@ -55,6 +55,8 @@ static ImageData loadImage(const String& file) {
 	return im;
 }
 
+Sampler Texture::DEFAULT_SAMPLER;
+
 Texture& Texture::setFromFile(const String& file, TextureTarget tgt) {
 	ImageData im = loadImage(file);
 	GLint ifmt;

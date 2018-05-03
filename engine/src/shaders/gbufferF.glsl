@@ -17,20 +17,20 @@ in DATA {
 TexSlot2D(NormalMap)
 TexSlot2D(MaterialMap)
 
+uniform Material material;
+
 void main() {
-	oMaterial = vec2(0.0);
+	oMaterial = vec3(material.roughness, material.metallic, material.emission);
 	if (TexSlotEnabled(MaterialMap)) {
 		// R = roughness, G = Metallic, B = Emission
-		TextureSlot2D slot = TexSlotGet(MaterialMap);
-		vec2 uv = transformUV(slot.opt, FSIn.uv);
-		oMaterial = texture(slot.img, uv).rgb;
+		vec2 uv = transformUV(TexSlotGet(MaterialMap).opt, FSIn.uv);
+		oMaterial *= texture(TexSlotGet(MaterialMap).img, uv).rgb;
 	}
 
 	vec3 N = FSIn.normal;
 	if (TexSlotEnabled(NormalMap)) {
-		TextureSlot2D slot = TexSlotGet(NormalMap);
-		vec2 uv = transformUV(slot.opt, FSIn.uv);
-		N = normalMap(FSIn.tbn, texture(slot.img, uv));
+		vec2 uv = transformUV(TexSlotGet(NormalMap).opt, FSIn.uv);
+		N = normalMap(FSIn.tbn, texture(TexSlotGet(NormalMap).img, uv));
 	}
 
 	oNormalDepth.rgb = N;
