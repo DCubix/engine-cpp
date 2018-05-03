@@ -45,6 +45,8 @@ public:
 
 	opt<Uniform> get(const String& name);
 
+	bool valid() const { return m_valid; }
+	
 protected:
 	GLuint m_program;
 	bool m_valid;

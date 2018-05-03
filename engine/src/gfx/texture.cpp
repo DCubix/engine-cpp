@@ -112,6 +112,9 @@ Texture& Texture::setFromFile(const String& file, TextureTarget tgt) {
 		free(im.data);
 	}
 	
+	m_width = im.w;
+	m_height = im.h;
+	
 	return *this;
 }
 
@@ -120,8 +123,11 @@ Texture& Texture::setFromFile(const String& file) {
 	return *this;
 }
 
-Texture& Texture::setNull(int w, int h, GLint ifmt, GLenum fmt, DataType data) {
-	glTexImage2D(m_target, 0, ifmt, w, h, 0, fmt, data, NULL);
+Texture& Texture::setNull(int w, int h, TextureFormat format) {
+	auto tfmt = getTextureFormat(format);
+	glTexImage2D(m_target, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	m_width = w;
+	m_height = h;
 	return *this;
 }
 

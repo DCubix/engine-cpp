@@ -41,6 +41,12 @@
         </df>
         <in>api.cpp</in>
         <in>api.h</in>
+        <in>framebuffer.cpp</in>
+        <in>framebuffer.h</in>
+        <in>light.cpp</in>
+        <in>light.h</in>
+        <in>material.cpp</in>
+        <in>material.h</in>
         <in>mesher.cpp</in>
         <in>mesher.h</in>
         <in>shader.cpp</in>
@@ -56,6 +62,13 @@
         <in>quat.h</in>
         <in>vec.cpp</in>
         <in>vec.h</in>
+      </df>
+      <df name="shaders">
+        <in>common.glsl</in>
+      </df>
+      <df name="systems">
+        <in>renderer.cpp</in>
+        <in>renderer.h</in>
       </df>
       <in>main.cpp</in>
     </df>

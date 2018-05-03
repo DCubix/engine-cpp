@@ -39,6 +39,9 @@ file(GLOB SRC
 	"engine/src/math/*.cpp"
 	"engine/src/components/*.h"
 	"engine/src/components/*.cpp"
+	"engine/src/systems/*.h"
+	"engine/src/systems/*.cpp"
+	"engine/src/shaders/*.glsl"
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

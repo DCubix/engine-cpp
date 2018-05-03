@@ -91,7 +91,7 @@ protected:
 class EntityWorld;
 class EntitySystem {
 public:
-	virtual void update(EntityWorld& world, float dt) = 0;
+	virtual void update(EntityWorld& world, float dt) {}
 	virtual void render(EntityWorld& world) {}
 };
 
@@ -123,6 +123,14 @@ public:
 				"System must be derived from 'EntitySystem'."
 		);
 		m_systems.push_back(uptr<S>(new S()));
+	}
+	
+	template <class C>
+	Entity* find() {
+		for (uptr<Entity>& ent : m_entities) {
+			if (ent->has<C>()) return ent.get();
+		}
+		return nullptr;
 	}
 	
 	void update(float dt);

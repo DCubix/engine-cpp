@@ -1,11 +1,13 @@
 #include "shader.h"
 
+#include "../core/logging/log.h"
+
 NS_BEGIN
 
 Vector<GLuint> Builder<ShaderProgram>::g_programs;
 
 void ShaderProgram::bind() {
-	glUseProgram(m_program);
+	if (m_valid) glUseProgram(m_program);
 }
 
 void ShaderProgram::unbind() {
@@ -13,6 +15,7 @@ void ShaderProgram::unbind() {
 }
 
 i32 ShaderProgram::getAttributeLocation(const String& name) {
+	if (!m_valid) return -1;
 	if (m_attributes.find(name) == m_attributes.end()) {
 		i32 loc = glGetAttribLocation(m_program, name.c_str());
 		if (loc != -1) {
@@ -25,6 +28,7 @@ i32 ShaderProgram::getAttributeLocation(const String& name) {
 }
 
 i32 ShaderProgram::getUniformLocation(const String& name) {
+	if (!m_valid) return -1;
 	if (m_uniforms.find(name) == m_uniforms.end()) {
 		i32 loc = glGetUniformLocation(m_program, name.c_str());
 		if (loc != -1) {

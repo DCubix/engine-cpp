@@ -26,6 +26,7 @@ public:
 	void setDirty();
 
 	Vec3 worldPosition() { return (localToWorldMatrix() * Vec4(position, 1.0f)).xyz; }
+	Quat worldRotation();
 
 private:
 	Transform* m_parent;

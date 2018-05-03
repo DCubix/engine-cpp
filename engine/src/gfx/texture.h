@@ -45,7 +45,7 @@ public:
 
 	Texture& setFromFile(const String& file, TextureTarget tgt);
 	Texture& setFromFile(const String& file);
-	Texture& setNull(int w, int h, GLint ifmt, GLenum fmt, DataType data);
+	Texture& setNull(int w, int h, TextureFormat format);
 	
 	Texture& generateMipmaps();
 	
@@ -55,9 +55,15 @@ public:
 	
 	TextureTarget target() const { return m_target; }
 	
+	GLuint id() const { return m_id; }
+	
+	u32 width() const { return m_width; }
+	u32 height() const { return m_height; }
+	
 private:
 	GLuint m_id;
 	TextureTarget m_target;
+	u32 m_width, m_height;
 };
 
 template <>

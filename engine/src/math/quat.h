@@ -21,6 +21,8 @@ public:
 	Quat normalized() const;
 	Quat conjugated() const;
 	Mat4 toMat4() const;
+	
+	Quat& rotate(const Vec3& axis, float a);
 
 	Quat operator +(const Quat& o) const {
 		return Quat(x + o.x, y + o.y, z + o.z, w + o.w);

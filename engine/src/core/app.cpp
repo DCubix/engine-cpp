@@ -14,9 +14,14 @@ extern "C" {
 
 NS_BEGIN
 
-#if defined(ENG_DEBUG) && defined(GL_ARB_debug_output)
+#ifdef ENG_DEBUG
+#	ifdef GL_ARB_debug_output
+#		define GL_DEBUG
+#	endif
+#endif
 
-static void APIENTRY eng_gl_debug_cb(
+#ifdef GL_DEBUG
+static void APIENTRY GLDebug(
 		GLenum source, GLenum type, GLuint id,
 		GLenum severity, GLsizei length,
 		const GLchar* msg, const void* ud
@@ -69,6 +74,29 @@ void Application::run() {
 		return;
 	}
 
+	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+	
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+	
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	
+#ifdef GL_DEBUG
+	int contextFlags = 0;
+	SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &contextFlags);
+	contextFlags |= SDL_GL_CONTEXT_DEBUG_FLAG;
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, contextFlags);
+#endif
+
 	m_window = SDL_CreateWindow(
 		m_config.title.c_str(),
 		SDL_WINDOWPOS_CENTERED,
@@ -84,23 +112,6 @@ void Application::run() {
 		return;
 	}
 
-	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	
-#ifdef ENG_DEBUG
-	int contextFlags = 0;
-	SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &contextFlags);
-	contextFlags |= SDL_GL_CONTEXT_DEBUG_FLAG;
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, contextFlags);
-#endif
-
 	m_context = SDL_GL_CreateContext(m_window);
 
 	if (m_context == nullptr) {
@@ -115,19 +126,9 @@ void Application::run() {
 		return;
 	}
 
-#if defined(ENG_DEBUG) && defined(GL_ARB_debug_output)
+#ifdef GL_DEBUG
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-
-	glDebugMessageControlARB(
-		GL_DEBUG_SOURCE_API_ARB,
-		GL_DEBUG_TYPE_OTHER_ARB,
-		GL_DEBUG_SEVERITY_LOW_ARB,
-		0,
-		NULL,
-		GL_FALSE
-	);
-
-	glDebugMessageCallbackARB((GLDEBUGPROCARB) eng_gl_debug_cb, NULL);
+	glDebugMessageCallbackARB((GLDEBUGPROCARB) GLDebug, NULL);
 #endif
 	
 	if (GLVersion.major < 3) {

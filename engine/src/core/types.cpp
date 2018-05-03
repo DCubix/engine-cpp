@@ -34,3 +34,15 @@ float Util::random(float min, float max) {
 double Util::getTime() {
 	return double(SDL_GetTicks()) / 1000.0;
 }
+
+String Util::replace(const String& str, const String& what, const String& by) {
+	String rep(str);
+	size_t pos = rep.find(what);
+ 
+	while( pos != String::npos) {
+		rep.replace(pos, what.size(), by);
+		pos = rep.find(what, pos + what.size());
+	}
+	
+	return rep;
+}

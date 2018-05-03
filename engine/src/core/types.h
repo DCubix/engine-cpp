@@ -1,8 +1,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#if defined(DEBUG) || defined(_DEBUG) || defined(NDEBUG)
-#	define ENG_DEBUG
+#ifndef NDEBUG
+#	ifndef ENG_DEBUG
+#		define ENG_DEBUG
+#	endif
 #endif
 
 #ifdef _MSVC_LANG
@@ -92,6 +94,7 @@ public:
 	static i32 random(i32 min, i32 max);
 	static float random(float min, float max);
 	static double getTime();
+	static String replace(const String& str, const String& what, const String& by);
 };
 
 #endif // TYPES_H

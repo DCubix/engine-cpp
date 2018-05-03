@@ -10,9 +10,7 @@ Transform::Transform()
 {}
 
 Mat4 Transform::localToParentMatrix() {
-	return Mat4::translation(position) *
-			rotation.toMat4() *
-			Mat4::scaling(scale);
+	return Mat4::scaling(scale) * rotation.toMat4() * Mat4::translation(position);
 }
 
 Mat4 Transform::localToWorldMatrix() {
@@ -84,6 +82,16 @@ void Transform::setParent(Transform* parent) {
 	}
 
 	setDirty();
+}
+
+Quat Transform::worldRotation() {
+	Quat parentRotation(0, 0, 0, 1);
+
+	if(m_parent) {
+		parentRotation = m_parent->worldRotation();
+	}
+
+	return parentRotation * rotation;
 }
 
 NS_END
