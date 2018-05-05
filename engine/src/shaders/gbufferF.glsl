@@ -2,7 +2,7 @@ R"(#version 330 core
 layout (location = 0) out vec2 oNormals;
 layout (location = 1) out vec3 oAlbedo;
 layout (location = 2) out vec3 oRME;
-layout (location = 3) out vec2 oDepth; // Future: Stencil
+layout (location = 3) out float oDepth; // Future: Stencil
 
 #define FRAGMENT_SHADER_COMMON
 #include common
@@ -49,6 +49,6 @@ void main() {
 		oRME *= texture(TexSlotGet(RMEMap).img, uv).rgb;
 	}
 
-	oDepth = vec2(gl_FragCoord.z, 0.0);
+	oDepth = gl_FragCoord.z;
 }
 )"

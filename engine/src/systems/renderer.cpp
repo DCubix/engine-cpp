@@ -30,11 +30,12 @@ RendererSystem::RendererSystem() {
 			.addColorAttachment(TextureFormat::RGf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
 			.addColorAttachment(TextureFormat::RGBf) // RME
-			.addColorAttachment(TextureFormat::RGf); // DepthStencil
+			.addDepthAttachment();
 	
 	m_finalBuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
-			.addColorAttachment(TextureFormat::RGB);
+			.addColorAttachment(TextureFormat::RGB)
+			.addDepthAttachment();
 	
 	m_pingPongBuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
@@ -96,6 +97,17 @@ RendererSystem::RendererSystem() {
 			.add(fFS, ShaderType::FragmentShader);
 	m_finalShader.link();
 	
+	String cmVS = 
+#include "../shaders/cmV.glsl"
+			;
+	String cmFS = 
+#include "../shaders/cmF.glsl"
+			;
+	m_cubeMapShader = Builder<ShaderProgram>::build()
+			.add(cmVS, ShaderType::VertexShader)
+			.add(cmFS, ShaderType::FragmentShader);
+	m_cubeMapShader.link();
+	
 	m_plane = Builder<Mesh>::build();
 	m_plane.addVertex(Vertex(Vec3(0, 0, 0)))
 		.addVertex(Vertex(Vec3(1, 0, 0)))
@@ -105,9 +117,30 @@ RendererSystem::RendererSystem() {
 		.addTriangle(2, 3, 0)
 		.flush();
 	
+	m_cube = Builder<Mesh>::build();
+	m_cube.addPlane(Axis::X, 1.0f, Vec3(-1, 0, 0));
+	m_cube.addPlane(Axis::X, 1.0f, Vec3(1, 0, 0));
+	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, -1, 0));
+	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, 1, 0));
+	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, -1));
+	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, 1));
+	m_cube.flush();
+	
+	m_screenMipSampler = Builder<Sampler>::build()
+			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
+			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
+	
 	m_screenTextureSampler = Builder<Sampler>::build()
 			.setFilter(TextureFilter::Linear, TextureFilter::Linear)
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
+	
+	m_screenDepthSampler = Builder<Sampler>::build()
+			.setFilter(TextureFilter::Nearest, TextureFilter::Nearest)
+			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
+	
+	m_cubeMapSampler = Builder<Sampler>::build()
+			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
+			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
 	
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
@@ -200,9 +233,9 @@ void RendererSystem::render(EntityWorld& world) {
 	m_lightingShader.get("mView").set(viewMat);
 	
 	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
-	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo
+	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo	
 	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
-	m_gbuffer.getColorAttachment(3).bind(m_screenTextureSampler, 3); // Depth
+	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
 	
 	m_lightingShader.get("tNormals").set(0);
 	m_lightingShader.get("tAlbedo").set(1);
@@ -257,10 +290,46 @@ void RendererSystem::render(EntityWorld& world) {
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	});
 	
+	m_plane.unbind();
 	m_lightingShader.unbind();
+	
+	if (m_envMap.id() != 0) {
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		
+		m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
+		m_finalBuffer.blit(
+				0, 0, m_gbuffer.width(), m_gbuffer.height(),
+				0, 0, m_gbuffer.width(), m_gbuffer.height(),
+				ClearBufferMask::DepthBuffer,
+				TextureFilter::Nearest
+		);
+		
+		m_cube.bind();
+		m_cubeMapShader.bind();
+		m_cubeMapShader.get("mProjection").set(projMat);
+		m_cubeMapShader.get("mView").set(viewMat);
+		
+		m_envMap.bind(m_cubeMapSampler, 0);
+		m_cubeMapShader.get("mCubeMap").set(0);
+		
+		glDrawElements(GL_TRIANGLES, m_cube.indexCount(), GL_UNSIGNED_INT, nullptr);
+		
+		m_gbuffer.unbind();
+		m_envMap.unbind();
+		m_cube.unbind();
+		m_cubeMapShader.unbind();
+		
+		glDepthFunc(GL_LESS);
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+	}
+	
 	m_finalBuffer.unbind();
 	
-	m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+	m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 	m_finalBuffer.getColorAttachment(0).generateMipmaps();
 	m_finalBuffer.getColorAttachment(0).unbind();
 	
@@ -270,11 +339,13 @@ void RendererSystem::render(EntityWorld& world) {
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
 	
+	m_plane.bind();
+	
 	/// Post processing
 	if (m_postEffects.empty()) {
 		m_finalShader.bind();
 
-		m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+		m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 		m_finalShader.get("tTex").set(0);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
@@ -294,9 +365,9 @@ void RendererSystem::render(EntityWorld& world) {
 			shd.bind();
 			
 			if (first) {
-				m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+				m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 			} else {
-				m_pingPongBuffer.getColorAttachment(src).bind(m_screenTextureSampler, 0);
+				m_pingPongBuffer.getColorAttachment(src).bind(m_screenMipSampler, 0);
 			}
 			
 			shd.get("tScreen").set(0);
@@ -320,7 +391,7 @@ void RendererSystem::render(EntityWorld& world) {
 		
 		m_finalShader.bind();
 
-		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
+		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenMipSampler, 0);
 		m_finalShader.get("tTex").set(0);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
@@ -338,6 +409,15 @@ RendererSystem& RendererSystem::addPostEffect(ShaderProgram effect) {
 
 RendererSystem& RendererSystem::removePostEffect(u32 index) {
 	m_postEffects.erase(m_postEffects.begin() + index);
+	return *this;
+}
+
+RendererSystem& RendererSystem::setEnvironmentMap(const Texture& tex) {
+	if (tex.target() != TextureTarget::CubeMap) {
+		LogError("Texture is not a Cube Map.");
+		return *this;
+	}
+	m_envMap = tex;
 	return *this;
 }
 

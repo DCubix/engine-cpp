@@ -37,7 +37,7 @@ public:
 				.setCubemap("cubemap.png")
 				.generateMipmaps();
 		
-		//rsys.setEnvironmentMap(envMap);
+		rsys.setEnvironmentMap(envMap);
 		
 		model = Builder<Mesh>::build();
 		model.addFromFile("test.glb").flush();

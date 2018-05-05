@@ -49,7 +49,7 @@ public:
 	RendererSystem& addPostEffect(ShaderProgram effect);
 	RendererSystem& removePostEffect(u32 index);
 	
-	void setEnvironmentMap(const Texture& texture);
+	RendererSystem& setEnvironmentMap(const Texture& tex);
 	
 private:
 	Camera *m_activeCamera;
@@ -66,7 +66,7 @@ private:
 	
 	// Misc
 	Mesh m_plane, m_cube;
-	Sampler m_screenTextureSampler, m_cubeMapSampler, m_screenDepthSampler;
+	Sampler m_screenTextureSampler, m_cubeMapSampler, m_screenDepthSampler, m_screenMipSampler;
 	
 	// PostFX
 	Vector<ShaderProgram> m_postEffects;
