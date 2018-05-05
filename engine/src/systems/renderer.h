@@ -56,21 +56,28 @@ private:
 	Transform *m_activeCameraTransform;
 	
 	// Buffers
-	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer;
+	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer,
+			m_irradianceCaptureBuffer;
 	
 	// Shaders
-	ShaderProgram m_gbufferShader, m_lightingShader, m_finalShader, m_cubeMapShader;
+	ShaderProgram m_gbufferShader, m_lightingShader,
+					m_finalShader, m_cubeMapShader,
+					m_irradianceShader;
 	
 	// EnvMap
-	Texture m_envMap;
+	Texture m_envMap, m_irradianceEnvMap;
 	
 	// Misc
 	Mesh m_plane, m_cube;
-	Sampler m_screenTextureSampler, m_cubeMapSampler, m_screenDepthSampler, m_screenMipSampler;
+	Sampler m_screenTextureSampler, m_cubeMapSampler,
+			m_screenDepthSampler, m_screenMipSampler,
+			m_cubeMapSamplerNoMip;
 	
 	// PostFX
 	Vector<ShaderProgram> m_postEffects;
 	float m_time;
+	
+	void computeIrradiance();
 };
 
 NS_END

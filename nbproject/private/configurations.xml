@@ -66,6 +66,7 @@
       <df name="shaders">
         <in>brdf.glsl</in>
         <in>cmF.glsl</in>
+        <in>cmIrradianceF.glsl</in>
         <in>cmV.glsl</in>
         <in>common.glsl</in>
         <in>lightingF.glsl</in>

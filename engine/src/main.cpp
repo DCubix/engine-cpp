@@ -59,7 +59,7 @@ public:
 		
 		// Camera
 		Entity &cam = eworld.create();
-		cam.assign<Camera>(0.02f, 1000.0f, 40.0f);
+		cam.assign<Camera>(0.02f, 1000.0f, radians(40.0f));
 		
 		Transform& camt = cam.assign<Transform>();
 		camt.position.z = 4.0f;
@@ -70,18 +70,15 @@ public:
 		
 		def.setTexture(0, rme)
 			.setTextureEnabled(0, true)
-			.setTextureType(0, TextureSlotType::RougnessMetallicEmission)
-			.setTextureUVTransform(0, Vec4(0, 0, 3, 3));
+			.setTextureType(0, TextureSlotType::RougnessMetallicEmission);
 		
 		def.setTexture(1, alb0)
 			.setTextureEnabled(1, true)
-			.setTextureType(1, TextureSlotType::Albedo0)
-			.setTextureUVTransform(1, Vec4(0, 0, 3, 3));
+			.setTextureType(1, TextureSlotType::Albedo0);
 		
 		def.setTexture(2, nrm)
 			.setTextureEnabled(2, true)
-			.setTextureType(2, TextureSlotType::NormalMap)
-			.setTextureUVTransform(2, Vec4(0, 0, 3, 3));
+			.setTextureType(2, TextureSlotType::NormalMap);
 		
 		// Models
 		mod1 = &eworld.create();

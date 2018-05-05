@@ -209,6 +209,19 @@ Texture& Texture::setCubemap(const String& file) {
 	return *this;
 }
 
+Texture& Texture::setCubemapNull(int w, int h, TextureFormat format) {
+	auto tfmt = getTextureFormat(format);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, std::get<0>(tfmt), w, h, 0, std::get<1>(tfmt), std::get<2>(tfmt), NULL);
+	m_width = w;
+	m_height = h;
+	return *this;
+}
+
 Texture& Texture::generateMipmaps() {
 	glGenerateMipmap(m_target);
 	return *this;

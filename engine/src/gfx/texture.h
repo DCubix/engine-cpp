@@ -3,6 +3,7 @@
 
 #include "../core/builder.h"
 #include "../core/types.h"
+#include "../core/logging/log.h"
 
 #include "api.h"
 using namespace api;
@@ -39,9 +40,10 @@ protected:
 };
 
 class Texture {
+	friend class Builder<Texture>;
 public:
-	Texture() = default;
-	Texture(GLuint id) : m_id(id) {}
+	Texture() : m_id(0), m_builderPosition(-1) {}
+	Texture(GLuint id) : m_id(id), m_builderPosition(-1) {}
 
 	Texture& setFromFile(const String& file, TextureTarget tgt);
 	Texture& setFromFile(const String& file);
@@ -49,6 +51,8 @@ public:
 	
 	// Horizontal cross, like this <https://learnopengl.com/img/advanced/cubemaps_skybox.png>
 	Texture& setCubemap(const String& file);
+	
+	Texture& setCubemapNull(int w, int h, TextureFormat format);
 	
 	Texture& generateMipmaps();
 	
@@ -65,7 +69,8 @@ public:
 	
 	static Sampler DEFAULT_SAMPLER;
 	
-private:
+protected:
+	i32 m_builderPosition;
 	GLuint m_id;
 	TextureTarget m_target;
 	u32 m_width, m_height;
@@ -78,13 +83,27 @@ class Builder<Texture> {
 public:
 	static Texture build() {
 		g_textures.push_back(GLTexture::create());
-		return Texture(g_textures.back());
+		Texture tex = Texture(g_textures.back());
+		tex.m_builderPosition = g_textures.size()-1;
+		return tex;
 	}
 	
 	static void clean() {
 		for (GLuint b : g_textures) {
 			GLTexture::destroy(b);
 		}
+		g_textures.clear();
+	}
+	
+	static void dispose(Texture& texture) {
+		if (texture.m_builderPosition == -1) {
+			LogError("Cannot dispose an unexisting resource.");
+			return;
+		}
+		GLTexture::destroy(texture.m_id);
+		g_textures[texture.m_builderPosition] = 0;
+		texture.m_builderPosition = -1;
+		texture.m_id = 0;
 	}
 private:
 	static Vector<GLuint> g_textures;

@@ -22,10 +22,15 @@ public:
 	FrameBuffer(GLuint fbo);
 	
 	FrameBuffer& setSize(u32 width, u32 height);
+	
 	FrameBuffer& addColorAttachment(TextureFormat format);
+	FrameBuffer& setColorAttachment(u32 attachment, TextureTarget target, const Texture& tex);
+	
 	FrameBuffer& addDepthAttachment();
 	FrameBuffer& addStencilAttachment();
+	
 	FrameBuffer& addRenderBuffer(TextureFormat storage, Attachment attachment);
+	FrameBuffer& setRenderBufferStorage(TextureFormat storage, u32 w = 0, u32 h = 0);
 	
 	void bind(FrameBufferTarget target = FrameBufferTarget::Framebuffer);
 	void unbind(bool resetViewport = true);

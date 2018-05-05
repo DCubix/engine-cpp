@@ -10,7 +10,7 @@ Mat4 Camera::getProjection() {
 	int vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	
-	return Mat4::perspective(radians(FOV), float(vp[2]) / float(vp[3]), zNear, zFar);
+	return Mat4::perspective(FOV, float(vp[2]) / float(vp[3]), zNear, zFar);
 }
 
 const String RendererSystem::POST_FX_VS = 
@@ -34,13 +34,17 @@ RendererSystem::RendererSystem() {
 	
 	m_finalBuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
-			.addColorAttachment(TextureFormat::RGB)
+			.addColorAttachment(TextureFormat::RGBf)
 			.addDepthAttachment();
 	
 	m_pingPongBuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
-			.addColorAttachment(TextureFormat::RGB)
-			.addColorAttachment(TextureFormat::RGB);
+			.addColorAttachment(TextureFormat::RGBf)
+			.addColorAttachment(TextureFormat::RGBf);
+	
+	m_irradianceCaptureBuffer = Builder<FrameBuffer>::build()
+			.setSize(32, 32)
+			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment);
 	
 	String common =
 #include "../shaders/common.glsl"
@@ -108,6 +112,14 @@ RendererSystem::RendererSystem() {
 			.add(cmFS, ShaderType::FragmentShader);
 	m_cubeMapShader.link();
 	
+	String cmiFS = 
+#include "../shaders/cmIrradianceF.glsl"
+			;
+	m_irradianceShader = Builder<ShaderProgram>::build()
+			.add(cmVS, ShaderType::VertexShader)
+			.add(cmiFS, ShaderType::FragmentShader);
+	m_irradianceShader.link();
+	
 	m_plane = Builder<Mesh>::build();
 	m_plane.addVertex(Vertex(Vec3(0, 0, 0)))
 		.addVertex(Vertex(Vec3(1, 0, 0)))
@@ -142,6 +154,10 @@ RendererSystem::RendererSystem() {
 			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
 	
+	m_cubeMapSamplerNoMip = Builder<Sampler>::build()
+			.setFilter(TextureFilter::Linear, TextureFilter::Linear)
+			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
+	
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 }
@@ -169,6 +185,10 @@ void RendererSystem::render(EntityWorld& world) {
 		Mat4 rot = m_activeCameraTransform->worldRotation().conjugated().toMat4();
 		Mat4 loc = Mat4::translation(m_activeCameraTransform->worldPosition() * -1.0f);
 		viewMat = rot * loc;
+	}
+	
+	if (m_irradianceEnvMap.id() == 0) {
+		computeIrradiance();
 	}
 	
 	glEnable(GL_DEPTH_TEST);
@@ -293,7 +313,7 @@ void RendererSystem::render(EntityWorld& world) {
 	m_plane.unbind();
 	m_lightingShader.unbind();
 	
-	if (m_envMap.id() != 0) {
+	if (m_irradianceEnvMap.id() != 0) {	
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		glDepthFunc(GL_LEQUAL);
@@ -312,13 +332,13 @@ void RendererSystem::render(EntityWorld& world) {
 		m_cubeMapShader.get("mProjection").set(projMat);
 		m_cubeMapShader.get("mView").set(viewMat);
 		
-		m_envMap.bind(m_cubeMapSampler, 0);
+		m_irradianceEnvMap.bind(m_cubeMapSampler, 0);
 		m_cubeMapShader.get("mCubeMap").set(0);
 		
 		glDrawElements(GL_TRIANGLES, m_cube.indexCount(), GL_UNSIGNED_INT, nullptr);
 		
 		m_gbuffer.unbind();
-		m_envMap.unbind();
+		m_irradianceEnvMap.unbind();
 		m_cube.unbind();
 		m_cubeMapShader.unbind();
 		
@@ -367,6 +387,7 @@ void RendererSystem::render(EntityWorld& world) {
 			if (first) {
 				m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 			} else {
+				m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
 				m_pingPongBuffer.getColorAttachment(src).bind(m_screenMipSampler, 0);
 			}
 			
@@ -379,7 +400,6 @@ void RendererSystem::render(EntityWorld& world) {
 				m_finalBuffer.getColorAttachment(0).unbind();
 				first = false;
 			} else {
-				m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
 				m_pingPongBuffer.getColorAttachment(src).unbind();
 			}
 			
@@ -391,7 +411,7 @@ void RendererSystem::render(EntityWorld& world) {
 		
 		m_finalShader.bind();
 
-		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenMipSampler, 0);
+		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
 		m_finalShader.get("tTex").set(0);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
@@ -400,6 +420,54 @@ void RendererSystem::render(EntityWorld& world) {
 	}
 	
 	m_plane.unbind();
+}
+
+void RendererSystem::computeIrradiance() {
+	if (m_envMap.id() == 0) return;
+	
+	const Mat4 capProj = Mat4::perspective(radians(45.0f), 1.0f, 0.1f, 10.0f);
+	const Mat4 capViews[6] = {
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)),
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, -1, 0), Vec3(0, 0, -1)),
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1), Vec3(0, -1, 0)),
+		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0))
+	};
+	
+	if (m_irradianceEnvMap.id() != 0) {
+		Builder<Texture>::dispose(m_irradianceEnvMap);
+	}
+	
+	m_irradianceEnvMap = Builder<Texture>::build()
+			.bind(TextureTarget::CubeMap)
+			.setCubemapNull(32, 32, TextureFormat::RGBf);
+	
+	m_irradianceShader.bind();
+	m_irradianceShader.get("mProjection").set(capProj);
+	
+	m_envMap.bind(m_cubeMapSampler, 0);
+	m_irradianceShader.get("tCubeMap").set(0);
+	
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	
+	m_irradianceCaptureBuffer.bind();
+	m_cube.bind();
+	for (u32 i = 0; i < 6; i++) {
+		m_irradianceShader.get("mView").set(capViews[i]);
+		m_irradianceCaptureBuffer.setColorAttachment(0, (TextureTarget)(TextureTarget::CubeMapPX + i), m_irradianceEnvMap);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDrawElements(GL_TRIANGLES, m_cube.indexCount(), GL_UNSIGNED_INT, nullptr);
+	}
+	m_cube.unbind();
+	m_irradianceCaptureBuffer.unbind();
+	m_irradianceEnvMap.generateMipmaps();
+	
+	m_irradianceShader.unbind();
+	
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
 }
 
 RendererSystem& RendererSystem::addPostEffect(ShaderProgram effect) {

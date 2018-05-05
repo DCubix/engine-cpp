@@ -152,18 +152,22 @@ Mat4 Mat4::perspective(float fov, float asp, float n, float f) {
 }
 
 Mat4 Mat4::lookAt(const Vec3& eye, const Vec3& at, const Vec3& up) {
-	Vec3 z = (eye - at).normalized();
-	Vec3 x = up.cross(z).normalized();
-	Vec3 y = z.cross(x);
+	Vec3 fwd = (eye - at).normalized();
+	Vec3 left = up.cross(fwd).normalized();
+	Vec3 upv = fwd.cross(left);
 
 	Mat4 r = Mat4(
-		x.x, x.y, -x.z, 0.0f,
-		y.x, y.y, -y.z, 0.0f,
-		z.x, z.y, -z.z, 0.0f,
+		left.x, upv.x, fwd.x, 0.0f,
+		left.y, upv.y, fwd.y, 0.0f,
+		left.z, upv.z, fwd.z, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
-	return Mat4::translation(-eye) * r;
+	r[3][0] = -left.x * eye.x - left.y * eye.y - left.z * eye.z;
+	r[3][1] = -upv.x * eye.x - upv.y * eye.y - up.z * eye.z;
+	r[3][2] = -fwd.x * eye.x - fwd.y * eye.y - fwd.z * eye.z;
+	
+	return r;
 }
 
 Mat4 Mat4::transposed() const {

@@ -167,6 +167,18 @@ FrameBuffer& FrameBuffer::addRenderBuffer(TextureFormat storage, Attachment atta
 	return *this;
 }
 
+FrameBuffer& FrameBuffer::setRenderBufferStorage(TextureFormat storage, u32 w, u32 h) {
+	if (m_renderBuffer.id == 0) {
+		LogError("Framebuffer has no Renderbuffer.");
+		return *this;
+	}
+	auto stor = getTextureFormat(storage);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_renderBuffer.id);
+	glRenderbufferStorage(GL_RENDERBUFFER, std::get<0>(stor), w == 0 ? m_width : w, h == 0 ? m_height : h);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	return *this;
+}
+
 void FrameBuffer::setDrawBuffer(u32 index) {
 	glDrawBuffer(GL_COLOR_ATTACHMENT0 + index);
 }
@@ -187,6 +199,10 @@ void FrameBuffer::blit(
 	TextureFilter filter)
 {
 	glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter);
+}
+
+FrameBuffer& FrameBuffer::setColorAttachment(u32 attachment, TextureTarget target, const Texture& tex) {
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, target, tex.id(), 0);
 }
 
 NS_END
