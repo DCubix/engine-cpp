@@ -76,6 +76,15 @@ struct Vertex {
 	Vertex(const Vec3& pos, const Vec2& uv)
 		: position(pos), texCoord(uv), normal(Vec3()), tangent(Vec3()), color(Vec4(1.0f))
 	{}
+	Vertex(const Vec3& pos, const Vec2& uv, const Vec3& nrm)
+		: position(pos), texCoord(uv), normal(nrm), tangent(Vec3()), color(Vec4(1.0f))
+	{}
+};
+
+enum Axis {
+	X,
+	Y,
+	Z
 };
 
 class Mesh {
@@ -100,6 +109,8 @@ public:
 	Mesh& addIndex(i32 index);
 	Mesh& addTriangle(i32 i0, i32 i1, i32 i2);
 
+	Mesh& addPlane(Axis axis, float size, const Vec3& off);
+	
 	Mesh& addData(const Vector<Vertex>& vertices, const Vector<i32>& indices);
 
 	Mesh& addFromFile(const String& file);

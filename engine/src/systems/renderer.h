@@ -49,6 +49,8 @@ public:
 	RendererSystem& addPostEffect(ShaderProgram effect);
 	RendererSystem& removePostEffect(u32 index);
 	
+	void setEnvironmentMap(const Texture& texture);
+	
 private:
 	Camera *m_activeCamera;
 	Transform *m_activeCameraTransform;
@@ -57,11 +59,14 @@ private:
 	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer;
 	
 	// Shaders
-	ShaderProgram m_gbufferShader, m_lightingShader, m_finalShader;
+	ShaderProgram m_gbufferShader, m_lightingShader, m_finalShader, m_cubeMapShader;
+	
+	// EnvMap
+	Texture m_envMap;
 	
 	// Misc
-	Mesh m_plane;
-	Sampler m_screenTextureSampler;
+	Mesh m_plane, m_cube;
+	Sampler m_screenTextureSampler, m_cubeMapSampler, m_screenDepthSampler;
 	
 	// PostFX
 	Vector<ShaderProgram> m_postEffects;

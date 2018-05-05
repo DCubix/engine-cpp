@@ -150,6 +150,35 @@ Mesh& Mesh::addFromFile(const String& file) {
 	return *this;
 }
 
+Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off) {
+	i32 ioff = m_vertexData.size();
+	float s = size;
+	switch (axis) {
+		case Axis::X: {
+			addVertex(Vertex(off + Vec3(0, -s, -s), Vec2(0, 0)));
+			addVertex(Vertex(off + Vec3(0,  s, -s), Vec2(1, 0)));
+			addVertex(Vertex(off + Vec3(0,  s,  s), Vec2(1, 1)));
+			addVertex(Vertex(off + Vec3(0, -s,  s), Vec2(0, 1)));
+		} break;
+		case Axis::Y: {
+			addVertex(Vertex(off + Vec3(-s, 0, -s), Vec2(0, 0)));
+			addVertex(Vertex(off + Vec3( s, 0, -s), Vec2(1, 0)));
+			addVertex(Vertex(off + Vec3( s, 0,  s), Vec2(1, 1)));
+			addVertex(Vertex(off + Vec3(-s, 0,  s), Vec2(0, 1)));
+		} break;
+		case Axis::Z: {
+			addVertex(Vertex(off + Vec3(-s, -s, 0), Vec2(0, 0)));
+			addVertex(Vertex(off + Vec3( s, -s, 0), Vec2(1, 0)));
+			addVertex(Vertex(off + Vec3( s,  s, 0), Vec2(1, 1)));
+			addVertex(Vertex(off + Vec3(-s,  s, 0), Vec2(0, 1)));
+		} break;
+	}
+	addTriangle(ioff+0, ioff+1, ioff+2);
+	addTriangle(ioff+2, ioff+3, ioff+0);
+	
+	return *this;
+}
+
 Mesh& Mesh::calculateNormals(PrimitiveType primitive) {
 	switch (primitive) {
 		case PrimitiveType::Points:

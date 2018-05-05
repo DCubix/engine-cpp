@@ -93,7 +93,7 @@ FrameBuffer& FrameBuffer::addDepthAttachment() {
 	
 	Texture tex = Builder<Texture>::build()
 			.bind(TextureTarget::Texture2D)
-			.setNull(m_width, m_height, TextureFormat::Rf);
+			.setNull(m_width, m_height, TextureFormat::Depth);
 	
 	glFramebufferTexture2D(
 			GL_FRAMEBUFFER,
@@ -102,8 +102,6 @@ FrameBuffer& FrameBuffer::addDepthAttachment() {
 			tex.id(),
 			0
 	);
-	
-	glDrawBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 	m_depthAttachment = tex;
@@ -133,7 +131,6 @@ FrameBuffer& FrameBuffer::addStencilAttachment() {
 			0
 	);
 	
-	glDrawBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 	m_stencilAttachment = tex;

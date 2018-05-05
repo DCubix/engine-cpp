@@ -47,6 +47,9 @@ public:
 	Texture& setFromFile(const String& file);
 	Texture& setNull(int w, int h, TextureFormat format);
 	
+	// Horizontal cross, like this <https://learnopengl.com/img/advanced/cubemaps_skybox.png>
+	Texture& setCubemap(const String& file);
+	
 	Texture& generateMipmaps();
 	
 	Texture& bind(TextureTarget target);
@@ -67,6 +70,7 @@ private:
 	TextureTarget m_target;
 	u32 m_width, m_height;
 	
+	void setFromData(const ImageData& data, TextureTarget tgt);
 };
 
 template <>

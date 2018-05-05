@@ -48,6 +48,8 @@
       </df>
       <df name="shaders">
         <in>brdf.glsl</in>
+        <in>cmF.glsl</in>
+        <in>cmV.glsl</in>
         <in>common.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
@@ -223,6 +225,10 @@
         </ccTool>
       </item>
       <item path="engine/src/shaders/brdf.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/cmF.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/cmV.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/shaders/common.glsl" ex="false" tool="3" flavor2="0">
       </item>

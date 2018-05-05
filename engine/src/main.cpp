@@ -26,11 +26,18 @@ public:
 		String tonemapF = 
 #include "shaders/tonemapF.glsl"
 				;
-		ShaderProgram toneMapS = Builder<ShaderProgram>::build()
-				.add(RendererSystem::POST_FX_VS, ShaderType::VertexShader)
-				.add(tonemapF, ShaderType::FragmentShader);
-		toneMapS.link();
-		rsys.addPostEffect(toneMapS);
+//		ShaderProgram toneMapS = Builder<ShaderProgram>::build()
+//				.add(RendererSystem::POST_FX_VS, ShaderType::VertexShader)
+//				.add(tonemapF, ShaderType::FragmentShader);
+//		toneMapS.link();
+//		rsys.addPostEffect(toneMapS);
+		
+		Texture envMap = Builder<Texture>::build()
+				.bind(TextureTarget::CubeMap)
+				.setCubemap("cubemap.png")
+				.generateMipmaps();
+		
+		//rsys.setEnvironmentMap(envMap);
 		
 		model = Builder<Mesh>::build();
 		model.addFromFile("test.glb").flush();
