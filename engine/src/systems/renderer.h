@@ -41,21 +41,31 @@ class RendererSystem : public EntitySystem {
 public:
 	RendererSystem();
 	
+	void update(float dt);
 	void render(EntityWorld& world);
 
+	static const String POST_FX_VS;
+	
+	RendererSystem& addPostEffect(ShaderProgram effect);
+	RendererSystem& removePostEffect(u32 index);
+	
 private:
 	Camera *m_activeCamera;
 	Transform *m_activeCameraTransform;
 	
 	// Buffers
-	FrameBuffer m_gbuffer, m_lightBuffer;
+	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer;
 	
 	// Shaders
-	ShaderProgram m_gbufferShader, m_lightBufferShader, m_finalShader;
+	ShaderProgram m_gbufferShader, m_lightingShader, m_finalShader;
 	
 	// Misc
 	Mesh m_plane;
 	Sampler m_screenTextureSampler;
+	
+	// PostFX
+	Vector<ShaderProgram> m_postEffects;
+	float m_time;
 };
 
 NS_END

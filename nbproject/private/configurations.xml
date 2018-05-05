@@ -66,9 +66,10 @@
       <df name="shaders">
         <in>brdf.glsl</in>
         <in>common.glsl</in>
-        <in>finalF.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
+        <in>screenF.glsl</in>
+        <in>tonemapF.glsl</in>
       </df>
       <df name="systems">
         <in>renderer.cpp</in>
@@ -102,8 +103,6 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
-        <gdb_signals>
-        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>

@@ -64,4 +64,25 @@ Quat& Quat::rotate(const Vec3& axis, float a) {
 	return *this;
 }
 
+Quat& Quat::lookAt(const Vec3& eye, const Vec3& dest) {
+	const Vec3 forward = Vec3(0, 0, 1);
+	Vec3 fwd = (dest - eye).normalized();
+
+    Vec3 rotAxis = forward.cross(fwd);
+    float dot = forward.dot(fwd);
+
+    x = rotAxis.x;
+    y = rotAxis.y;
+    z = rotAxis.z;
+    w = dot + 1;
+
+	float m = magnitude();
+	x /= m;
+	y /= m;
+	z /= m;
+	w /= m;
+	
+    return *this;
+}
+
 NS_END

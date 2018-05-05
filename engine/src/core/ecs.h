@@ -29,13 +29,13 @@ public:
 	virtual ~Entity() = default;
 	
 	template <class C, typename... Args>
-	Entity& assign(Args&&... args) {
+	C& assign(Args&&... args) {
 		static_assert(
 				std::is_base_of<Component, C>::value,
 				"Component must be derived from 'Component'."
 		);
 		m_components.insert(std::make_pair(getTypeIndex<C>(), uptr<C>(new C(args...))));
-		return *this;
+		return *((C*) m_components.at(getTypeIndex<C>()).get());
 	}
 	
 	template <class C>
@@ -117,12 +117,13 @@ public:
 	}
 	
 	template <class S>
-	void registerSystem() {
+	S& registerSystem() {
 		static_assert(
 				std::is_base_of<EntitySystem, S>::value,
 				"System must be derived from 'EntitySystem'."
 		);
 		m_systems.push_back(uptr<S>(new S()));
+		return *((S*) m_systems.back().get());
 	}
 	
 	template <class C>

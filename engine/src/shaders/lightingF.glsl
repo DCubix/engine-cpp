@@ -3,41 +3,42 @@ R"(#version 330 core
 #include common
 #include brdf
 
-layout (location = 0) out vec3 oDiffuse;
-layout (location = 1) out vec3 oSpecular;
+out vec4 fragColor;
 
 in vec2 oScreenPosition;
 
 uniform mat4 mProjection;
 uniform mat4 mView;
 
-uniform sampler2D tNormalDepth;
-uniform sampler2D tMaterial;
+uniform sampler2D tNormals;
+uniform sampler2D tAlbedo;
+uniform sampler2D tRME;
+uniform sampler2D tDepth;
 
 uniform Light uLight;
 uniform vec3 uEye;
 
-const vec3 Fdielectric = vec3(0.05);
+const vec3 Fdielectric = vec3(0.04);
 
 void main() {
-	vec4 nd = texture(tNormalDepth, oScreenPosition);
-	vec3 mat = texture(tMaterial, oScreenPosition).xyz;
-
-	vec3 N = nd.xyz;
-	float D = nd.w;
+	vec3 N = decodeNormals(texture(tNormals, oScreenPosition).rg);
+	float D = texture(tDepth, oScreenPosition).r;
 	
-	float R = mat.r;
-	float M = mat.g;
+	vec3 rme = texture(tRME, oScreenPosition).xyz;
+	float R = rme.r;
+	float M = rme.g;
+	float E = rme.b;
+
+	vec3 A = texture(tAlbedo, oScreenPosition).rgb;
 
 	vec3 wP = worldPosition(mProjection, mView, oScreenPosition, D);
 	vec3 V = normalize(uEye - wP);
-	vec3 F0 = mix(Fdielectric, vec3(1.0), M);
+	vec3 F0 = mix(Fdielectric, A, M);
 
 	if (uLight.intensity > 0.0 && uLight.type != -1) {
 		vec3 L = vec3(0.0);
 		float att = 1.0;
 		
-
 		if (uLight.type == 0) {
 			L = -uLight.direction;
 			att = 1.0;
@@ -73,11 +74,12 @@ void main() {
 
 		vec3 kd = mix(vec3(1.0) - F, vec3(0.0), M);
 
-		oDiffuse = uLight.color * kd * fact;
-		oSpecular = uLight.color * ((D * G * F) / max(Epsilon, 4.0 * NoL * NoV)) * fact;
+		vec3 diffuse = A * kd;
+		vec3 specular = (D * G * F) / max(Epsilon, 4.0 * NoL * NoV);
+
+		fragColor = vec4(uLight.color * (diffuse + specular) * fact, 1.0) + vec4(A * E, 1.0);
 	} else {
-		oDiffuse = vec3(0.0);
-		oSpecular = vec3(0.0);
+		discard;
 	}
 }
 )"

@@ -23,6 +23,7 @@ public:
 	Mat4 toMat4() const;
 	
 	Quat& rotate(const Vec3& axis, float a);
+	Quat& lookAt(const Vec3& eye, const Vec3& dest);
 
 	Quat operator +(const Quat& o) const {
 		return Quat(x + o.x, y + o.y, z + o.z, w + o.w);

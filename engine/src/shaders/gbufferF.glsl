@@ -1,6 +1,8 @@
 R"(#version 330 core
-layout (location = 0) out vec3 oMaterial;
-layout (location = 1) out vec4 oNormalDepth;
+layout (location = 0) out vec2 oNormals;
+layout (location = 1) out vec3 oAlbedo;
+layout (location = 2) out vec3 oRME;
+layout (location = 3) out vec2 oDepth; // Future: Stencil
 
 #define FRAGMENT_SHADER_COMMON
 #include common
@@ -14,26 +16,39 @@ in DATA {
 	mat3 tbn;
 } FSIn;
 
+TexSlot2D(Albedo0)
+TexSlot2D(Albedo1)
 TexSlot2D(NormalMap)
-TexSlot2D(MaterialMap)
+TexSlot2D(RMEMap)
 
 uniform Material material;
 
 void main() {
-	oMaterial = vec3(material.roughness, material.metallic, material.emission);
-	if (TexSlotEnabled(MaterialMap)) {
-		// R = roughness, G = Metallic, B = Emission
-		vec2 uv = transformUV(TexSlotGet(MaterialMap).opt, FSIn.uv);
-		oMaterial *= texture(TexSlotGet(MaterialMap).img, uv).rgb;
-	}
-
-	vec3 N = FSIn.normal;
 	if (TexSlotEnabled(NormalMap)) {
 		vec2 uv = transformUV(TexSlotGet(NormalMap).opt, FSIn.uv);
-		N = normalMap(FSIn.tbn, texture(TexSlotGet(NormalMap).img, uv));
+		oNormals = encodeNormals(normalMap(FSIn.tbn, texture(TexSlotGet(NormalMap).img, uv)));
+	} else {
+		oNormals = encodeNormals(FSIn.normal);
 	}
 
-	oNormalDepth.rgb = N;
-	oNormalDepth.a = gl_FragCoord.z;
+	oAlbedo = material.albedo;
+	if (TexSlotEnabled(Albedo0)) {
+		vec2 uv = transformUV(TexSlotGet(Albedo0).opt, FSIn.uv);
+		oAlbedo *= texture(TexSlotGet(Albedo0).img, uv).rgb;
+	}
+	if (TexSlotEnabled(Albedo1)) {
+		vec2 uv = transformUV(TexSlotGet(Albedo1).opt, FSIn.uv);
+		vec4 col = texture(TexSlotGet(Albedo1).img, uv);
+		oAlbedo = mix(oAlbedo, col.rgb, col.a);
+	}
+
+	oRME = vec3(material.roughness, material.metallic, material.emission);
+	if (TexSlotEnabled(RMEMap)) {
+		// R = roughness, G = Metallic, B = Emission
+		vec2 uv = transformUV(TexSlotGet(RMEMap).opt, FSIn.uv);
+		oRME *= texture(TexSlotGet(RMEMap).img, uv).rgb;
+	}
+
+	oDepth = vec2(gl_FragCoord.z, 0.0);
 }
 )"

@@ -21,64 +21,99 @@ public:
 	void init() {
 		VFS::get().mountDefault(); // mounts to where the application resides
 		
-		eworld.registerSystem<RendererSystem>();
+		RendererSystem& rsys = eworld.registerSystem<RendererSystem>();
+		
+		String tonemapF = 
+#include "shaders/tonemapF.glsl"
+				;
+		ShaderProgram toneMapS = Builder<ShaderProgram>::build()
+				.add(RendererSystem::POST_FX_VS, ShaderType::VertexShader)
+				.add(tonemapF, ShaderType::FragmentShader);
+		toneMapS.link();
+		rsys.addPostEffect(toneMapS);
 		
 		model = Builder<Mesh>::build();
 		model.addFromFile("test.glb").flush();
 		
 		alb0 = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
-				.setFromFile("tex_col.png")
+				.setFromFile("metal_col.png")
 				.generateMipmaps();
 		
 		rme = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
-				.setFromFile("tex_rough_metal.png")
+				.setFromFile("metal_rme.png")
+				.generateMipmaps();
+		
+		nrm = Builder<Texture>::build()
+				.bind(TextureTarget::Texture2D)
+				.setFromFile("metal_normal.png")
 				.generateMipmaps();
 		
 		// Camera
-		Entity &cam = eworld.create()
-			.assign<Transform>()
-			.assign<Camera>(0.02f, 1000.0f, 40.0f);
-		cam.get<Transform>()->position.z = 4.0f;
+		Entity &cam = eworld.create();
+		cam.assign<Camera>(0.02f, 1000.0f, 40.0f);
+		
+		Transform& camt = cam.assign<Transform>();
+		camt.position.z = 4.0f;
 		
 		Material def;
-		def.roughness = 0.3f;
-		def.metallic = 0.4f;
+		def.roughness = 1.0f;
+		def.metallic = 1.0f;
+		
+		def.setTexture(0, rme)
+			.setTextureEnabled(0, true)
+			.setTextureType(0, TextureSlotType::RougnessMetallicEmission)
+			.setTextureUVTransform(0, Vec4(0, 0, 3, 3));
 		
 		def.setTexture(1, alb0)
 			.setTextureEnabled(1, true)
-			.setTextureType(1, TextureSlotType::Albedo0);
+			.setTextureType(1, TextureSlotType::Albedo0)
+			.setTextureUVTransform(1, Vec4(0, 0, 3, 3));
+		
+		def.setTexture(2, nrm)
+			.setTextureEnabled(2, true)
+			.setTextureType(2, TextureSlotType::NormalMap)
+			.setTextureUVTransform(2, Vec4(0, 0, 3, 3));
 		
 		// Models
-		mod1 = &eworld.create()
-			.assign<Transform>()
-			.assign<Drawable3D>(model, def);
-		mod1->get<Transform>()->position.x = -1.5f;
+		mod1 = &eworld.create();
+		mod1->assign<Drawable3D>(model, def);
 		
-		Entity& mod2 = eworld.create()
-			.assign<Transform>()
-			.assign<Drawable3D>(model, def);
-		mod2.get<Transform>()->position.x = 1.5f;
+		Transform& mod1t = mod1->assign<Transform>();
+		mod1t.position.x = -1.5f;
+		
+		Entity& mod2 = eworld.create();
+		mod2.assign<Drawable3D>(model, def);
+		
+		Transform& mod2t = mod2.assign<Transform>();
+		mod2t.position.x = 1.5f;
 		
 		// Lights
-		Entity& l0 = eworld.create()
-				.assign<Transform>()
-				.assign<PointLight>();
+		Entity& l0 = eworld.create();
+		Transform& l0t = l0.assign<Transform>();
+		PointLight& l0p = l0.assign<PointLight>();
 		
-		l0.get<Transform>()->position.x = 5.0f;
-		l0.get<PointLight>()->radius = 5.0f;
-		l0.get<PointLight>()->color = Vec3(1.0f, 0.5f, 0.0f);
-		l0.get<PointLight>()->intensity = 1.0f;
+		l0t.position.x = 6.0f;
+		l0p.radius = 8.0f;
+		l0p.color = Vec3(1.0f, 0.4f, 0.0f);
+		l0p.intensity = 1.8f;
 		
-		Entity& l1 = eworld.create()
-				.assign<Transform>()
-				.assign<PointLight>();
+		Entity& l1 = eworld.create();
+		Transform& l1t = l1.assign<Transform>();
+		PointLight& l1p = l1.assign<PointLight>();
 		
-		l1.get<Transform>()->position.x = -5.0f;
-		l1.get<PointLight>()->radius = 5.0f;
-		l1.get<PointLight>()->color = Vec3(0.0f, 0.5f, 1.0f);
-		l1.get<PointLight>()->intensity = 1.2f;
+		l1t.position.x = -6.0f;
+		l1p.radius = 8.0f;
+		l1p.color = Vec3(0.0f, 0.5f, 1.0f);
+		l1p.intensity = 1.8f;
+		
+		Entity& l2 = eworld.create();
+		Transform& l2t = l2.assign<Transform>();
+		DirectionalLight& l2p = l2.assign<DirectionalLight>();
+		
+		l2t.rotation.lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1));
+		l2p.intensity = 1.0f;
 	}
 
 	void update(float timeDelta) {
@@ -98,7 +133,7 @@ public:
 	}
 
 	Mesh model;
-	Texture rme, alb0;
+	Texture rme, alb0, nrm;
 	
 	Entity* mod1;
 	EntityWorld eworld;

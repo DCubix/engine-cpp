@@ -13,6 +13,10 @@ Mat4 Camera::getProjection() {
 	return Mat4::perspective(radians(FOV), float(vp[2]) / float(vp[3]), zNear, zFar);
 }
 
+const String RendererSystem::POST_FX_VS = 
+#include "../shaders/lightingV.glsl"
+;
+
 RendererSystem::RendererSystem() {
 	m_activeCamera = nullptr;
 	m_activeCameraTransform = nullptr;
@@ -23,13 +27,19 @@ RendererSystem::RendererSystem() {
 	m_gbuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
 			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
-			.addColorAttachment(TextureFormat::RGB)
-			.addColorAttachment(TextureFormat::RGBAf);
+			.addColorAttachment(TextureFormat::RGf) // Normals
+			.addColorAttachment(TextureFormat::RGB) // Albedo
+			.addColorAttachment(TextureFormat::RGBf) // RME
+			.addColorAttachment(TextureFormat::RGf); // DepthStencil
 	
-	m_lightBuffer = Builder<FrameBuffer>::build()
+	m_finalBuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
-			.addColorAttachment(TextureFormat::RGB) // Diffuse BRDF
-			.addColorAttachment(TextureFormat::RGBf); // Specular BRDF
+			.addColorAttachment(TextureFormat::RGB);
+	
+	m_pingPongBuffer = Builder<FrameBuffer>::build()
+			.setSize(vp[2], vp[3])
+			.addColorAttachment(TextureFormat::RGB)
+			.addColorAttachment(TextureFormat::RGB);
 	
 	String common =
 #include "../shaders/common.glsl"
@@ -65,16 +75,16 @@ RendererSystem::RendererSystem() {
 	lFS = Util::replace(lFS, "#include common", common);
 	lFS = Util::replace(lFS, "#include brdf", brdf);
 	
-	m_lightBufferShader = Builder<ShaderProgram>::build()
+	m_lightingShader = Builder<ShaderProgram>::build()
 			.add(lVS, ShaderType::VertexShader)
 			.add(lFS, ShaderType::FragmentShader);
-	m_lightBufferShader.link();
+	m_lightingShader.link();
 	
 	String fVS =
-#include "../shaders/gbufferV.glsl"
+#include "../shaders/lightingV.glsl"
 			;
 	String fFS =
-#include "../shaders/finalF.glsl"
+#include "../shaders/screenF.glsl"
 			;
 	
 	fVS = Util::replace(fVS, "#include common", common);
@@ -103,6 +113,10 @@ RendererSystem::RendererSystem() {
 	glEnable(GL_DEPTH_TEST);
 }
 
+void RendererSystem::update(float dt) {
+	m_time += dt;
+}
+
 void RendererSystem::render(EntityWorld& world) {
 	if (m_activeCamera == nullptr || m_activeCameraTransform == nullptr) {
 		Entity* cameraEnt = world.find<Camera>();
@@ -128,6 +142,7 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	/// Fill GBuffer
 	m_gbuffer.bind();
+	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	m_gbufferShader.bind();
@@ -141,6 +156,7 @@ void RendererSystem::render(EntityWorld& world) {
 		m_gbufferShader.get("material.roughness").set(D.material.roughness);
 		m_gbufferShader.get("material.metallic").set(D.material.metallic);
 		m_gbufferShader.get("material.emission").set(D.material.emission);
+		m_gbufferShader.get("material.albedo").set(D.material.albedo.xyz);
 		
 		int sloti = 0;
 		for (TextureSlot slot : D.material.textures) {
@@ -149,7 +165,9 @@ void RendererSystem::render(EntityWorld& world) {
 			String tname = "";
 			switch (slot.type) {
 				case TextureSlotType::NormalMap: tname = "tNormalMap"; break;
-				case TextureSlotType::RougnessMetallicEmission: tname = "tMaterialMap"; break;
+				case TextureSlotType::RougnessMetallicEmission: tname = "tRMEMap"; break;
+				case TextureSlotType::Albedo0: tname = "tAlbedo0"; break;
+				case TextureSlotType::Albedo1: tname = "tAlbedo1"; break;
 				default: break;
 			}
 			
@@ -171,23 +189,28 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	glDisable(GL_DEPTH_TEST);
 	
-	/// Fill Light Buffer
-	m_lightBuffer.bind();
-	glClearColor(0, 0, 0, 1);
+	// Lights
+	m_finalBuffer.bind();
+	
+	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	
-	m_lightBufferShader.bind();
-	m_lightBufferShader.get("mProjection").set(projMat);
-	m_lightBufferShader.get("mView").set(viewMat);
+	m_lightingShader.bind();
+	m_lightingShader.get("mProjection").set(projMat);
+	m_lightingShader.get("mView").set(viewMat);
 	
-	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Material
-	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Normal+Depth
+	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
+	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo
+	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
+	m_gbuffer.getColorAttachment(3).bind(m_screenTextureSampler, 3); // Depth
 	
-	m_lightBufferShader.get("tMaterial").set(0);
-	m_lightBufferShader.get("tNormalDepth").set(1);
+	m_lightingShader.get("tNormals").set(0);
+	m_lightingShader.get("tAlbedo").set(1);
+	m_lightingShader.get("tRME").set(2);
+	m_lightingShader.get("tDepth").set(3);
 	
 	if (m_activeCameraTransform) {
-		m_lightBufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
 	}
 	
 	glEnable(GL_BLEND);
@@ -197,101 +220,125 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	// Directional Lights
 	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {
-		m_lightBufferShader.get("uLight.type").set(L.getType());
-		m_lightBufferShader.get("uLight.color").set(L.color);
-		m_lightBufferShader.get("uLight.intensity").set(L.intensity);
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
 		
-		m_lightBufferShader.get("uLight.direction").set(T.worldRotation().forward());
+		m_lightingShader.get("uLight.direction").set(T.worldRotation().forward());
 		
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	});
 	
 	// Point Lights
 	world.each([&](Entity& ent, Transform& T, PointLight& L) {
-		m_lightBufferShader.get("uLight.type").set(L.getType());
-		m_lightBufferShader.get("uLight.color").set(L.color);
-		m_lightBufferShader.get("uLight.intensity").set(L.intensity);
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
 		
-		m_lightBufferShader.get("uLight.position").set(T.worldPosition());
-		m_lightBufferShader.get("uLight.radius").set(L.radius);
-		m_lightBufferShader.get("uLight.lightCutoff").set(L.lightCutOff);
+		m_lightingShader.get("uLight.position").set(T.worldPosition());
+		m_lightingShader.get("uLight.radius").set(L.radius);
+		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
 		
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	});
 	
 	// Spot Lights
 	world.each([&](Entity& ent, Transform& T, SpotLight& L) {
-		m_lightBufferShader.get("uLight.type").set(L.getType());
-		m_lightBufferShader.get("uLight.color").set(L.color);
-		m_lightBufferShader.get("uLight.intensity").set(L.intensity);
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
 		
-		m_lightBufferShader.get("uLight.position").set(T.worldPosition());
-		m_lightBufferShader.get("uLight.direction").set(T.worldRotation().forward());
-		m_lightBufferShader.get("uLight.radius").set(L.radius);
-		m_lightBufferShader.get("uLight.lightCutoff").set(L.lightCutOff);
-		m_lightBufferShader.get("uLight.spotCutoff").set(L.spotCutOff);
+		m_lightingShader.get("uLight.position").set(T.worldPosition());
+		m_lightingShader.get("uLight.direction").set(T.worldRotation().forward());
+		m_lightingShader.get("uLight.radius").set(L.radius);
+		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
+		m_lightingShader.get("uLight.spotCutoff").set(L.spotCutOff);
 		
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	});
 	
-	m_plane.unbind();
+	m_lightingShader.unbind();
+	m_finalBuffer.unbind();
+	
+	m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+	m_finalBuffer.getColorAttachment(0).generateMipmaps();
+	m_finalBuffer.getColorAttachment(0).unbind();
 	
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	m_lightBufferShader.unbind();
-	m_lightBuffer.unbind();
-	
-	glEnable(GL_DEPTH_TEST);
-	
+
 	/// Final render
 	glClearColor(0, 0, 0, 1);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 	
-	m_finalShader.bind();
-	m_finalShader.get("mProjection").set(projMat);
-	m_finalShader.get("mView").set(viewMat);
-	
-	m_lightBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
-	m_lightBuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1);
-	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 2);
-	
-	m_finalShader.get("tLightingDiffuse").set(0);
-	m_finalShader.get("tLightingSpecular").set(1);
-	m_finalShader.get("tMaterial").set(2);
-	
-	m_finalShader.get("uResolution").set(Vec2(m_lightBuffer.width(), m_lightBuffer.height()));
+	/// Post processing
+	if (m_postEffects.empty()) {
+		m_finalShader.bind();
+
+		m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+		m_finalShader.get("tTex").set(0);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+		m_finalShader.unbind();
+	} else {
+		int currActive = 0;
+		bool first = true;
 		
-	world.each([&](Entity& ent, Transform& T, Drawable3D& D) {
-		Mat4 modelMat = T.localToWorldMatrix();
-		m_finalShader.get("mModel").set(modelMat);
-		
-		m_finalShader.get("uAlbedoColor").set(D.material.albedo);
-		
-		int sloti = 3;
-		for (TextureSlot slot : D.material.textures) {
-			if (!slot.enabled) continue;
+		m_pingPongBuffer.bind();
+		for (ShaderProgram& shd : m_postEffects) {
+			int src = currActive;
+			int dest = 1 - currActive;
 			
-			String tname = "";
-			switch (slot.type) {
-				case TextureSlotType::Albedo0: tname = "tAlbedo0"; break;
-				case TextureSlotType::Albedo1: tname = "tAlbedo1"; break;
-				default: break;
+			m_pingPongBuffer.setDrawBuffer(dest);
+			
+			shd.bind();
+			
+			if (first) {
+				m_finalBuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0);
+			} else {
+				m_pingPongBuffer.getColorAttachment(src).bind(m_screenTextureSampler, 0);
 			}
 			
-			if (!tname.empty()) {
-				slot.texture.bind(slot.sampler, sloti);
-				m_finalShader.get(tname + String(".img")).set(sloti);
-				m_finalShader.get(tname + String(".opt.enabled")).set(true);
-				m_finalShader.get(tname + String(".opt.uv_transform")).set(slot.uvTransform);
-				sloti++;
+			shd.get("tScreen").set(0);
+			shd.get("tTime").set(m_time);
+			shd.get("tResolution").set(Vec2(m_finalBuffer.width(), m_finalBuffer.height()));
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+			
+			if (first) {
+				m_finalBuffer.getColorAttachment(0).unbind();
+				first = false;
+			} else {
+				m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
+				m_pingPongBuffer.getColorAttachment(src).unbind();
 			}
+			
+			shd.unbind();
+			
+			currActive = 1 - currActive;
 		}
+		m_pingPongBuffer.unbind();
 		
-		D.mesh.bind();
-		glDrawElements(GL_TRIANGLES, D.mesh.indexCount(), GL_UNSIGNED_INT, nullptr);
-	});
+		m_finalShader.bind();
+
+		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
+		m_finalShader.get("tTex").set(0);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+		m_finalShader.unbind();
+	}
 	
-	m_finalShader.unbind();
+	m_plane.unbind();
 }
-		
+
+RendererSystem& RendererSystem::addPostEffect(ShaderProgram effect) {
+	m_postEffects.push_back(effect);
+	return *this;
+}
+
+RendererSystem& RendererSystem::removePostEffect(u32 index) {
+	m_postEffects.erase(m_postEffects.begin() + index);
+	return *this;
+}
+
 NS_END

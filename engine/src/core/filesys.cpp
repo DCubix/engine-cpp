@@ -32,7 +32,7 @@ bool VFS::openRead(const String& path) {
 	if (!checkFile()) { LogError("A file is already open!"); return false; }
 	m_file = PHYSFS_openRead(path.c_str());
 	if (!m_file) {
-		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		LogError(path, ": ", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 		return false;
 	}
 	return true;
@@ -42,7 +42,7 @@ bool VFS::openWrite(const String& path) {
 	if (!checkFile()) { LogError("A file is already open!"); return false; }
 	m_file = PHYSFS_openWrite(path.c_str());
 	if (!m_file) {
-		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		LogError(path, ": ", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 		return false;
 	}
 	return true;
@@ -52,7 +52,7 @@ bool VFS::openAppend(const String& path) {
 	if (!checkFile()) { LogError("A file is already open!"); return false; }
 	m_file = PHYSFS_openAppend(path.c_str());
 	if (!m_file) {
-		LogError(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+		LogError(path, ": ", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
 		return false;
 	}
 	return true;

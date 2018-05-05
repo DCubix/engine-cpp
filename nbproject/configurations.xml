@@ -49,9 +49,10 @@
       <df name="shaders">
         <in>brdf.glsl</in>
         <in>common.glsl</in>
-        <in>finalF.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
+        <in>screenF.glsl</in>
+        <in>tonemapF.glsl</in>
       </df>
       <df name="systems">
         <in>renderer.cpp</in>
@@ -225,11 +226,13 @@
       </item>
       <item path="engine/src/shaders/common.glsl" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="engine/src/shaders/finalF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="engine/src/shaders/lightingF.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/shaders/lightingV.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/screenF.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/tonemapF.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/systems/renderer.cpp" ex="false" tool="1" flavor2="0">
       </item>
