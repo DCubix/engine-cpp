@@ -44,17 +44,22 @@ public:
 		
 		alb0 = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
-				.setFromFile("metal_col.png")
+				.setFromFile("crystal_alb.png")
 				.generateMipmaps();
 		
 		rme = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
-				.setFromFile("metal_rme.png")
+				.setFromFile("crystal_rme.jpg")
 				.generateMipmaps();
 		
 		nrm = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
-				.setFromFile("metal_normal.png")
+				.setFromFile("crystal_normal.png")
+				.generateMipmaps();
+		
+		disp = Builder<Texture>::build()
+				.bind(TextureTarget::Texture2D)
+				.setFromFile("crystal_disp.png")
 				.generateMipmaps();
 		
 		// Camera
@@ -62,11 +67,12 @@ public:
 		cam.assign<Camera>(0.02f, 1000.0f, radians(40.0f));
 		
 		Transform& camt = cam.assign<Transform>();
-		camt.position.z = 4.0f;
+		camt.position.z = 2.0f;
 		
 		Material def;
 		def.roughness = 1.0f;
 		def.metallic = 1.0f;
+		def.heightScale = 0.10f;
 		
 		def.setTexture(0, rme)
 			.setTextureEnabled(0, true)
@@ -80,18 +86,14 @@ public:
 			.setTextureEnabled(2, true)
 			.setTextureType(2, TextureSlotType::NormalMap);
 		
+		def.setTexture(3, disp)
+			.setTextureEnabled(3, true)
+			.setTextureType(3, TextureSlotType::HeightMap);
+		
 		// Models
 		mod1 = &eworld.create();
 		mod1->assign<Drawable3D>(model, def);
-		
-		Transform& mod1t = mod1->assign<Transform>();
-		mod1t.position.x = -1.5f;
-		
-		Entity& mod2 = eworld.create();
-		mod2.assign<Drawable3D>(model, def);
-		
-		Transform& mod2t = mod2.assign<Transform>();
-		mod2t.position.x = 1.5f;
+		mod1->assign<Transform>();
 		
 		// Lights
 //		Entity& l0 = eworld.create();
@@ -112,12 +114,12 @@ public:
 //		l1p.color = Vec3(0.0f, 0.5f, 1.0f);
 //		l1p.intensity = 1.8f;
 //		
-		Entity& l2 = eworld.create();
-		Transform& l2t = l2.assign<Transform>();
-		DirectionalLight& l2p = l2.assign<DirectionalLight>();
-		
-		l2t.rotation.lookAt(Vec3(0, 1, 0), Vec3(0, 1, 1));
-		l2p.intensity = 1.0f;
+//		Entity& l2 = eworld.create();
+//		Transform& l2t = l2.assign<Transform>();
+//		DirectionalLight& l2p = l2.assign<DirectionalLight>();
+//		
+//		l2t.rotation.lookAt(Vec3(0, 1, 0), Vec3(0, 1, 1));
+//		l2p.intensity = 1.0f;
 	}
 
 	void update(float timeDelta) {
@@ -150,7 +152,7 @@ public:
 	}
 
 	Mesh model;
-	Texture rme, alb0, nrm;
+	Texture rme, alb0, nrm, disp;
 	
 	Entity* mod1;
 	EntityWorld eworld;

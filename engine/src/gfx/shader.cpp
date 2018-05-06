@@ -57,7 +57,7 @@ ShaderProgram& ShaderProgram::add(const String& source, ShaderType type) {
 		glAttachShader(m_program, s);
 		m_valid = true;
 	} else {
-		LogInfo(source);
+//		LogInfo(source);
 		m_valid = false;
 	}
 

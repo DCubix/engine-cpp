@@ -45,6 +45,7 @@ struct Material {
 	float roughness;
 	float metallic;
 	float emission;
+	float heightScale;
 	vec3 albedo;
 };
 

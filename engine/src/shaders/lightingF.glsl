@@ -19,6 +19,7 @@ uniform Light uLight;
 uniform vec3 uEye;
 
 uniform bool uIBL;
+uniform bool uEmit;
 uniform sampler2D tBRDFLUT;
 uniform samplerCube tIrradiance;
 uniform samplerCube tRadiance;
@@ -40,7 +41,8 @@ void main() {
 	vec3 V = normalize(uEye - wP);
 	vec3 F0 = mix(Fdielectric, A, M);
 
-	if (uIBL) {
+	fragColor = vec4(0.0);
+	if (uIBL && !uEmit) {
 		float NoV = saturate(dot(N, V));
 		vec3 F = F_Schlick(F0, NoV, R);
 
@@ -58,6 +60,8 @@ void main() {
 		vec3 spec = pC * (F * envBRDF.x + envBRDF.y);
 
 		fragColor = vec4(diff * kD + spec, 1.0);
+	} else if (!uIBL && uEmit) {
+		fragColor = vec4(A * E, 1.0);
 	} else {
 		if (uLight.intensity > 0.0 && uLight.type != -1) {
 			vec3 L = vec3(0.0);
@@ -101,9 +105,7 @@ void main() {
 			vec3 diffuse = A * kd;
 			vec3 specular = (D * G * F) / max(Epsilon, 4.0 * NoL * NoV);
 
-			fragColor = vec4(uLight.color * (diffuse + specular) * fact, 1.0) + vec4(A * E, 1.0);
-		} else {
-			discard;
+			fragColor = vec4(uLight.color * (diffuse + specular) * fact, 1.0);
 		}
 	}
 }

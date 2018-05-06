@@ -229,6 +229,10 @@ void RendererSystem::render(EntityWorld& world) {
 	m_gbufferShader.get("mProjection").set(projMat);
 	m_gbufferShader.get("mView").set(viewMat);
 	
+	if (m_activeCameraTransform) {
+		m_gbufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+	}
+	
 	world.each([&](Entity& ent, Transform& T, Drawable3D& D) {
 		Mat4 modelMat = T.localToWorldMatrix();
 		m_gbufferShader.get("mModel").set(modelMat);
@@ -237,6 +241,7 @@ void RendererSystem::render(EntityWorld& world) {
 		m_gbufferShader.get("material.metallic").set(D.material.metallic);
 		m_gbufferShader.get("material.emission").set(D.material.emission);
 		m_gbufferShader.get("material.albedo").set(D.material.albedo.xyz);
+		m_gbufferShader.get("material.heightScale").set(D.material.heightScale);
 		
 		int sloti = 0;
 		for (TextureSlot slot : D.material.textures) {
@@ -248,6 +253,7 @@ void RendererSystem::render(EntityWorld& world) {
 				case TextureSlotType::RougnessMetallicEmission: tname = "tRMEMap"; break;
 				case TextureSlotType::Albedo0: tname = "tAlbedo0"; break;
 				case TextureSlotType::Albedo1: tname = "tAlbedo1"; break;
+				case TextureSlotType::HeightMap: tname = "tHeightMap"; break;
 				default: break;
 			}
 			
@@ -298,6 +304,8 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	m_plane.bind();
 	
+	m_lightingShader.get("uEmit").set(false);
+	
 	// IBL
 	if (m_IBLGenerated) {
 		m_brdf.bind(m_screenTextureSampler, 4);
@@ -310,6 +318,11 @@ void RendererSystem::render(EntityWorld& world) {
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	}
 	m_lightingShader.get("uIBL").set(false);
+	
+	// Emit
+	m_lightingShader.get("uEmit").set(true);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+	m_lightingShader.get("uEmit").set(false);
 	
 	// Directional Lights
 	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {

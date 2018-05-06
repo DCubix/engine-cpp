@@ -12,6 +12,7 @@ enum TextureSlotType {
 	Albedo1,
 	NormalMap,
 	RougnessMetallicEmission,
+	HeightMap,
 	TextureSlotCount
 };
 
@@ -31,10 +32,10 @@ struct TextureSlot {
 class Material {
 public:
 	Material() 
-		: roughness(0.01f), metallic(0.0f), emission(0.0f), albedo(Vec4(1.0f))
+		: roughness(0.01f), metallic(0.0f), emission(0.0f), albedo(Vec4(1.0f)), heightScale(1.0f)
 	{}
 	
-	float roughness, metallic, emission;
+	float roughness, metallic, emission, heightScale;
 	Vec4 albedo;
 	
 	Material& setTextureEnabled(u32 index, bool enabled);
