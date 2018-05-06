@@ -140,7 +140,7 @@ void Texture::setFromData(const ImageData& data, TextureTarget tgt) {
 	m_height = data.h;
 }
 
-static ImageData subImage(const ImageData& data, int x, int y, int w, int h) {
+static ImageData subImage(const ImageData& data, int x, int y, int w, int h, bool flipY) {
 	ImageData ndata;
 	ndata.w = w;
 	ndata.h = h;
@@ -155,8 +155,12 @@ static ImageData subImage(const ImageData& data, int x, int y, int w, int h) {
 	
 	for (u32 iy = y; iy < y + h; iy++) {
 		for (u32 ix = x; ix < x + w; ix++) {
+			u32 ny = iy - y;
+			if (flipY) {
+				ny = (h-1) - (iy - y);
+			}
 			u32 i = (ix + iy * data.w) * data.comp;
-			u32 j = ((ix-x) + (iy-y) * w) * ndata.comp; // ndata
+			u32 j = ((ix-x) + ny * w) * ndata.comp; // ndata
 			for (u32 c = 0; c < ndata.comp; c++) {
 				if (ndata.hdr) {
 					ndata.fdata[j + c] = data.fdata[i + c];
@@ -179,7 +183,7 @@ enum CubeMapFace {
 	CZN
 };
 
-static ImageData cubemapSub(const ImageData& data, CubeMapFace face) {
+static ImageData cubemapSub(const ImageData& data, CubeMapFace face, bool flipY) {
 	int w = data.w / 4;
 	int h = data.h / 3;
 	int x, y, i;
@@ -193,17 +197,17 @@ static ImageData cubemapSub(const ImageData& data, CubeMapFace face) {
 	}
 	x = (i % 4) * w;
 	y = (i / 4) * w;
-	return subImage(data, x, y, w, h);
+	return subImage(data, x, y, w, h, flipY);
 }
 
-Texture& Texture::setCubemap(const String& file) {
+Texture& Texture::setCubemap(const String& file, bool flipY) {
 	ImageData im = loadImage(file);
-	setFromData(cubemapSub(im, CubeMapFace::CXP), TextureTarget::CubeMapPX);
-	setFromData(cubemapSub(im, CubeMapFace::CXN), TextureTarget::CubeMapNX);
-	setFromData(cubemapSub(im, CubeMapFace::CYP), TextureTarget::CubeMapPY);
-	setFromData(cubemapSub(im, CubeMapFace::CYN), TextureTarget::CubeMapNY);
-	setFromData(cubemapSub(im, CubeMapFace::CZP), TextureTarget::CubeMapPZ);
-	setFromData(cubemapSub(im, CubeMapFace::CZN), TextureTarget::CubeMapNZ);
+	setFromData(cubemapSub(im, CubeMapFace::CXP, flipY), TextureTarget::CubeMapPX);
+	setFromData(cubemapSub(im, CubeMapFace::CXN, flipY), TextureTarget::CubeMapNX);
+	setFromData(cubemapSub(im, CubeMapFace::CYP, flipY), TextureTarget::CubeMapPY);
+	setFromData(cubemapSub(im, CubeMapFace::CYN, flipY), TextureTarget::CubeMapNY);
+	setFromData(cubemapSub(im, CubeMapFace::CZP, flipY), TextureTarget::CubeMapPZ);
+	setFromData(cubemapSub(im, CubeMapFace::CZN, flipY), TextureTarget::CubeMapNZ);
 	if (im.hdr) free(im.fdata);
 	else free(im.data);
 	return *this;

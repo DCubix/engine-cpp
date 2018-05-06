@@ -2,12 +2,12 @@ R"(#version 330 core
 const float PI = 3.14159265459;
 
 out vec4 fragColor;
-in vec3 oLocal;
+in vec3 oFragPos;
 
 uniform samplerCube tCubeMap;
 
 void main() {
-	vec3 N = normalize(oLocal);
+	vec3 N = normalize(oFragPos);
 	vec3 irradiance = vec3(0.0);
 
 	// Tangent space calculation from origin point

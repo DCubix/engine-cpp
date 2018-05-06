@@ -23,6 +23,22 @@ public:
 	void set(Vec3 v) { glUniform(3f, v.x, v.y, v.z); }
 	void set(Vec4 v) { glUniform(4f, v.x, v.y, v.z, v.w); }
 	void set(Mat4 v) { glUniform(Matrix4fv, 1, false, v.val); }
+	
+	void set(const Mat4* v, u32 size) {
+		Vector<float> mv; mv.reserve(size * 16);
+		for (u32 i = 0; i < size; i++) {
+			mv.insert(mv.begin(), v[i].val, v[i].val + 16);
+		}
+		glUniform(Matrix4fv, size, false, mv.data());
+	}
+	
+	void set(const Vector<Mat4>& v) {
+		Vector<float> mv; mv.reserve(v.size() * 16);
+		for (Mat4 m : v) {
+			mv.insert(mv.begin(), m.val, m.val + 16);
+		}
+		glUniform(Matrix4fv, v.size(), false, mv.data());
+	}
 
 protected:
 	i32 location;

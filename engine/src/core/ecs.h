@@ -78,7 +78,7 @@ public:
 		if (found == m_components.end()) {
 			return nullptr;
 		}
-		return (C*) found->second.get();
+		return ((C*) found->second.get());
 	}
 	
 	u64 id() const { return m_id; }

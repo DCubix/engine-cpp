@@ -57,15 +57,19 @@ private:
 	
 	// Buffers
 	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer,
-			m_irradianceCaptureBuffer;
+			m_captureBuffer;
+	
+	bool m_IBLGenerated;
 	
 	// Shaders
 	ShaderProgram m_gbufferShader, m_lightingShader,
 					m_finalShader, m_cubeMapShader,
-					m_irradianceShader;
+					m_irradianceShader,
+					m_preFilterShader,
+					m_brdfLUTShader;
 	
 	// EnvMap
-	Texture m_envMap, m_irradianceEnvMap;
+	Texture m_envMap, m_irradiance, m_radiance, m_brdf;
 	
 	// Misc
 	Mesh m_plane, m_cube;
@@ -78,6 +82,9 @@ private:
 	float m_time;
 	
 	void computeIrradiance();
+	void computeRadiance();
+	void computeBRDF();
+	void computeIBL();
 };
 
 NS_END

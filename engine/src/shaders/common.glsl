@@ -105,18 +105,21 @@ float lightAttenuation(Light light, vec3 L, float dist) {
 }
 
 vec2 encodeNormals(vec3 n) {
-    float p = sqrt(n.z * 8.0 + 8.0);
-    return n.xy / p + vec2(0.5);
+	float scale = 1.7777;
+	vec2 enc = n.xy / (n.z + 1.0);
+	enc /= scale;
+	enc = enc * 0.5 + 0.5;
+	return enc;
 }
 
 vec3 decodeNormals(vec2 enc) {
-	vec2 fenc = enc * 4.0 - 2.0;
-    float f = dot(fenc, fenc);
-    float g = sqrt(1.0 - f / 4.0);
-    vec3 n;
-    n.xy = fenc * g;
-    n.z = 1.0 - f / 2.0;
-    return n;
+	float scale = 1.7777;
+	vec3 nn = vec3(enc, 0.0) * vec3(2.0 * scale, 2.0 * scale, 0.0) + vec3(-scale, -scale, 1.0);
+	float g = 2.0 / dot(nn.xyz, nn.xyz);
+	vec3 n;
+	n.xy = g * nn.xy;
+	n.z = g - 1.0;
+	return n;
 }
 
 #endif

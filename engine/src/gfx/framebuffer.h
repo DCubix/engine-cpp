@@ -23,8 +23,9 @@ public:
 	
 	FrameBuffer& setSize(u32 width, u32 height);
 	
-	FrameBuffer& addColorAttachment(TextureFormat format);
-	FrameBuffer& setColorAttachment(u32 attachment, TextureTarget target, const Texture& tex);
+	FrameBuffer& addColorAttachment(TextureFormat format, TextureTarget target = TextureTarget::Texture2D, u32 mip = 0);
+	FrameBuffer& setColorAttachment(u32 attachment, TextureTarget target, const Texture& tex, u32 mip = 0);
+	FrameBuffer& setColorAttachment(u32 attachment, TextureTarget target, u32 mip = 0);
 	
 	FrameBuffer& addDepthAttachment();
 	FrameBuffer& addStencilAttachment();

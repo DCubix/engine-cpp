@@ -23,14 +23,14 @@ public:
 		
 		RendererSystem& rsys = eworld.registerSystem<RendererSystem>();
 		
-		String tonemapF = 
-#include "shaders/tonemapF.glsl"
+		String fxaaF = 
+#include "shaders/fxaaF.glsl"
 				;
-//		ShaderProgram toneMapS = Builder<ShaderProgram>::build()
-//				.add(RendererSystem::POST_FX_VS, ShaderType::VertexShader)
-//				.add(tonemapF, ShaderType::FragmentShader);
-//		toneMapS.link();
-//		rsys.addPostEffect(toneMapS);
+		ShaderProgram fxaaS = Builder<ShaderProgram>::build()
+				.add(RendererSystem::POST_FX_VS, ShaderType::VertexShader)
+				.add(fxaaF, ShaderType::FragmentShader);
+		fxaaS.link();
+		rsys.addPostEffect(fxaaS);
 		
 		Texture envMap = Builder<Texture>::build()
 				.bind(TextureTarget::CubeMap)
@@ -71,11 +71,11 @@ public:
 		def.setTexture(0, rme)
 			.setTextureEnabled(0, true)
 			.setTextureType(0, TextureSlotType::RougnessMetallicEmission);
-		
+//		
 		def.setTexture(1, alb0)
 			.setTextureEnabled(1, true)
 			.setTextureType(1, TextureSlotType::Albedo0);
-		
+//		
 		def.setTexture(2, nrm)
 			.setTextureEnabled(2, true)
 			.setTextureType(2, TextureSlotType::NormalMap);
@@ -94,39 +94,52 @@ public:
 		mod2t.position.x = 1.5f;
 		
 		// Lights
-		Entity& l0 = eworld.create();
-		Transform& l0t = l0.assign<Transform>();
-		PointLight& l0p = l0.assign<PointLight>();
-		
-		l0t.position.x = 6.0f;
-		l0p.radius = 8.0f;
-		l0p.color = Vec3(1.0f, 0.4f, 0.0f);
-		l0p.intensity = 1.8f;
-		
-		Entity& l1 = eworld.create();
-		Transform& l1t = l1.assign<Transform>();
-		PointLight& l1p = l1.assign<PointLight>();
-		
-		l1t.position.x = -6.0f;
-		l1p.radius = 8.0f;
-		l1p.color = Vec3(0.0f, 0.5f, 1.0f);
-		l1p.intensity = 1.8f;
-		
+//		Entity& l0 = eworld.create();
+//		Transform& l0t = l0.assign<Transform>();
+//		PointLight& l0p = l0.assign<PointLight>();
+//		
+//		l0t.position.x = 6.0f;
+//		l0p.radius = 8.0f;
+//		l0p.color = Vec3(1.0f, 0.4f, 0.0f);
+//		l0p.intensity = 1.8f;
+//		
+//		Entity& l1 = eworld.create();
+//		Transform& l1t = l1.assign<Transform>();
+//		PointLight& l1p = l1.assign<PointLight>();
+//		
+//		l1t.position.x = -6.0f;
+//		l1p.radius = 8.0f;
+//		l1p.color = Vec3(0.0f, 0.5f, 1.0f);
+//		l1p.intensity = 1.8f;
+//		
 		Entity& l2 = eworld.create();
 		Transform& l2t = l2.assign<Transform>();
 		DirectionalLight& l2p = l2.assign<DirectionalLight>();
 		
-		l2t.rotation.lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1));
+		l2t.rotation.lookAt(Vec3(0, 1, 0), Vec3(0, 1, 1));
 		l2p.intensity = 1.0f;
 	}
 
 	void update(float timeDelta) {
+		t += timeDelta;
 		if (Input::isKeyPressed(SDLK_ESCAPE)) {
 			MessageSystem::get().submit("app_quit");
 		}
 		
 		mod1->get<Transform>()->rotation.rotate(Vec3(0, 1, 0), radians(timeDelta*50.0f));
 		mod1->get<Transform>()->setDirty();
+		
+		Entity *cam = eworld.find<Camera>();
+		Transform* camt = cam->get<Transform>();
+		
+		if (Input::isKeyDown(SDLK_LEFT))
+			camt->rotation.rotate(Vec3(0, 1, 0), -timeDelta);
+		else if (Input::isKeyDown(SDLK_RIGHT))
+			camt->rotation.rotate(Vec3(0, 1, 0), timeDelta);
+		else if (Input::isKeyDown(SDLK_UP))
+			camt->rotation.rotate(Vec3(1, 0, 0), -timeDelta);
+		else if (Input::isKeyDown(SDLK_DOWN))
+			camt->rotation.rotate(Vec3(1, 0, 0), timeDelta);
 		
 		eworld.update(timeDelta);
 	}
@@ -141,6 +154,7 @@ public:
 	
 	Entity* mod1;
 	EntityWorld eworld;
+	float t;
 };
 
 int main(int argc, char** argv) {

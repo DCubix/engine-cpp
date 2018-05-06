@@ -22,7 +22,8 @@ uniform mat4 mView;
 uniform mat4 mModel;
 
 void main() {
-	vec4 pos = mView * mModel * vec4(vPosition, 1.0);
+	mat4 mViewModel = mView * mModel;
+	vec4 pos = mViewModel * vec4(vPosition, 1.0);
 	gl_Position = mProjection * pos;
 
 	VSOut.position = pos;

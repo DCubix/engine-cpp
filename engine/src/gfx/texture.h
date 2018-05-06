@@ -50,7 +50,7 @@ public:
 	Texture& setNull(int w, int h, TextureFormat format);
 	
 	// Horizontal cross, like this <https://learnopengl.com/img/advanced/cubemaps_skybox.png>
-	Texture& setCubemap(const String& file);
+	Texture& setCubemap(const String& file, bool flipY=false);
 	
 	Texture& setCubemapNull(int w, int h, TextureFormat format);
 	
