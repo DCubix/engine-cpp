@@ -1,3 +1,6 @@
 [submodule "extern/physfs"]
 	path = extern/physfs
 	url = https://github.com/criptych/physfs
+[submodule "extern/assimp"]
+	path = extern/assimp
+	url = https://github.com/assimp/assimp

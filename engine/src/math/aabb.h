@@ -1,6 +1,7 @@
 #ifndef AABB_H
 #define AABB_H
 
+#include "vec.h"
 #include "../core/types.h"
 
 #include <cmath>

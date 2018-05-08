@@ -4,20 +4,40 @@ set(CMAKE_CXX_STANDARD 17)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 
-find_package(PhysFS REQUIRED)
-find_package(Assimp REQUIRED)
+if (NOT EXISTS "extern/physfs" OR NOT EXISTS "extern/assimp")
+	add_custom_target(
+		GitSubmoduleInit
+		COMMAND git submodule update --init --recursive
+	)
+	add_dependencies(${engine} GitSubmoduleInit)
+endif()
+
+set(PHYSFS_BUILD_STATIC ON)
+set(PHYSFS_BUILD_SHARED OFF)
+set(PHYSFS_BUILD_TEST OFF)
+add_subdirectory("extern/physfs")
+
+set(ASSIMP_BUILD_NO_EXPORT ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
+
+set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+set(ASSIMP_BUILD_GLTF_IMPORTER ON)
+set(ASSIMP_BUILD_PLY_IMPORTER ON)
+set(ASSIMP_BUILD_BLEND_IMPORTER ON)
+set(ASSIMP_BUILD_COLLADA_IMPORTER ON)
+
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+add_subdirectory("extern/assimp")
+
 find_package(SDL2 REQUIRED)
 
 include_directories(
-	${CMAKE_SOURCE_DIR}/engine/deps/assimp/include
-	${CMAKE_SOURCE_DIR}/engine/deps/physfs/include
 	${SDL2_INCLUDE_DIRS}
 	${ASSIMP_INCLUDE_DIR}
-	${PHYSFS_INCLUDE_DIR}
-)
-link_directories(
-	${CMAKE_SOURCE_DIR}/engine/deps/assimp/lib
-	${CMAKE_SOURCE_DIR}/engine/deps/physfs/lib
+	${CMAKE_SOURCE_DIR}/extern/physfs/src
+	${CMAKE_SOURCE_DIR}/extern/assimp/include
 )
 
 file(GLOB SRC
@@ -50,7 +70,7 @@ file(GLOB SRC
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME}
+	physfs-static
+	assimp
 	${SDL2_LIBRARIES}
-	${ASSIMP_LIBRARY}
-	${PHYSFS_LIBRARY}
 )
