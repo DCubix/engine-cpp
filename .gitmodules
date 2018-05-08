@@ -1,0 +1,3 @@
+[submodule "extern/physfs"]
+	path = extern/physfs
+	url = https://github.com/criptych/physfs
