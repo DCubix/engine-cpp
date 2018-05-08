@@ -4,14 +4,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 
-if (NOT EXISTS "extern/physfs" OR NOT EXISTS "extern/assimp")
-	add_custom_target(
-		GitSubmoduleInit
-		COMMAND git submodule update --init --recursive
-	)
-	add_dependencies(${engine} GitSubmoduleInit)
-endif()
-
 set(PHYSFS_BUILD_STATIC ON)
 set(PHYSFS_BUILD_SHARED OFF)
 set(PHYSFS_BUILD_TEST OFF)

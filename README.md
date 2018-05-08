@@ -3,6 +3,18 @@ Game engine written in C++
 
 ### Building
 
+After cloning this repo:
+```
+$ git clone https://github.com/DCubix/engine-cpp
+```
+
+Make _sure_ you run:
+```
+$ git submodule update --init --recursive
+```
+
+To properly fetch the depencency submodules!
+
 #### Linux
 
 Building on Linux is pretty straight-forward.
