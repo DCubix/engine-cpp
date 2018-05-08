@@ -1,0 +1,50 @@
+### PHYSFS ###
+
+set(PHYSFS_BUILD_STATIC ON)
+set(PHYSFS_BUILD_SHARED OFF)
+set(PHYSFS_BUILD_TEST OFF)
+add_subdirectory("extern/physfs")
+
+add_library(extern::physfs INTERFACE IMPORTED)
+set_target_properties(extern::physfs PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/extern/physfs/src
+	INTERFACE_LINK_LIBRARIES physfs-static
+)
+
+### ASSIMP ###
+
+set(ASSIMP_BUILD_NO_EXPORT ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE CACHE BOOL "DoNotTouch")
+
+set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_PLY_IMPORTER ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_BLEND_IMPORTER ON CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE BOOL "DoNotTouch")
+
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "DoNotTouch")
+add_subdirectory("extern/assimp")
+
+add_library(extern::assimp INTERFACE IMPORTED)
+set_target_properties(extern::assimp PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/extern/assimp/include;${CMAKE_BINARY_DIR}/extern/assimp/include"
+	INTERFACE_LINK_LIBRARIES assimp
+)
+
+### SDL2 ###
+
+find_package(SDL2 REQUIRED)
+
+add_library(extern::sdl2 INTERFACE IMPORTED)
+set_target_properties(extern::sdl2 PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS}
+	INTERFACE_LINK_LIBRARIES ${SDL2_LIBRARIES}
+)
+
+### DL ###
+add_library(extern::dl INTERFACE IMPORTED)
+set_target_properties(extern::dl PROPERTIES
+	INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS}
+)
