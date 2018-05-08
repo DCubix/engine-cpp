@@ -26,16 +26,16 @@ file(GLOB HEADERS
 )
 
 file(GLOB SRC
-	"engine/src/*.cpp"
-	"engine/src/core/*.cpp"
-	"engine/src/core/logging/*.cpp"
-	"engine/src/core/im3d/*.cpp"
-	"engine/src/gfx/*.cpp"
-	"engine/src/gfx/glad/*.c"
-	"engine/src/gfx/stb/*.c"
-	"engine/src/math/*.cpp"
-	"engine/src/components/*.cpp"
-	"engine/src/systems/*.cpp"
+    "engine/src/*.cpp"
+    "engine/src/core/*.cpp"
+    "engine/src/core/logging/*.cpp"
+    "engine/src/core/im3d/*.cpp"
+    "engine/src/gfx/*.cpp"
+    "engine/src/gfx/glad/*.c"
+    "engine/src/gfx/stb/*.c"
+    "engine/src/math/*.cpp"
+    "engine/src/components/*.cpp"
+    "engine/src/systems/*.cpp"
 )
 
 file(GLOB SHADERS
@@ -45,7 +45,7 @@ file(GLOB SHADERS
 add_executable(${PROJECT_NAME} ${SRC} ${HEADERS} ${SHADERS})
 
 target_link_libraries(${PROJECT_NAME}
-	extern::assimp
+    extern::assimp
     extern::physfs
     extern::sdl2
     extern::dl
