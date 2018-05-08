@@ -1,5 +1,5 @@
 R"(#version 330 core
-layout (location = 0) out vec2 oNormals;
+layout (location = 0) out vec3 oNormals;
 layout (location = 1) out vec3 oAlbedo;
 layout (location = 2) out vec3 oRME;
 layout (location = 3) out float oDepth; // Future: Stencil
@@ -75,9 +75,9 @@ void main() {
 		vec3 tanFragPos = ttbn * FSIn.position.xyz;
 		vec3 V = normalize(tanViewPos - tanFragPos);
 		iuv = parallaxMapping(FSIn.uv, V);
-//		if (iuv.x > 1.0 || iuv.y > 1.0 || iuv.x < 0.0 || iuv.y < 0.0) {
-//			discard;
-//		}
+		if (material.discardEdges && (iuv.x > 1.0 || iuv.y > 1.0 || iuv.x < 0.0 || iuv.y < 0.0)) {
+			discard;
+		}
 	}
 
 	if (TexSlotEnabled(NormalMap)) {
@@ -86,8 +86,9 @@ void main() {
 	} else {
 		oNormals.rg = encodeNormals(FSIn.normal);
 	}
+	oNormals.b = gl_FragCoord.z;
 
-	oAlbedo = material.albedo;
+	oAlbedo = material.baseColor;
 	if (TexSlotEnabled(Albedo0)) {
 		vec2 uv = transformUV(TexSlotGet(Albedo0).opt, iuv);
 		oAlbedo *= texture(TexSlotGet(Albedo0).img, uv).rgb;

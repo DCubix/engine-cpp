@@ -1,4 +1,4 @@
-R"(const float PI = 3.141592654;
+R"(const float PI = 3.14159265358979323846;
 const float Epsilon = 0.00001;
 
 float saturate(float x) {
@@ -17,11 +17,6 @@ vec4 saturate(vec4 x) {
 	return vec4(saturate(x.xyz), saturate(x.w));
 }
 
-#ifdef VERTEX_SHADER_COMMON
-
-#endif
-
-#ifdef FRAGMENT_SHADER_COMMON
 struct TextureSlotOptions {
 	bool enabled;
 	vec4 uv_transform; // xy = position, zw = scale
@@ -42,11 +37,14 @@ vec2 transformUV(TextureSlotOptions opt, vec2 uv) {
 }
 
 struct Material {
+	vec3 baseColor;
 	float roughness;
 	float metallic;
 	float emission;
+
+	// POM
 	float heightScale;
-	vec3 albedo;
+	bool discardEdges;
 };
 
 struct Light {
@@ -83,9 +81,11 @@ float lambert(vec3 n, vec3 l) {
 	return saturate(dot(n, l));
 }
 
+
 vec3 worldPosition(mat4 projection, mat4 view, vec2 uv, float z) {
-    vec4 wp = inverse(projection * view) * vec4(uv * 2.0 - 1.0, z, 1.0);
-    return (wp.xyz / wp.w);
+	mat4 vp = projection * view;
+	vec4 wp = inverse(vp) * vec4(uv * 2.0 - 1.0, z, 1.0);
+	return (wp.xyz / wp.w);
 }
 
 float lightAttenuation(Light light, vec3 L, float dist) {
@@ -106,23 +106,17 @@ float lightAttenuation(Light light, vec3 L, float dist) {
 }
 
 vec2 encodeNormals(vec3 n) {
-	float scale = 1.7777;
-	vec2 enc = n.xy / (n.z + 1.0);
-	enc /= scale;
-	enc = enc * 0.5 + 0.5;
+	vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
+	enc = enc*0.5+0.5;
 	return enc;
 }
 
-vec3 decodeNormals(vec2 enc) {
-	float scale = 1.7777;
-	vec3 nn = vec3(enc, 0.0) * vec3(2.0 * scale, 2.0 * scale, 0.0) + vec3(-scale, -scale, 1.0);
-	float g = 2.0 / dot(nn.xyz, nn.xyz);
-	vec3 n;
-	n.xy = g * nn.xy;
-	n.z = g - 1.0;
-	return n;
+vec3 decodeNormals(vec4 enc) {
+	vec4 nn = enc*vec4(2,2,0,0) + vec4(-1,-1,1,-1);
+	float l = dot(nn.xyz,-nn.xyw);
+	nn.z = l;
+	nn.xy *= sqrt(l);
+	return nn.xyz * 2 + vec3(0,0,-1);
 }
-
-#endif
 
 )"

@@ -51,6 +51,7 @@ struct Mat4 {
 	static Mat4 rotationX(float a);
 	static Mat4 rotationY(float a);
 	static Mat4 rotationZ(float a);
+	static Mat4 rotation(const Vec3& forward, const Vec3& up, const Vec3& right);
 	static Mat4 axisAngle(const Vec3& axis, float a);
 	static Mat4 ortho(float l, float r, float t, float b, float n, float f);
 	static Mat4 ortho2D(float width, float height);

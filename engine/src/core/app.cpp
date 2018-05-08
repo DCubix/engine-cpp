@@ -62,8 +62,9 @@ Application::Application(IApplicationAdapter* adapter, ApplicationConfig config)
 		return;
 	}
 
+	adapter->config = config;
 	m_applicationAdapter = uptr<IApplicationAdapter>(mov(adapter));
-	m_config = mov(config);
+	m_config = config;
 
 	MessageSystem::get().subscribe(this);
 }
@@ -141,6 +142,8 @@ void Application::run() {
 	Texture::DEFAULT_SAMPLER = Builder<Sampler>::build()
 			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
 			.setWrap();
+	
+	Input::m_window = m_window;
 	
 	LogInfo("Application Started...");
 	eng_mainloop();

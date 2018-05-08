@@ -32,11 +32,16 @@ struct TextureSlot {
 class Material {
 public:
 	Material() 
-		: roughness(0.01f), metallic(0.0f), emission(0.0f), albedo(Vec4(1.0f)), heightScale(1.0f)
+		: roughness(0.5f), metallic(0.0f), emission(0.0f), baseColor(Vec3(1.0f)), heightScale(1.0f),
+			discardParallaxEdges(false)
 	{}
 	
-	float roughness, metallic, emission, heightScale;
-	Vec4 albedo;
+	Vec3 baseColor;
+	float metallic;
+	float roughness;
+	float emission;
+	float heightScale;
+	bool discardParallaxEdges;
 	
 	Material& setTextureEnabled(u32 index, bool enabled);
 	Material& setTextureUVTransform(u32 index, Vec4 uvt);

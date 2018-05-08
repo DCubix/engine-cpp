@@ -28,7 +28,7 @@ RendererSystem::RendererSystem() {
 	m_gbuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
 			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
-			.addColorAttachment(TextureFormat::RGf) // Normals
+			.addColorAttachment(TextureFormat::RGBf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
 			.addColorAttachment(TextureFormat::RGBf) // RME
 			.addDepthAttachment();
@@ -42,10 +42,14 @@ RendererSystem::RendererSystem() {
 			.setSize(vp[2], vp[3])
 			.addColorAttachment(TextureFormat::RGBf)
 			.addColorAttachment(TextureFormat::RGBf);
-	
+
 	m_captureBuffer = Builder<FrameBuffer>::build()
 			.setSize(128, 128)
 			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment);
+
+	m_pickingBuffer = Builder<FrameBuffer>::build()
+			.setSize(vp[2], vp[3])
+			.addColorAttachment(TextureFormat::RGB);
 	
 	String common =
 #include "../shaders/common.glsl"
@@ -144,6 +148,14 @@ RendererSystem::RendererSystem() {
 			.add(brdfFS, ShaderType::FragmentShader);
 	m_brdfLUTShader.link();
 	
+	String pickFS = 
+#include "../shaders/pickingF.glsl"
+			;
+	m_pickingShader = Builder<ShaderProgram>::build()
+			.add(gVS, ShaderType::VertexShader)
+			.add(pickFS, ShaderType::FragmentShader);
+	m_pickingShader.link();
+	
 	m_plane = Builder<Mesh>::build();
 	m_plane.addVertex(Vertex(Vec3(0, 0, 0)))
 		.addVertex(Vertex(Vec3(1, 0, 0)))
@@ -154,11 +166,11 @@ RendererSystem::RendererSystem() {
 		.flush();
 	
 	m_cube = Builder<Mesh>::build();
-	m_cube.addPlane(Axis::X, 1.0f, Vec3(-1, 0, 0));
+	m_cube.addPlane(Axis::X, 1.0f, Vec3(-1, 0, 0), true);
 	m_cube.addPlane(Axis::X, 1.0f, Vec3(1, 0, 0));
-	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, -1, 0));
+	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, -1, 0), true);
 	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, 1, 0));
-	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, -1));
+	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, -1), true);
 	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, 1));
 	m_cube.flush();
 	
@@ -213,12 +225,45 @@ void RendererSystem::render(EntityWorld& world) {
 		viewMat = loc * rot;
 	}
 	
-	if (!m_IBLGenerated) {
+	if (!m_IBLGenerated && m_envMap.id() != 0) {
 		computeIBL();
 		m_IBLGenerated = true;
 	}
 	
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	
+	/// Fill picking buffer
+	m_pickingBuffer.bind();
+	glClearColor(1, 1, 1, 1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	m_pickingShader.bind();
+	m_pickingShader.get("mProjection").set(projMat);
+	m_pickingShader.get("mView").set(viewMat);
+	
+	// Render everything that has a transform
+	m_cube.bind();
+	world.each([&](Entity& ent, Transform& T) {
+		Mat4 modelMat = T.localToWorldMatrix();
+		
+		// Scale the cube to the same size of the object
+		Vec3 scale = Vec3(1.0f);
+		if (ent.has<Drawable3D>()) {
+			Drawable3D* drw = ent.get<Drawable3D>();
+			scale = (drw->mesh.aabb().max() - drw->mesh.aabb().min()) * 0.5f;
+		} else {
+			scale = Vec3(0.1f);
+		}
+		modelMat = Mat4::scaling(scale) * modelMat;
+		
+		m_pickingShader.get("mModel").set(modelMat);
+		m_pickingShader.get("uEID").set(ent.id());
+		glDrawElements(GL_TRIANGLES, m_cube.indexCount(), GL_UNSIGNED_INT, nullptr);
+	});
+	m_pickingShader.unbind();
+	m_cube.unbind();
+	m_pickingBuffer.unbind();
 	
 	/// Fill GBuffer
 	m_gbuffer.bind();
@@ -240,8 +285,9 @@ void RendererSystem::render(EntityWorld& world) {
 		m_gbufferShader.get("material.roughness").set(D.material.roughness);
 		m_gbufferShader.get("material.metallic").set(D.material.metallic);
 		m_gbufferShader.get("material.emission").set(D.material.emission);
-		m_gbufferShader.get("material.albedo").set(D.material.albedo.xyz);
+		m_gbufferShader.get("material.baseColor").set(D.material.baseColor);
 		m_gbufferShader.get("material.heightScale").set(D.material.heightScale);
+		m_gbufferShader.get("material.discardEdges").set(D.material.discardParallaxEdges);
 		
 		int sloti = 0;
 		for (TextureSlot slot : D.material.textures) {
@@ -288,12 +334,12 @@ void RendererSystem::render(EntityWorld& world) {
 	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
 	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo	
 	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
-	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
+	//m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
 	
 	m_lightingShader.get("tNormals").set(0);
 	m_lightingShader.get("tAlbedo").set(1);
 	m_lightingShader.get("tRME").set(2);
-	m_lightingShader.get("tDepth").set(3);
+	//m_lightingShader.get("tDepth").set(3);
 	
 	if (m_activeCameraTransform) {
 		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
@@ -305,19 +351,20 @@ void RendererSystem::render(EntityWorld& world) {
 	m_plane.bind();
 	
 	m_lightingShader.get("uEmit").set(false);
+	m_lightingShader.get("uIBL").set(false);
 	
 	// IBL
 	if (m_IBLGenerated) {
-		m_brdf.bind(m_screenTextureSampler, 4);
-		m_irradiance.bind(m_cubeMapSamplerNoMip, 5);
-		m_radiance.bind(m_cubeMapSampler, 6);
+//		m_brdf.bind(m_screenTextureSampler, 4);
+		m_irradiance.bind(m_cubeMapSamplerNoMip, 4);
+		m_radiance.bind(m_cubeMapSampler, 5);
 		m_lightingShader.get("uIBL").set(true);
-		m_lightingShader.get("tBRDFLUT").set(4);
-		m_lightingShader.get("tIrradiance").set(5);
-		m_lightingShader.get("tRadiance").set(6);
+//		m_lightingShader.get("tBRDFLUT").set(4);
+		m_lightingShader.get("tIrradiance").set(4);
+		m_lightingShader.get("tRadiance").set(5);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		m_lightingShader.get("uIBL").set(false);
 	}
-	m_lightingShader.get("uIBL").set(false);
 	
 	// Emit
 	m_lightingShader.get("uEmit").set(true);
@@ -330,7 +377,7 @@ void RendererSystem::render(EntityWorld& world) {
 		m_lightingShader.get("uLight.color").set(L.color);
 		m_lightingShader.get("uLight.intensity").set(L.intensity);
 		
-		m_lightingShader.get("uLight.direction").set(T.worldRotation().forward());
+		m_lightingShader.get("uLight.direction").set(T.forward());
 		
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	});
@@ -355,7 +402,7 @@ void RendererSystem::render(EntityWorld& world) {
 		m_lightingShader.get("uLight.intensity").set(L.intensity);
 		
 		m_lightingShader.get("uLight.position").set(T.worldPosition());
-		m_lightingShader.get("uLight.direction").set(T.worldRotation().forward());
+		m_lightingShader.get("uLight.direction").set(T.forward());
 		m_lightingShader.get("uLight.radius").set(L.radius);
 		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
 		m_lightingShader.get("uLight.spotCutoff").set(L.spotCutOff);
@@ -473,6 +520,17 @@ void RendererSystem::render(EntityWorld& world) {
 	}
 	
 	m_plane.unbind();
+	
+	m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBlitFramebuffer(
+			0, 0, m_gbuffer.width(), m_gbuffer.height(),
+			0, 0, m_gbuffer.width(), m_gbuffer.height(),
+			ClearBufferMask::DepthBuffer,
+			TextureFilter::Nearest
+	);
+	m_gbuffer.unbind();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void RendererSystem::computeIrradiance() {
@@ -618,7 +676,7 @@ void RendererSystem::computeBRDF() {
 void RendererSystem::computeIBL() {
 	computeIrradiance();
 	computeRadiance();
-	computeBRDF();
+//	computeBRDF();
 }
 
 RendererSystem& RendererSystem::addPostEffect(ShaderProgram effect) {

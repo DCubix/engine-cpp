@@ -100,6 +100,7 @@ struct Vec<2> {
 	DEF_INDEX();
 };
 
+class Quat;
 template <>
 struct Vec<3> {
 	union {
@@ -120,7 +121,7 @@ struct Vec<3> {
 			x * o.y - y * o.x
 		);
 	}
-
+	
 	DEF_COMMON(3);
 
 	DEF_NEG(3);

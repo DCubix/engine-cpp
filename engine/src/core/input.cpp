@@ -11,6 +11,7 @@ int Input::m_mouseX = 0;
 int Input::m_mouseY = 0;
 int Input::m_scrollOffset = 0;
 bool Input::m_closeRequested = false;
+SDL_Window* Input::m_window;
 
 void Input::update() {
 	for (auto& kv : m_keyboard) {
@@ -104,6 +105,22 @@ bool Input::isMouseButtonReleased(int btn) {
 
 bool Input::isMouseButtonDown(int btn) {
 	return getMouseState(btn).down;
+}
+
+void Input::setCursorVisible(bool state) {
+	SDL_ShowCursor(state ? SDL_ENABLE : SDL_DISABLE);
+}
+
+void Input::setMousePosition(int x, int y) {
+	SDL_WarpMouseInWindow(m_window, x, y);
+}
+
+void Input::setMousePosition(const Vec2& pos) {
+	setMousePosition(int(pos.x), int(pos.y));
+}
+
+Vec2 Input::getMousePosition() {
+	return Vec2(getMouseX(), getMouseY());
 }
 
 NS_END

@@ -1,3 +1,5 @@
+#include <cfloat>
+
 #include "mesher.h"
 
 #include "../core/logging/log.h"
@@ -92,6 +94,19 @@ void Mesh::flush() {
 	m_vertexCount = m_vertexData.size();
 	m_indexCount = m_indexData.size();
 
+	// Compute bounding box
+	Vec3 aabbMin = Vec3(FLT_MAX);
+	Vec3 aabbMax = Vec3(FLT_MIN);
+	for (Vertex v : m_vertexData) {
+		aabbMin.x = std::min(aabbMin.x, v.position.x);
+		aabbMin.y = std::min(aabbMin.y, v.position.y);
+		aabbMin.z = std::min(aabbMin.z, v.position.z);
+		aabbMax.x = std::max(aabbMax.x, v.position.x);
+		aabbMax.y = std::max(aabbMax.y, v.position.y);
+		aabbMax.z = std::max(aabbMax.z, v.position.z);
+	}
+	m_aabb = AABB(aabbMin, aabbMax);
+	
 	m_vertexData.clear();
 	m_indexData.clear();
 }
@@ -150,7 +165,7 @@ Mesh& Mesh::addFromFile(const String& file) {
 	return *this;
 }
 
-Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off) {
+Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off, bool flip) {
 	i32 ioff = m_vertexData.size();
 	float s = size;
 	switch (axis) {
@@ -173,8 +188,14 @@ Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off) {
 			addVertex(Vertex(off + Vec3(-s,  s, 0), Vec2(0, 1)));
 		} break;
 	}
-	addTriangle(ioff+0, ioff+1, ioff+2);
-	addTriangle(ioff+2, ioff+3, ioff+0);
+	
+	if (!flip) {
+		addTriangle(ioff+0, ioff+1, ioff+2);
+		addTriangle(ioff+2, ioff+3, ioff+0);
+	} else {
+		addTriangle(ioff+0, ioff+3, ioff+2);
+		addTriangle(ioff+2, ioff+1, ioff+0);
+	}
 	
 	return *this;
 }

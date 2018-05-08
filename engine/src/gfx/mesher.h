@@ -6,6 +6,7 @@
 #include "../core/builder.h"
 #include "../core/types.h"
 #include "../math/vec.h"
+#include "../math/aabb.h"
 
 #include "../core/filesys.h"
 
@@ -109,7 +110,7 @@ public:
 	Mesh& addIndex(i32 index);
 	Mesh& addTriangle(i32 i0, i32 i1, i32 i2);
 
-	Mesh& addPlane(Axis axis, float size, const Vec3& off);
+	Mesh& addPlane(Axis axis, float size, const Vec3& off, bool flip = false);
 	
 	Mesh& addData(const Vector<Vertex>& vertices, const Vector<i32>& indices);
 
@@ -132,6 +133,8 @@ public:
 	
 	i32 index(u32 i) const { return m_indexData[i]; }
 
+	AABB aabb() const { return m_aabb; }
+	
 protected:
 	VertexFormat m_format;
 
@@ -140,6 +143,8 @@ protected:
 	
 	Vector<Vertex> m_vertexData;
 	Vector<i32> m_indexData;
+	
+	AABB m_aabb;
 	
 	void triNormal(i32 i0, i32 i1, i32 i2);
 	void triTangent(i32 i0, i32 i1, i32 i2);

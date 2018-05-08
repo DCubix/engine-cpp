@@ -17,6 +17,7 @@ NS_BEGIN
 class Uniform {
 	friend class ShaderProgram;
 public:
+	void set(u64 v) { glUniform(1ui, v); }
 	void set(i32 v) { glUniform(1i, v); }
 	void set(float v) { glUniform(1f, v); }
 	void set(Vec2 v) { glUniform(2f, v.x, v.y); }

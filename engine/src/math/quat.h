@@ -1,8 +1,8 @@
 #ifndef QUAT_H
 #define QUAT_H
 
-#include "vec.h"
 #include "mat.h"
+#include "vec.h"
 
 NS_BEGIN
 
@@ -30,27 +30,19 @@ public:
 	}
 
 	Quat operator *(const Quat& o) const {
-		return Quat(
-			w*o.x - z*o.y + y*o.z + x*o.w,
-			z*o.x + w*o.y - x*o.z + y*o.w,
-			-y*o.x + x*o.y + w*o.z + z*o.w,
-			-x*o.x - y*o.y - z*o.z + w*o.w
-		);
+		float w_ = w * o.w - x * o.x - y * o.y - z * o.z;
+		float x_ = x * o.w + w * o.x + y * o.z - z * o.y;
+		float y_ = y * o.w + w * o.y + z * o.x - x * o.z;
+		float z_ = z * o.w + w * o.z + x * o.y - y * o.x;
+		return Quat(x_, y_, z_, w_);
 	}
 
 	Quat operator *(float o) const {
 		return Quat(x * o, y * o, z * o, w * o);
 	}
 
-	Vec3 operator *(const Vec3& o) const {
-		Quat q = Quat(o.x, o.y, o.z, 0.0f);
-		return ((*this) * q * (*this).conjugated()).imaginary;
-	}
-
-	Vec3 forward() const { return (*this) * Vec3(0, 0, -1); }
-	Vec3 right() const { return (*this) * Vec3(1, 0, 0); }
-	Vec3 up() const { return (*this) * Vec3(0, 1, 0); }
-
+	Vec3 operator *(const Vec3& o) const;
+	
 };
 
 NS_END

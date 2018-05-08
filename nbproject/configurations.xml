@@ -42,6 +42,8 @@
         <in>texture.h</in>
       </df>
       <df name="math">
+        <in>aabb.cpp</in>
+        <in>aabb.h</in>
         <in>mat.cpp</in>
         <in>quat.cpp</in>
         <in>vec.cpp</in>
@@ -57,6 +59,7 @@
         <in>fxaaF.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
+        <in>pickingF.glsl</in>
         <in>screenF.glsl</in>
         <in>tonemapF.glsl</in>
       </df>
@@ -207,6 +210,10 @@
         <ccTool flags="2">
         </ccTool>
       </item>
+      <item path="engine/src/math/aabb.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="engine/src/math/aabb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="engine/src/math/mat.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
           <incDir>
@@ -253,6 +260,8 @@
       <item path="engine/src/shaders/lightingF.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/shaders/lightingV.glsl" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="engine/src/shaders/pickingF.glsl" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/shaders/screenF.glsl" ex="false" tool="3" flavor2="0">
       </item>

@@ -1,5 +1,7 @@
 #include "quat.h"
 
+#include "vec.h"
+
 NS_BEGIN
 
 Quat::Quat(const Vec3& axis, float a) {
@@ -25,34 +27,11 @@ Quat Quat::conjugated() const {
 }
 
 Mat4 Quat::toMat4() const {
-	Mat4 ret = Mat4::ident();
+	Vec3 forward(2.0f * (x * z - w * y), 2.0f * (y * z + w * x), 1.0f - 2.0f * (x * x + y * y));
+	Vec3 up(2.0f * (x * y + w * z), 1.0f - 2.0f * (x * x + z * z), 2.0f * (y * z - w * x));
+	Vec3 right(1.0f - 2.0f * (y * y + z * z), 2.0f * (x * y - w * z), 2.0f * (x * z + w * y));
 
-	float sqw = w * w;
-	float sqx = x * x;
-	float sqy = y * y;
-	float sqz = z * z;
-
-	// invs (inverse square length) is only required if quaternion is not already normalised
-	float invs = 1.0f / (sqx + sqy + sqz + sqw);
-	ret[0][0] = (sqx - sqy - sqz + sqw) * invs; // since sqw + sqx + sqy + sqz =1/invs*invs
-	ret[1][1] = (-sqx + sqy - sqz + sqw) * invs;
-	ret[2][2] = (-sqx - sqy + sqz + sqw) * invs;
-
-	float tmp1 = x * y;
-	float tmp2 = z * w;
-	ret[1][0] = 2.0f * (tmp1 + tmp2) * invs;
-	ret[0][1] = 2.0f * (tmp1 - tmp2) * invs;
-
-	tmp1 = x * z;
-	tmp2 = y * w;
-	ret[2][0] = 2.0f * (tmp1 - tmp2) * invs;
-	ret[0][2] = 2.0f * (tmp1 + tmp2) * invs;
-	tmp1 = y * z;
-	tmp2 = x * w;
-	ret[2][1] = 2.0f * (tmp1 + tmp2) * invs;
-	ret[1][2] = 2.0f * (tmp1 - tmp2) * invs;
-
-	return ret;
+	return Mat4::rotation(forward, up, right);
 }
 
 Quat& Quat::rotate(const Vec3& axis, float a) {
@@ -83,6 +62,11 @@ Quat& Quat::lookAt(const Vec3& eye, const Vec3& dest) {
 	w /= m;
 	
     return *this;
+}
+
+Vec3 Quat::operator*(const Vec3& o) const {
+	Quat q = Quat(o.x, o.y, o.z, 0.0);
+	return ((*this) * q * conjugated()).imaginary;
 }
 
 NS_END

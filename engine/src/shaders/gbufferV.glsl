@@ -24,7 +24,7 @@ uniform mat4 mModel;
 void main() {
 	mat4 mViewModel = mView * mModel;
 	vec4 pos = mViewModel * vec4(vPosition, 1.0);
-	gl_Position = mProjection * pos;
+	gl_Position = mProjection * mView * mModel * vec4(vPosition, 1.0);
 
 	VSOut.position = pos;
 	VSOut.uv = vTexCoord;

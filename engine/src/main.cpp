@@ -21,6 +21,9 @@ public:
 	void init() {
 		VFS::get().mountDefault(); // mounts to where the application resides
 		
+		sensitivity = 0.1f;
+		mouseLocked = false;
+		
 		RendererSystem& rsys = eworld.registerSystem<RendererSystem>();
 		
 		String fxaaF = 
@@ -34,7 +37,7 @@ public:
 		
 		Texture envMap = Builder<Texture>::build()
 				.bind(TextureTarget::CubeMap)
-				.setCubemap("cubemap.png")
+				.setCubemap("skybox.jpg")
 				.generateMipmaps();
 		
 		rsys.setEnvironmentMap(envMap);
@@ -63,32 +66,32 @@ public:
 				.generateMipmaps();
 		
 		// Camera
-		Entity &cam = eworld.create();
-		cam.assign<Camera>(0.02f, 1000.0f, radians(40.0f));
+		camera = &eworld.create();
+		camera->assign<Camera>(0.02f, 1000.0f, radians(45.0f));
 		
-		Transform& camt = cam.assign<Transform>();
-		camt.position.z = 2.0f;
+		Transform& camt = camera->assign<Transform>();
+		camt.position.z = 5.0f;
 		
 		Material def;
 		def.roughness = 1.0f;
-		def.metallic = 1.0f;
-		def.heightScale = 0.10f;
+		def.metallic = 0.0f;
+		def.heightScale = 0.3f;
 		
-		def.setTexture(0, rme)
-			.setTextureEnabled(0, true)
-			.setTextureType(0, TextureSlotType::RougnessMetallicEmission);
+//		def.setTexture(0, rme)
+//			.setTextureEnabled(0, true)
+//			.setTextureType(0, TextureSlotType::RougnessMetallicEmission);
+//	
+//		def.setTexture(1, alb0)
+//			.setTextureEnabled(1, true)
+//			.setTextureType(1, TextureSlotType::Albedo0);
 //		
-		def.setTexture(1, alb0)
-			.setTextureEnabled(1, true)
-			.setTextureType(1, TextureSlotType::Albedo0);
+//		def.setTexture(2, nrm)
+//			.setTextureEnabled(2, true)
+//			.setTextureType(2, TextureSlotType::NormalMap);
 //		
-		def.setTexture(2, nrm)
-			.setTextureEnabled(2, true)
-			.setTextureType(2, TextureSlotType::NormalMap);
-		
-		def.setTexture(3, disp)
-			.setTextureEnabled(3, true)
-			.setTextureType(3, TextureSlotType::HeightMap);
+//		def.setTexture(3, disp)
+//			.setTextureEnabled(3, true)
+//			.setTextureType(3, TextureSlotType::HeightMap);
 		
 		// Models
 		mod1 = &eworld.create();
@@ -96,14 +99,16 @@ public:
 		mod1->assign<Transform>();
 		
 		// Lights
-//		Entity& l0 = eworld.create();
-//		Transform& l0t = l0.assign<Transform>();
-//		PointLight& l0p = l0.assign<PointLight>();
-//		
-//		l0t.position.x = 6.0f;
-//		l0p.radius = 8.0f;
-//		l0p.color = Vec3(1.0f, 0.4f, 0.0f);
-//		l0p.intensity = 1.8f;
+		Entity& l0 = eworld.create();
+		Transform& l0t = l0.assign<Transform>();
+		SpotLight& l0p = l0.assign<SpotLight>();
+		
+		l0t.position = Vec3(-2.0f, 2.0f, 2.0f);
+		l0t.rotation.lookAt(l0t.position * -1.0f, Vec3());
+		l0p.radius = 10.0f;
+		l0p.intensity = 1.5f;
+		l0p.color = Vec3(1.0f, 0.6f, 0.0f);
+		l0p.spotCutOff = 0.8f;
 //		
 //		Entity& l1 = eworld.create();
 //		Transform& l1t = l1.assign<Transform>();
@@ -111,37 +116,68 @@ public:
 //		
 //		l1t.position.x = -6.0f;
 //		l1p.radius = 8.0f;
-//		l1p.color = Vec3(0.0f, 0.5f, 1.0f);
-//		l1p.intensity = 1.8f;
+//		l1p.color = Vec3(0.0f, 0.6f, 1.0f);
+//		l1p.intensity = 1.0f;
 //		
 //		Entity& l2 = eworld.create();
 //		Transform& l2t = l2.assign<Transform>();
-//		DirectionalLight& l2p = l2.assign<DirectionalLight>();
+//		SpotLight& l2p = l2.assign<SpotLight>();
 //		
-//		l2t.rotation.lookAt(Vec3(0, 1, 0), Vec3(0, 1, 1));
-//		l2p.intensity = 1.0f;
+//		l2t.position = Vec3(2.0f, 2.0f, 2.0f);
+//		l2t.rotation.lookAt(l2t.position * -1.0f, Vec3());
+//		l2p.radius = 10.0f;
+//		l2p.intensity = 1.5f;
+//		l2p.color = Vec3(0.0f, 0.6f, 1.0f);
+//		l2p.spotCutOff = 0.8f;
 	}
 
 	void update(float timeDelta) {
 		t += timeDelta;
-		if (Input::isKeyPressed(SDLK_ESCAPE)) {
-			MessageSystem::get().submit("app_quit");
+		
+		const Vec2 center(config.width / 2, config.height / 2);
+		
+		if (Input::isMouseButtonPressed(SDL_BUTTON_LEFT)) {
+			mouseLocked = true;
+			Input::setMousePosition(center);
+			Input::setCursorVisible(false);
 		}
 		
-		mod1->get<Transform>()->rotation.rotate(Vec3(0, 1, 0), radians(timeDelta*50.0f));
-		mod1->get<Transform>()->setDirty();
+		Transform* t = camera->get<Transform>();
+		if (mouseLocked) {
+			if (Input::isKeyPressed(SDLK_ESCAPE)) {
+				mouseLocked = false;
+				Input::setCursorVisible(true);
+			}
+			
+			Vec2 delta = Input::getMousePosition() - center;
+			bool rotY = delta.x != 0;
+			bool rotX = delta.y != 0;
+			
+			if (rotY) {
+				t->rotate(t->up(), radians(delta.x * sensitivity));
+			}
+			
+			if (rotX) {
+				t->rotate(t->right(), radians(delta.y * sensitivity));
+			}
+
+			if (rotY || rotX) {
+				Input::setMousePosition(center);
+			}
+		}
 		
-		Entity *cam = eworld.find<Camera>();
-		Transform* camt = cam->get<Transform>();
+		const float speed = 4.0f;
+		if (Input::isKeyDown(SDLK_w)) {
+			t->position += t->forward() * speed * timeDelta;
+		} else if (Input::isKeyDown(SDLK_s)) {
+			t->position += t->back() * speed * timeDelta;
+		}
 		
-		if (Input::isKeyDown(SDLK_LEFT))
-			camt->rotation.rotate(Vec3(0, 1, 0), -timeDelta);
-		else if (Input::isKeyDown(SDLK_RIGHT))
-			camt->rotation.rotate(Vec3(0, 1, 0), timeDelta);
-		else if (Input::isKeyDown(SDLK_UP))
-			camt->rotation.rotate(Vec3(1, 0, 0), -timeDelta);
-		else if (Input::isKeyDown(SDLK_DOWN))
-			camt->rotation.rotate(Vec3(1, 0, 0), timeDelta);
+		if (Input::isKeyDown(SDLK_a)) {
+			t->position += t->left() * speed * timeDelta;
+		} else if (Input::isKeyDown(SDLK_d)) {
+			t->position += t->right() * speed * timeDelta;
+		}
 		
 		eworld.update(timeDelta);
 	}
@@ -155,6 +191,11 @@ public:
 	Texture rme, alb0, nrm, disp;
 	
 	Entity* mod1;
+	
+	Entity* camera;
+	float sensitivity;
+	bool mouseLocked;
+	
 	EntityWorld eworld;
 	float t;
 };

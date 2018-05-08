@@ -1,4 +1,6 @@
 R"(
+float sqr(float x) { return x*x; }
+
 float D_GGX(float Roughness, float NoH) {
 	float alpha   = Roughness * Roughness;
 	float alphaSq = alpha * alpha;
@@ -21,14 +23,38 @@ vec3 F_Schlick(vec3 F0, float VoH, float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - VoH, 5.0);
 }
 
-float mipFromRoughness(float roughness) {
-	return (roughness * 5.0 - pow(roughness, 6.0) * 1.5);
+/// Principled BRDF (https://github.com/wdas/brdf/blob/master/src/brdfs/disney.brdf)
+float fresnelSchlick(float u) {
+	float m = saturate(1.0 - u);
+	float m2 = m * m;
+	return m2 * m2 * m; // pow(m, 5)
 }
 
-vec3 specularDominantDir(vec3 normal, vec3 reflection, float roughness) {
-	float smoothness = 1.0 - roughness;
-	float lerpFactor = smoothness * (sqrt(smoothness) + roughness);
-	return mix(normal, reflection, lerpFactor);
+vec3 mon2lin(vec3 x) {
+	return vec3(pow(x.r, 2.2), pow(x.g, 2.2), pow(x.b, 2.2));
+}
+
+// X is tangent, Y is biTangent
+vec3 principledBRDF(Material params, vec3 L, vec3 V, vec3 N) {
+	float NoL = dot(N, L);
+    float NoV = dot(N, V);
+    if (NoL < 0.0 || NoV < 0.0) return vec3(0.0);
+
+    vec3 H = normalize(L + V);
+    float NoH = dot(N, H);
+    float LoH = dot(L, H);
+
+    vec3 Cdlin = mon2lin(params.baseColor);
+    vec3 Cspec0 = mix(vec3(0.08), Cdlin, params.metallic);
+
+    float Ds = D_GGX(params.roughness, NoH);
+    float FH = fresnelSchlick(LoH);
+    vec3 Fs = mix(Cspec0, vec3(1.0), FH);
+    float Gs = G_Schlick(params.roughness, NoV, NoL);
+
+    return ((1.0 / PI) * Cdlin)
+			* (1.0 - params.metallic)
+			+ Gs * Fs * Ds;
 }
 
 vec3 envBRDFApprox(vec3 SpecularColor, float Roughness, float NoV) {

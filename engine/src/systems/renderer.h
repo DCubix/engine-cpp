@@ -57,7 +57,7 @@ private:
 	
 	// Buffers
 	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer,
-			m_captureBuffer;
+			m_captureBuffer, m_pickingBuffer;
 	
 	bool m_IBLGenerated;
 	
@@ -66,7 +66,8 @@ private:
 					m_finalShader, m_cubeMapShader,
 					m_irradianceShader,
 					m_preFilterShader,
-					m_brdfLUTShader;
+					m_brdfLUTShader,
+					m_pickingShader;
 	
 	// EnvMap
 	Texture m_envMap, m_irradiance, m_radiance, m_brdf;

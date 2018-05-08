@@ -87,11 +87,15 @@ void Transform::setParent(Transform* parent) {
 Quat Transform::worldRotation() {
 	Quat parentRotation(0, 0, 0, 1);
 
-	if(m_parent) {
+	if (m_parent) {
 		parentRotation = m_parent->worldRotation();
 	}
 
 	return parentRotation * rotation;
+}
+
+void Transform::rotate(const Vec3& axis, float angle) {
+	rotation = (Quat(axis, angle) * rotation).normalized();
 }
 
 NS_END

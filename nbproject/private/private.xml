@@ -12,8 +12,8 @@
         <group>
             <file>file:/C:/Users/Diego/source/repos/engine/engine/src/main.cpp</file>
             <file>file:/C:/Users/Diego/source/repos/engine/engine/src/systems/renderer.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/shaders/common.glsl</file>
             <file>file:/C:/Users/Diego/source/repos/engine/engine/src/systems/renderer.h</file>
-            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/shaders/lightingF.glsl</file>
         </group>
     </open-files>
 </project-private>

@@ -4,12 +4,14 @@
 #include <SDL2/SDL.h>
 
 #include "types.h"
+#include "../math/vec.h"
 
 struct State {
 	bool pressed, released, down;
 };
 
 class Input {
+	friend class Application;
 public:
 	static void update();
 
@@ -27,9 +29,15 @@ public:
 	static i32 getScrollOffset() { return m_scrollOffset; }
 	static i32 getMouseX() { return m_mouseX; }
 	static i32 getMouseY() { return m_mouseY; }
+	
+	static Vec2 getMousePosition();
+	static void setMousePosition(int x, int y);
+	static void setMousePosition(const Vec2& pos);
 
 	static bool isCloseRequested() { return m_closeRequested; }
 
+	static void setCursorVisible(bool state);
+	
 private:
 	static SDL_Event m_sdlEvent;
 	static UMap<int, State> m_keyboard;
@@ -37,6 +45,9 @@ private:
 	static i32 m_mouseX, m_mouseY;
 	static i32 m_scrollOffset;
 	static bool m_closeRequested;
+
+protected:
+	static SDL_Window* m_window;
 };
 
 #endif // INPUT_H

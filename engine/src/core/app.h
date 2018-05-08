@@ -27,6 +27,8 @@ public:
 	virtual void update(float timeDelta) = 0;
 	virtual void render() = 0;
 	virtual ~IApplicationAdapter() {};
+	
+	ApplicationConfig config;
 };
 
 class Application final : public IObject {
@@ -38,6 +40,8 @@ public:
 
 	void processMessage(const Message& msg);
 
+	ApplicationConfig config() const { return m_config; }
+	
 	Application(const Application&) = delete;
 	Application& operator =(const Application&) = delete;
 private:
