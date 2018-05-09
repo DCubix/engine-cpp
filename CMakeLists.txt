@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.7)
 project(engine C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS False)
+set(CMAKE_CXX_STANDARD_REQUIRED OFF)
+set(CMAKE_CXX_EXTENSIONS True)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 
@@ -39,14 +39,15 @@ file(GLOB SRC
 )
 
 file(GLOB SHADERS
-        "engine/src/shaders/*.glsl"
+	"engine/src/shaders/*.glsl"
 )
 
 add_executable(${PROJECT_NAME} ${SRC} ${HEADERS} ${SHADERS})
 
 target_link_libraries(${PROJECT_NAME}
+    extern::sdl2
+    extern::glm
     extern::assimp
     extern::physfs
-    extern::sdl2
-    extern::dl
+	extern::dl
 )

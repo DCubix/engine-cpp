@@ -4,13 +4,13 @@ NS_BEGIN
 
 Mat4 Camera::getProjection() {
 	if (type == CameraType::Orthographic) {
-		return Mat4::ortho(-orthoScale, orthoScale, -orthoScale, orthoScale, zNear, zFar);
+		return glm::ortho(-orthoScale, orthoScale, -orthoScale, orthoScale, zNear, zFar);
 	}
 	
 	int vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	
-	return Mat4::perspective(FOV, float(vp[2]) / float(vp[3]), zNear, zFar);
+	return glm::perspective(FOV, float(vp[2]) / float(vp[3]), zNear, zFar);
 }
 
 const String RendererSystem::POST_FX_VS = 
@@ -28,9 +28,10 @@ RendererSystem::RendererSystem() {
 	m_gbuffer = Builder<FrameBuffer>::build()
 			.setSize(vp[2], vp[3])
 			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
-			.addColorAttachment(TextureFormat::RGBf) // Normals
+			.addColorAttachment(TextureFormat::RGf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
 			.addColorAttachment(TextureFormat::RGBf) // RME
+			.addColorAttachment(TextureFormat::RGBf) //
 			.addDepthAttachment();
 	
 	m_finalBuffer = Builder<FrameBuffer>::build()
@@ -213,16 +214,17 @@ void RendererSystem::render(EntityWorld& world) {
 		}
 	}
 
-	Mat4 projMat = Mat4::ident();
+	Mat4 projMat(1.0f);
 	if (m_activeCamera) {
 		projMat = m_activeCamera->getProjection();
 	}
 	
-	Mat4 viewMat = Mat4::ident();
+	Mat4 viewMat(1.0f);
 	if (m_activeCameraTransform) {
-		Mat4 rot = m_activeCameraTransform->worldRotation().conjugated().toMat4();
-		Mat4 loc = Mat4::translation(m_activeCameraTransform->worldPosition() * -1.0f);
-		viewMat = loc * rot;
+		Quat qRot = glm::conjugate(glm::quat_cast(m_activeCameraTransform->worldRotation()));
+		Mat4 rot = glm::mat4_cast(qRot);
+		Mat4 loc = glm::translate(Mat4(1.0f), m_activeCameraTransform->worldPosition() * -1.0f);
+		viewMat = rot * loc;
 	}
 	
 	if (!m_IBLGenerated && m_envMap.id() != 0) {
@@ -255,7 +257,7 @@ void RendererSystem::render(EntityWorld& world) {
 		} else {
 			scale = Vec3(0.1f);
 		}
-		modelMat = Mat4::scaling(scale) * modelMat;
+		modelMat = modelMat * glm::scale(Mat4(1.0f), scale);
 		
 		m_pickingShader.get("mModel").set(modelMat);
 		m_pickingShader.get("uEID").set(ent.id());
@@ -334,12 +336,14 @@ void RendererSystem::render(EntityWorld& world) {
 	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
 	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo	
 	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
-	//m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
+	m_gbuffer.getColorAttachment(3).bind(m_screenTextureSampler, 3); //
+	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 4); // Depth
 	
 	m_lightingShader.get("tNormals").set(0);
 	m_lightingShader.get("tAlbedo").set(1);
 	m_lightingShader.get("tRME").set(2);
-	//m_lightingShader.get("tDepth").set(3);
+	m_lightingShader.get("tPositions").set(3);
+	m_lightingShader.get("tDepth").set(4);
 	
 	if (m_activeCameraTransform) {
 		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
@@ -356,20 +360,20 @@ void RendererSystem::render(EntityWorld& world) {
 	// IBL
 	if (m_IBLGenerated) {
 //		m_brdf.bind(m_screenTextureSampler, 4);
-		m_irradiance.bind(m_cubeMapSamplerNoMip, 4);
-		m_radiance.bind(m_cubeMapSampler, 5);
+		m_irradiance.bind(m_cubeMapSamplerNoMip, 5);
+		m_radiance.bind(m_cubeMapSampler, 6);
 		m_lightingShader.get("uIBL").set(true);
 //		m_lightingShader.get("tBRDFLUT").set(4);
-		m_lightingShader.get("tIrradiance").set(4);
-		m_lightingShader.get("tRadiance").set(5);
+		m_lightingShader.get("tIrradiance").set(5);
+		m_lightingShader.get("tRadiance").set(6);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 		m_lightingShader.get("uIBL").set(false);
 	}
 	
-	// Emit
-	m_lightingShader.get("uEmit").set(true);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-	m_lightingShader.get("uEmit").set(false);
+//	// Emit
+//	m_lightingShader.get("uEmit").set(true);
+//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+//	m_lightingShader.get("uEmit").set(false);
 	
 	// Directional Lights
 	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {
@@ -536,14 +540,14 @@ void RendererSystem::render(EntityWorld& world) {
 void RendererSystem::computeIrradiance() {
 	if (m_envMap.id() == 0) return;
 	
-	const Mat4 capProj = Mat4::perspective(radians(45.0f), 1.0f, 0.1f, 10.0f);
+	const Mat4 capProj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
 	const Mat4 capViews[6] = {
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, -1, 0), Vec3(0, 0, -1)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0))
+		glm::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, -1, 0), Vec3(0, 0, -1)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0))
 	};
 	
 	if (m_irradiance.id() != 0) {
@@ -583,14 +587,14 @@ void RendererSystem::computeIrradiance() {
 void RendererSystem::computeRadiance() {
 	if (m_envMap.id() == 0) return;
 	
-	const Mat4 capProj = Mat4::perspective(radians(45.0f), 1.0f, 0.1f, 10.0f);
+	const Mat4 capProj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
 	const Mat4 capViews[6] = {
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, -1, 0), Vec3(0, 0, -1)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1), Vec3(0, -1, 0)),
-		Mat4::lookAt(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0))
+		glm::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, -1, 0), Vec3(0, 0, -1)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 0, 1), Vec3(0, -1, 0)),
+		glm::lookAt(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0))
 	};
 	
 	const u32 maxMip = 8;

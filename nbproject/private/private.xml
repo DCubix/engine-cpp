@@ -12,9 +12,13 @@
         <group>
             <file>file:/C:/Users/Diego/source/repos/engine/engine/src/main.cpp</file>
             <file>file:/C:/Users/Diego/source/repos/engine/engine/src/systems/renderer.cpp</file>
-            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/shaders/common.glsl</file>
-            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/systems/renderer.h</file>
-            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/shaders/lightingF.glsl</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/extern/extern.cmake</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/mesher.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/components/transform.h</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/gfx/shader.h</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/components/light.h</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/engine/src/components/transform.cpp</file>
+            <file>file:/C:/Users/Diego/source/repos/engine/CMakeLists.txt</file>
         </group>
     </open-files>
 </project-private>

@@ -2,7 +2,7 @@ R"(#version 330 core
 out vec4 fragColor;
 
 in DATA {
-	vec4 position;
+	vec3 position;
 	vec3 normal;
 	vec3 tangent;
 	vec2 uv;

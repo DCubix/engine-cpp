@@ -1,5 +1,4 @@
 #include "vec.h"
-#include "quat.h"
 
 NS_BEGIN
 

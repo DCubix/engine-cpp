@@ -13,7 +13,8 @@ uniform mat4 mView;
 uniform sampler2D tNormals;
 uniform sampler2D tAlbedo;
 uniform sampler2D tRME;
-//uniform sampler2D tDepth;
+uniform sampler2D tPositions;
+uniform sampler2D tDepth;
 //uniform sampler2D tBRDFLUT;
 uniform samplerCube tIrradiance;
 uniform samplerCube tRadiance;
@@ -28,9 +29,8 @@ const vec3 Fdielectric = vec3(0.08);
 const float MAX_REFLECTION_LOD = 7.0;
 
 void main() {
-	vec4 rN = texture(tNormals, oScreenPosition);
-	vec3 N = decodeNormals(rN);
-	float D = rN.b;
+	vec3 N = decodeNormals(texture(tNormals, oScreenPosition));
+	float D = texture(tDepth, oScreenPosition).r;
 	
 	vec3 A = texture(tAlbedo, oScreenPosition).rgb;
 	vec3 rme = texture(tRME, oScreenPosition).xyz;
@@ -38,7 +38,8 @@ void main() {
 	float M = rme.g;
 	float E = rme.b;
 
-	vec3 wP = worldPosition(mProjection, mView, oScreenPosition, D);
+//	vec3 wP = worldPosition(mProjection, mView, oScreenPosition, D);
+	vec3 wP = texture(tPositions, oScreenPosition).xyz;
 	vec3 V = normalize(uEye - wP);
 
 	fragColor = vec4(0.0);
@@ -119,8 +120,8 @@ void main() {
 
 			vec3 b = principledBRDF(mat, L, V, N);
 
-			//fragColor = vec4(uLight.color * uLight.intensity * b * fact, 1.0);
-			fragColor = vec4(wP, 1.0);
+			fragColor = vec4(uLight.color * uLight.intensity * b * fact, 1.0);
+			//fragColor = vec4(wP, 1.0);
 		}
 	}
 }

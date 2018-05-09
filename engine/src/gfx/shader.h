@@ -23,12 +23,13 @@ public:
 	void set(Vec2 v) { glUniform(2f, v.x, v.y); }
 	void set(Vec3 v) { glUniform(3f, v.x, v.y, v.z); }
 	void set(Vec4 v) { glUniform(4f, v.x, v.y, v.z, v.w); }
-	void set(Mat4 v) { glUniform(Matrix4fv, 1, false, v.val); }
+	void set(Mat4 v) { glUniform(Matrix4fv, 1, false, glm::value_ptr(v)); }
 	
 	void set(const Mat4* v, u32 size) {
 		Vector<float> mv; mv.reserve(size * 16);
 		for (u32 i = 0; i < size; i++) {
-			mv.insert(mv.begin(), v[i].val, v[i].val + 16);
+			const float* mval = glm::value_ptr(v[i]);
+			mv.insert(mv.begin(), mval, mval + 16);
 		}
 		glUniform(Matrix4fv, size, false, mv.data());
 	}
@@ -36,7 +37,8 @@ public:
 	void set(const Vector<Mat4>& v) {
 		Vector<float> mv; mv.reserve(v.size() * 16);
 		for (Mat4 m : v) {
-			mv.insert(mv.begin(), m.val, m.val + 16);
+			const float* mval = glm::value_ptr(m);
+			mv.insert(mv.begin(), mval, mval + 16);
 		}
 		glUniform(Matrix4fv, v.size(), false, mv.data());
 	}

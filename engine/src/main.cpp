@@ -37,13 +37,13 @@ public:
 		
 		Texture envMap = Builder<Texture>::build()
 				.bind(TextureTarget::CubeMap)
-				.setCubemap("skybox.jpg")
+				.setCubemap("cubemap.jpg")
 				.generateMipmaps();
 		
 		rsys.setEnvironmentMap(envMap);
 		
 		model = Builder<Mesh>::build();
-		model.addFromFile("test.glb").flush();
+		model.addFromFile("sphere.obj").flush();
 		
 		alb0 = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
@@ -67,14 +67,13 @@ public:
 		
 		// Camera
 		camera = &eworld.create();
-		camera->assign<Camera>(0.02f, 1000.0f, radians(45.0f));
+		camera->assign<Camera>(0.02f, 1000.0f, glm::radians(50.0f));
 		
 		Transform& camt = camera->assign<Transform>();
-		camt.position.z = 5.0f;
 		
 		Material def;
-		def.roughness = 1.0f;
-		def.metallic = 0.0f;
+		def.roughness = 0.1f;
+		def.metallic = 1.0f;
 		def.heightScale = 0.3f;
 		
 //		def.setTexture(0, rme)
@@ -104,7 +103,7 @@ public:
 		SpotLight& l0p = l0.assign<SpotLight>();
 		
 		l0t.position = Vec3(-2.0f, 2.0f, 2.0f);
-		l0t.rotation.lookAt(l0t.position * -1.0f, Vec3());
+		l0t.lookAt(l0t.position, Vec3(0.0f), Vec3(0, 1, 0));
 		l0p.radius = 10.0f;
 		l0p.intensity = 1.5f;
 		l0p.color = Vec3(1.0f, 0.6f, 0.0f);
@@ -154,11 +153,11 @@ public:
 			bool rotX = delta.y != 0;
 			
 			if (rotY) {
-				t->rotate(t->up(), radians(delta.x * sensitivity));
+				t->rotate(t->up(), glm::radians(delta.x * sensitivity));
 			}
 			
 			if (rotX) {
-				t->rotate(t->right(), radians(delta.y * sensitivity));
+				t->rotate(t->right(), glm::radians(delta.y * sensitivity));
 			}
 
 			if (rotY || rotX) {
@@ -178,6 +177,7 @@ public:
 		} else if (Input::isKeyDown(SDLK_d)) {
 			t->position += t->right() * speed * timeDelta;
 		}
+		t->setDirty();
 		
 		eworld.update(timeDelta);
 	}

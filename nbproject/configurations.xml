@@ -4,18 +4,14 @@
     <df root="engine/src" name="0">
       <df name="components">
         <in>light.cpp</in>
-        <in>light.h</in>
         <in>transform.cpp</in>
-        <in>transform.h</in>
       </df>
       <df name="core">
         <df name="logging">
           <in>log.cpp</in>
         </df>
         <in>app.cpp</in>
-        <in>builder.h</in>
         <in>ecs.cpp</in>
-        <in>ecs.h</in>
         <in>engine.cpp</in>
         <in>filesys.cpp</in>
         <in>input.cpp</in>
@@ -28,44 +24,22 @@
         </df>
         <df name="stb">
           <in>stb.c</in>
-          <in>stb_image.h</in>
-          <in>stb_image_write.h</in>
         </df>
         <in>api.cpp</in>
         <in>framebuffer.cpp</in>
-        <in>framebuffer.h</in>
         <in>material.cpp</in>
-        <in>material.h</in>
         <in>mesher.cpp</in>
         <in>shader.cpp</in>
         <in>texture.cpp</in>
-        <in>texture.h</in>
       </df>
       <df name="math">
         <in>aabb.cpp</in>
-        <in>aabb.h</in>
         <in>mat.cpp</in>
         <in>quat.cpp</in>
         <in>vec.cpp</in>
       </df>
-      <df name="shaders">
-        <in>brdf.glsl</in>
-        <in>brdfLUTF.glsl</in>
-        <in>cmF.glsl</in>
-        <in>cmIrradianceF.glsl</in>
-        <in>cmPreFilterF.glsl</in>
-        <in>cmV.glsl</in>
-        <in>common.glsl</in>
-        <in>fxaaF.glsl</in>
-        <in>lightingF.glsl</in>
-        <in>lightingV.glsl</in>
-        <in>pickingF.glsl</in>
-        <in>screenF.glsl</in>
-        <in>tonemapF.glsl</in>
-      </df>
       <df name="systems">
         <in>renderer.cpp</in>
-        <in>renderer.h</in>
       </df>
       <in>main.cpp</in>
     </df>
@@ -79,6 +53,7 @@
       <itemPath>LICENSE</itemPath>
       <itemPath>build/Makefile</itemPath>
       <itemPath>README.md</itemPath>
+      <itemPath>extern/extern.cmake</itemPath>
       <itemPath>nbproject/private/launcher.properties</itemPath>
     </logicalFolder>
   </logicalFolder>
@@ -95,9 +70,8 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-O2 -g"/>
-        <element flagsID="1" commonFlags="-O2 -std=gnu++1z"/>
-        <element flagsID="2" commonFlags="-std=c++14"/>
+        <element flagsID="0" commonFlags="-g"/>
+        <element flagsID="1" commonFlags="-std=gnu++1z"/>
       </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
@@ -107,43 +81,30 @@
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
           <executablePath>build\engine.exe</executablePath>
-          <cTool>
-            <incDir>
-              <pElem>engine/deps/assimp/include</pElem>
-              <pElem>engine/deps/physfs/include</pElem>
-              <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
-              <pElem>build</pElem>
-            </incDir>
-            <preprocessorList>
-              <Elem>NDEBUG</Elem>
-            </preprocessorList>
-          </cTool>
         </makeTool>
         <preBuild>
           <preBuildCommandWorkingDir>build</preBuildCommandWorkingDir>
-          <preBuildCommand>${CMAKE} -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 ..</preBuildCommand>
+          <preBuildCommand>${CMAKE} -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug ..</preBuildCommand>
         </preBuild>
       </makefileType>
-      <item path="engine/src/components/light.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/components/light.h" ex="false" tool="3" flavor2="0">
+      <item path="engine/src/components/light.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
       <item path="engine/src/components/transform.cpp"
             ex="false"
             tool="1"
-            flavor2="0">
-      </item>
-      <item path="engine/src/components/transform.h" ex="false" tool="3" flavor2="0">
+            flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
       <item path="engine/src/core/app.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="engine/src/core/builder.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/core/ecs.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/core/ecs.h" ex="false" tool="3" flavor2="0">
+      <item path="engine/src/core/ecs.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
       <item path="engine/src/core/engine.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
@@ -173,17 +134,17 @@
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="engine/src/gfx/framebuffer.cpp" ex="false" tool="1" flavor2="0">
+      <item path="engine/src/gfx/framebuffer.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
-      <item path="engine/src/gfx/framebuffer.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/glad/glad.c" ex="false" tool="0" flavor2="0">
+      <item path="engine/src/gfx/glad/glad.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="engine/src/gfx/material.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/material.h" ex="false" tool="3" flavor2="0">
+      <item path="engine/src/gfx/material.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
       <item path="engine/src/gfx/mesher.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
@@ -193,107 +154,63 @@
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="engine/src/gfx/stb/stb.c" ex="false" tool="0" flavor2="0">
+      <item path="engine/src/gfx/stb/stb.c" ex="false" tool="0" flavor2="2">
+        <cTool flags="0">
+        </cTool>
       </item>
-      <item path="engine/src/gfx/stb/stb_image.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/stb/stb_image_write.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="engine/src/gfx/texture.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/gfx/texture.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/main.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+      <item path="engine/src/gfx/texture.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="engine/src/math/aabb.cpp" ex="false" tool="1" flavor2="0">
+      <item path="engine/src/main.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
-      <item path="engine/src/math/aabb.h" ex="false" tool="3" flavor2="0">
+      <item path="engine/src/math/aabb.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
       <item path="engine/src/math/mat.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
-          <incDir>
-            <pElem>engine/deps/assimp/include</pElem>
-            <pElem>engine/deps/physfs/include</pElem>
-            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
-            <pElem>build</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>NDEBUG</Elem>
-          </preprocessorList>
         </ccTool>
       </item>
       <item path="engine/src/math/quat.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="engine/src/math/vec.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="engine/src/shaders/brdf.glsl" ex="false" tool="3" flavor2="0">
+      <item path="engine/src/systems/renderer.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="1">
+        </ccTool>
       </item>
-      <item path="engine/src/shaders/brdfLUTF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/cmF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/cmIrradianceF.glsl"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="engine/src/shaders/cmPreFilterF.glsl"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="engine/src/shaders/cmV.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/common.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/fxaaF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/lightingF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/lightingV.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/pickingF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/screenF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/shaders/tonemapF.glsl" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="engine/src/systems/renderer.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="engine/src/systems/renderer.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <folder path="0/core">
-        <ccTool>
+      <folder path="0">
+        <cTool>
           <incDir>
-            <pElem>engine/deps/assimp/include</pElem>
-            <pElem>engine/deps/physfs/include</pElem>
-            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+            <pElem>extern/sdl2/include</pElem>
+            <pElem>extern/glm</pElem>
+            <pElem>extern/assimp/include</pElem>
+            <pElem>build/extern/assimp/include</pElem>
+            <pElem>extern/physfs/src</pElem>
             <pElem>build</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>NDEBUG</Elem>
+            <Elem>SDL_MAIN_HANDLED</Elem>
           </preprocessorList>
-        </ccTool>
-      </folder>
-      <folder path="0/gfx">
+        </cTool>
         <ccTool>
           <incDir>
-            <pElem>engine/deps/assimp/include</pElem>
-            <pElem>engine/deps/physfs/include</pElem>
-            <pElem>../../../../../usr/local/i686-w64-mingw32/include/SDL2</pElem>
+            <pElem>extern/sdl2/include</pElem>
+            <pElem>extern/glm</pElem>
+            <pElem>extern/assimp/include</pElem>
+            <pElem>build/extern/assimp/include</pElem>
+            <pElem>extern/physfs/src</pElem>
             <pElem>build</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>NDEBUG</Elem>
+            <Elem>SDL_MAIN_HANDLED</Elem>
           </preprocessorList>
         </ccTool>
       </folder>

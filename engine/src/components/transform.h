@@ -14,7 +14,7 @@ public:
 	Transform();
 	
 	Vec3 position, scale;
-	Quat rotation;
+	Mat4 rotation;
 	
 	Mat4 localToWorldMatrix();
 	Mat4 worldToLocalMatrix();
@@ -23,26 +23,27 @@ public:
 	void setParent(Transform* parent);
 	
 	void rotate(const Vec3& axis, float angle);
+	void lookAt(const Vec3& eye, const Vec3& at, const Vec3& up);
 	
 	bool changed();
 	void setDirty();
 
-	Vec3 worldPosition() { return (localToWorldMatrix() * Vec4(position, 1.0f)).xyz; }
-	Quat worldRotation();
+	Vec3 worldPosition() { return Vec3((localToWorldMatrix() * Vec4(position, 1.0f))); }
+	Mat4 worldRotation();
 
-	Vec3 forward() { return worldRotation() * Vec3(0, 0, -1); }
-	Vec3 back() { return worldRotation() * Vec3(0, 0, 1); }
-	Vec3 right() { return worldRotation() * Vec3(1, 0, 0); }
-	Vec3 left() { return worldRotation() * Vec3(-1, 0, 0); }
-	Vec3 up() { return worldRotation() * Vec3(0, 1, 0); }
-	Vec3 down() { return worldRotation() * Vec3(0, -1, 0); }
+	Vec3 forward() { return Vec3(worldRotation() * Vec4(0, 0, -1, 0)); }
+	Vec3 back() { return Vec3(worldRotation() * Vec4(0, 0, 1, 0)); }
+	Vec3 right() { return Vec3(worldRotation() * Vec4(1, 0, 0, 0)); }
+	Vec3 left() { return Vec3(worldRotation() * Vec4(-1, 0, 0, 0)); }
+	Vec3 up() { return Vec3(worldRotation() * Vec4(0, 1, 0, 0)); }
+	Vec3 down() { return Vec3(worldRotation() * Vec4(0, -1, 0, 0)); }
 	
 private:
 	Transform* m_parent;
 	Vector<Transform*> m_children;
 	
 	Vec3 m_prevPosition, m_prevScale;
-	Quat m_prevRotation;
+	Mat4 m_prevRotation;
 	
 	bool m_dirty, m_inverseDirty;
 	Mat4 m_worldToLocal, m_localToWorld;

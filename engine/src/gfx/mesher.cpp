@@ -244,7 +244,7 @@ Mesh& Mesh::calculateNormals(PrimitiveType primitive) {
 	}
 
 	for (auto& v : m_vertexData) {
-		v.normal = v.normal.normalized();
+		v.normal = glm::normalize(v.normal);
 	}
 
 	return *this;
@@ -294,7 +294,7 @@ Mesh& Mesh::calculateTangents(PrimitiveType primitive) {
 	}
 
 	for (auto& v : m_vertexData) {
-		v.tangent = v.tangent.normalized();
+		v.tangent = glm::normalize(v.tangent);
 	}
 
 	return *this;
@@ -302,7 +302,7 @@ Mesh& Mesh::calculateTangents(PrimitiveType primitive) {
 
 Mesh& Mesh::transformTexCoords(const Mat4& t) {
 	for (auto& v : m_vertexData) {
-		v.texCoord = (t * Vec4(v.texCoord.x, v.texCoord.y, 0.0f, 1.0f)).xy;
+		v.texCoord = Vec2(t * Vec4(v.texCoord.x, v.texCoord.y, 0.0f, 1.0f));
 	}
 	return *this;
 }
@@ -314,7 +314,7 @@ void Mesh::triNormal(i32 i0, i32 i1, i32 i2) {
 
 	Vec3 e0 = v1 - v0;
 	Vec3 e1 = v2 - v0;
-	Vec3 n = e0.cross(e1);
+	Vec3 n = glm::cross(e0, e1);
 
 	m_vertexData[i0].normal += n;
 	m_vertexData[i1].normal += n;
@@ -336,7 +336,7 @@ void Mesh::triTangent(i32 i0, i32 i1, i32 i2) {
 	Vec2 dt1 = t1 - t0;
 	Vec2 dt2 = t2 - t0;
 
-	float dividend = dt1.perpDot(dt2);
+	float dividend = dt1.x * dt2.y - dt1.y * dt2.x;
 	float f = dividend == 0.0f ? 0.0f : 1.0f / dividend;
 
 	Vec3 t = Vec3();

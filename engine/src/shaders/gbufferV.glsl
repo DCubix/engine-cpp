@@ -9,7 +9,7 @@ layout (location = 4) in vec4 vColor;
 #include common
 
 out DATA {
-	vec4 position;
+	vec3 position;
 	vec3 normal;
 	vec3 tangent;
 	vec2 uv;
@@ -26,7 +26,7 @@ void main() {
 	vec4 pos = mViewModel * vec4(vPosition, 1.0);
 	gl_Position = mProjection * mView * mModel * vec4(vPosition, 1.0);
 
-	VSOut.position = pos;
+	VSOut.position = pos.xyz;
 	VSOut.uv = vTexCoord;
 	VSOut.color = vColor;
 

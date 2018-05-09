@@ -14,7 +14,7 @@ set_target_properties(extern::physfs PROPERTIES
 ### ASSIMP ###
 
 set(ASSIMP_BUILD_NO_EXPORT ON CACHE BOOL "DoNotTouch")
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE CACHE BOOL "DoNotTouch")
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "DoNotTouch")
 
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "DoNotTouch")
 set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE BOOL "DoNotTouch")
@@ -34,17 +34,33 @@ set_target_properties(extern::assimp PROPERTIES
 )
 
 ### SDL2 ###
-
-find_package(SDL2 REQUIRED)
+set(SDL_STATIC OFF CACHE BOOL "DoNotTouch")
+add_subdirectory("extern/sdl2")
 
 add_library(extern::sdl2 INTERFACE IMPORTED)
 set_target_properties(extern::sdl2 PROPERTIES
-	INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS}
-	INTERFACE_LINK_LIBRARIES ${SDL2_LIBRARIES}
+	INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/extern/sdl2/include
+	INTERFACE_LINK_LIBRARIES "SDL2;SDL2main"
 )
 
-### DL ###
-add_library(extern::dl INTERFACE IMPORTED)
-set_target_properties(extern::dl PROPERTIES
-	INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS}
+add_definitions(-DSDL_MAIN_HANDLED)
+
+### GLM ###
+set(GLM_STATIC_LIBRARY_ENABLE ON CACHE BOOL "DoNotTouch")
+add_subdirectory("extern/glm")
+
+add_library(extern::glm INTERFACE IMPORTED)
+set_target_properties(extern::glm PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/extern/glm
+	INTERFACE_LINK_LIBRARIES glm
 )
+
+if (CMAKE_DL_LIBS)
+	### DL ###
+	add_library(extern::dl INTERFACE IMPORTED)
+	set_target_properties(extern::dl PROPERTIES
+		INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS}
+	)
+else()
+	add_library(extern::dl INTERFACE IMPORTED)
+endif()

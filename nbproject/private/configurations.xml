@@ -72,10 +72,13 @@
         <in>brdfLUTF.glsl</in>
         <in>cmF.glsl</in>
         <in>cmIrradianceF.glsl</in>
+        <in>cmIrradianceV.glsl</in>
         <in>cmPreFilterF.glsl</in>
         <in>cmV.glsl</in>
         <in>common.glsl</in>
         <in>fxaaF.glsl</in>
+        <in>gbufferF.glsl</in>
+        <in>gbufferV.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
         <in>pickingF.glsl</in>

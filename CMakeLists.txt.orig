@@ -1,0 +1,93 @@
+cmake_minimum_required(VERSION 3.7)
+project(engine C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS False)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+
+<<<<<<< Updated upstream
+include(extern/extern.cmake)
+
+file(GLOB HEADERS
+    "engine/src/*.h"
+    "engine/src/core/*.h"
+    "engine/src/core/*.hpp"
+    "engine/src/core/logging/*.h"
+    "engine/src/core/logging/*.hpp"
+    "engine/src/core/im3d/*.h"
+    "engine/src/core/im3d/*.hpp"
+    "engine/src/gfx/*.h"
+    "engine/src/gfx/glad/*.h"
+    "engine/src/gfx/stb/*.h"
+    "engine/src/math/*.h"
+    "engine/src/components/*.h"
+    "engine/src/systems/*.h"
+=======
+set(GLM_STATIC_LIBRARY_ENABLE ON)
+add_subdirectory("extern/glm")
+
+set(PHYSFS_BUILD_STATIC ON)
+set(PHYSFS_BUILD_SHARED OFF)
+set(PHYSFS_BUILD_TEST OFF)
+add_subdirectory("extern/physfs")
+
+set(ASSIMP_BUILD_NO_EXPORT ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
+
+set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+set(ASSIMP_BUILD_GLTF_IMPORTER ON)
+set(ASSIMP_BUILD_PLY_IMPORTER ON)
+set(ASSIMP_BUILD_BLEND_IMPORTER ON)
+set(ASSIMP_BUILD_COLLADA_IMPORTER ON)
+
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+add_subdirectory("extern/assimp")
+
+find_package(SDL2 REQUIRED)
+
+include_directories(
+	${SDL2_INCLUDE_DIRS}
+	${CMAKE_SOURCE_DIR}/extern/physfs/src
+	${CMAKE_SOURCE_DIR}/extern/glm
+	${CMAKE_SOURCE_DIR}/extern/assimp/include
+	${CMAKE_SOURCE_DIR}/build/extern/assimp/include
+>>>>>>> Stashed changes
+)
+
+file(GLOB SRC
+    "engine/src/*.cpp"
+    "engine/src/core/*.cpp"
+    "engine/src/core/logging/*.cpp"
+    "engine/src/core/im3d/*.cpp"
+    "engine/src/gfx/*.cpp"
+    "engine/src/gfx/glad/*.c"
+    "engine/src/gfx/stb/*.c"
+    "engine/src/math/*.cpp"
+    "engine/src/components/*.cpp"
+    "engine/src/systems/*.cpp"
+)
+
+file(GLOB SHADERS
+        "engine/src/shaders/*.glsl"
+)
+
+add_executable(${PROJECT_NAME} ${SRC} ${HEADERS} ${SHADERS})
+
+target_link_libraries(${PROJECT_NAME}
+<<<<<<< Updated upstream
+    extern::assimp
+    extern::physfs
+    extern::sdl2
+    extern::dl
+)
+=======
+	glm
+	physfs-static
+	assimp
+	${SDL2_LIBRARIES}
+)
+>>>>>>> Stashed changes

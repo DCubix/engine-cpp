@@ -3,14 +3,14 @@
 NS_BEGIN
 
 Transform::Transform()
-	:	position(Vec3()), scale(Vec3(1.0f)), rotation(Quat(0, 0, 0, 1)),
-		m_prevPosition(Vec3()), m_prevScale(Vec3(1.0f)), m_prevRotation(Quat(0, 0, 0, 1)),
+	:	position(Vec3()), scale(Vec3(1.0f)), rotation(Mat4(1.0f)),
+		m_prevPosition(Vec3()), m_prevScale(Vec3(1.0f)), m_prevRotation(Mat4(1.0f)),
 		m_dirty(true), m_inverseDirty(true), m_parent(nullptr),
-		m_localToWorld(Mat4::ident()), m_worldToLocal(Mat4::ident())
+		m_localToWorld(Mat4(1.0f)), m_worldToLocal(Mat4(1.0f))
 {}
 
 Mat4 Transform::localToParentMatrix() {
-	return Mat4::scaling(scale) * rotation.toMat4() * Mat4::translation(position);
+	return glm::translate(Mat4(1.0f), position) * rotation * glm::scale(Mat4(1.0f), scale);
 }
 
 Mat4 Transform::localToWorldMatrix() {
@@ -18,7 +18,7 @@ Mat4 Transform::localToWorldMatrix() {
 		if (m_parent == nullptr) {
 			m_localToWorld = localToParentMatrix();
 		} else {
-			m_localToWorld = m_parent->localToWorldMatrix() * localToParentMatrix();
+			m_localToWorld = localToParentMatrix() * m_parent->localToWorldMatrix();
 		}
 		m_dirty = false;
 	}
@@ -27,7 +27,7 @@ Mat4 Transform::localToWorldMatrix() {
 
 Mat4 Transform::worldToLocalMatrix() {
 	if (m_inverseDirty) {
-		m_worldToLocal = localToWorldMatrix().inverted();
+		m_worldToLocal = glm::inverse(localToWorldMatrix());
 		m_inverseDirty = false;
 	}
 	return m_worldToLocal;
@@ -58,10 +58,7 @@ bool Transform::changed() {
 		return true;
 	}
 
-	if (rotation.x != m_prevRotation.x ||
-		rotation.y != m_prevRotation.y ||
-		rotation.z != m_prevRotation.z ||
-		rotation.w != m_prevRotation.w) {
+	if (rotation != m_prevRotation) {
 		m_prevRotation = rotation;
 		return true;
 	}
@@ -84,8 +81,8 @@ void Transform::setParent(Transform* parent) {
 	setDirty();
 }
 
-Quat Transform::worldRotation() {
-	Quat parentRotation(0, 0, 0, 1);
+Mat4 Transform::worldRotation() {
+	Mat4 parentRotation(1.0f);
 
 	if (m_parent) {
 		parentRotation = m_parent->worldRotation();
@@ -95,7 +92,11 @@ Quat Transform::worldRotation() {
 }
 
 void Transform::rotate(const Vec3& axis, float angle) {
-	rotation = (Quat(axis, angle) * rotation).normalized();
+	rotation = glm::rotate(rotation, angle, axis);
+}
+
+void Transform::lookAt(const Vec3& eye, const Vec3& at, const Vec3& up) {
+	rotation = glm::lookAt(eye, at, up);
 }
 
 NS_END
