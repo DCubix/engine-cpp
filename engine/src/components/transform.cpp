@@ -3,47 +3,16 @@
 NS_BEGIN
 
 Transform::Transform()
-	:	position(Vec3()), scale(Vec3(1.0f)), rotation(Mat4(1.0f)),
-		m_prevPosition(Vec3()), m_prevScale(Vec3(1.0f)), m_prevRotation(Mat4(1.0f)),
-		m_dirty(true), m_inverseDirty(true), m_parent(nullptr),
-		m_localToWorld(Mat4(1.0f)), m_worldToLocal(Mat4(1.0f))
+	:	position(Vec3()), scale(Vec3(1.0f)), rotation(Quat(0, 0, 0, 1.0f)),
+		m_prevPosition(Vec3()), m_prevScale(Vec3(1.0f)), m_prevRotation(Quat(0, 0, 0, 1.0f)),
+		m_parentMatrix(Mat4(1.0f)), m_dirty(false), m_parent(nullptr)
 {}
 
-Mat4 Transform::localToParentMatrix() {
-	return glm::translate(Mat4(1.0f), position) * rotation * glm::scale(Mat4(1.0f), scale);
-}
-
-Mat4 Transform::localToWorldMatrix() {
-	if (m_dirty) {
-		if (m_parent == nullptr) {
-			m_localToWorld = localToParentMatrix();
-		} else {
-			m_localToWorld = localToParentMatrix() * m_parent->localToWorldMatrix();
-		}
-		m_dirty = false;
-	}
-	return m_localToWorld;
-}
-
-Mat4 Transform::worldToLocalMatrix() {
-	if (m_inverseDirty) {
-		m_worldToLocal = glm::inverse(localToWorldMatrix());
-		m_inverseDirty = false;
-	}
-	return m_worldToLocal;
-}
-
-void Transform::setDirty() {
-	if (!m_dirty) {
-		m_dirty = true;
-		m_inverseDirty = true;
-		for (Transform* child : m_children) {
-			child->setDirty();
-		}
-	}
-}
-
 bool Transform::changed() {
+	if (m_parent && m_parent->changed()) {
+		return true;
+	}
+	
 	if (position.x != m_prevPosition.x ||
 		position.y != m_prevPosition.y ||
 		position.z != m_prevPosition.z) {
@@ -58,7 +27,11 @@ bool Transform::changed() {
 		return true;
 	}
 
-	if (rotation != m_prevRotation) {
+	if (rotation.x != m_prevRotation.x ||
+		rotation.y != m_prevRotation.y ||
+		rotation.z != m_prevRotation.z ||
+		rotation.w != m_prevRotation.w)
+	{
 		m_prevRotation = rotation;
 		return true;
 	}
@@ -66,23 +39,25 @@ bool Transform::changed() {
 	return false;
 }
 
-void Transform::setParent(Transform* parent) {
-	if (m_parent) {
-		auto pos = std::find(m_parent->m_children.begin(), m_parent->m_children.end(), parent);
-		m_parent->m_children.erase(pos);
+void Transform::update() {
+	if(m_dirty) {
+		m_prevPosition = position;
+		m_prevRotation = rotation;
+		m_prevScale = scale;
+	} else {
+		m_prevPosition = position + Vec3(1.0f);
+		m_prevRotation = rotation * 0.5f;
+		m_prevScale = scale + Vec3(1.0f);
+		m_dirty = true;
 	}
-
-	m_parent = parent;
-
-	if (parent) {
-		parent->m_children.push_back(this);
-	}
-
-	setDirty();
 }
 
-Mat4 Transform::worldRotation() {
-	Mat4 parentRotation(1.0f);
+void Transform::setParent(Transform* parent) {
+	m_parent = parent;
+}
+
+Quat Transform::worldRotation() {
+	Quat parentRotation(0, 0, 0, 1.0f);
 
 	if (m_parent) {
 		parentRotation = m_parent->worldRotation();
@@ -91,8 +66,27 @@ Mat4 Transform::worldRotation() {
 	return parentRotation * rotation;
 }
 
+Mat4 Transform::getTransformation() {
+	update();
+	return getParentTransform() *
+			glm::translate(Mat4(1.0f), position) *
+			glm::mat4_cast(rotation) *
+			glm::scale(Mat4(1.0f), scale);
+}
+
+Mat4 Transform::getParentTransform() {
+	if (m_parent && m_parent->changed()) {
+		m_parentMatrix = m_parent->getTransformation();
+	}
+	return m_parentMatrix;
+}
+
+void Transform::rotate(const Quat& rot) {
+	rotation = glm::normalize(rotation * rot);
+}
+
 void Transform::rotate(const Vec3& axis, float angle) {
-	rotation = glm::rotate(rotation, angle, axis);
+	rotate(glm::angleAxis(angle, axis));
 }
 
 void Transform::lookAt(const Vec3& eye, const Vec3& at, const Vec3& up) {

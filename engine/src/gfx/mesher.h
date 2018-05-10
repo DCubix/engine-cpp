@@ -97,13 +97,7 @@ public:
 	Mesh(GLuint vbo, GLuint ibo, GLuint vao)
 		: m_vbo(vbo), m_ibo(ibo), m_vao(vao),
 		m_vertexCount(0), m_indexCount(0)
-	{
-		m_format.put("vPosition", AttributeType::AttrVector3, false, 0);
-		m_format.put("vNormal", AttributeType::AttrVector3, false, 1);
-		m_format.put("vTangent", AttributeType::AttrVector3, false, 2);
-		m_format.put("vTexCoord", AttributeType::AttrVector2, false, 3);
-		m_format.put("vColor", AttributeType::AttrVector4, false, 4);
-	}
+	{}
 
 	Mesh& addVertex(const Vertex& vert);
 
@@ -135,9 +129,9 @@ public:
 
 	AABB aabb() const { return m_aabb; }
 	
+	GLuint vao() const { return m_vao; }
+	
 protected:
-	VertexFormat m_format;
-
 	GLuint m_vbo, m_ibo, m_vao;
 	i32 m_vertexCount, m_indexCount;
 	

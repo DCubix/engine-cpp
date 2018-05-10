@@ -74,12 +74,28 @@ void Mesh::flush() {
 	glBindVertexArray(m_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 
-	m_format.bind();
-
+	const size_t vertexSize = sizeof(Vertex);
+	
+	glEnableVertexAttribArray(0); // Position
+	glVertexAttribPointer(0, 3, GL_FLOAT, false, vertexSize, ((void*) 0));
+	
+	glEnableVertexAttribArray(1); // Normal
+	glVertexAttribPointer(1, 3, GL_FLOAT, false, vertexSize, ((void*) 12));
+	
+	glEnableVertexAttribArray(2); // Tangent
+	glVertexAttribPointer(2, 3, GL_FLOAT, false, vertexSize, ((void*) 24));
+	
+	glEnableVertexAttribArray(3); // TexCoord
+	glVertexAttribPointer(3, 2, GL_FLOAT, false, vertexSize, ((void*) 36));
+	
+	glEnableVertexAttribArray(4); // Color
+	glVertexAttribPointer(4, 4, GL_FLOAT, true, vertexSize, ((void*) 44));
+	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+	
 	glBindVertexArray(0);
 
-	i32 vsize = m_format.stride() * m_vertexData.size();
+	i32 vsize = vertexSize * m_vertexData.size();
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 	glBufferData(GL_ARRAY_BUFFER, vsize, m_vertexData.data(), GL_STATIC_DRAW);

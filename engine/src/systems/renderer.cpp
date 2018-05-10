@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "renderer.h"
 
 NS_BEGIN
@@ -31,7 +33,7 @@ RendererSystem::RendererSystem() {
 			.addColorAttachment(TextureFormat::RGf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
 			.addColorAttachment(TextureFormat::RGBf) // RME
-			.addColorAttachment(TextureFormat::RGBf) //
+			.addColorAttachment(TextureFormat::RGBf) // Position
 			.addDepthAttachment();
 	
 	m_finalBuffer = Builder<FrameBuffer>::build()
@@ -66,7 +68,6 @@ RendererSystem::RendererSystem() {
 #include "../shaders/gbufferF.glsl"
 			;
 	
-	gVS = Util::replace(gVS, "#include common", common);
 	gFS = Util::replace(gFS, "#include common", common);
 	gFS = Util::replace(gFS, "#include brdf", brdf);
 	
@@ -74,6 +75,15 @@ RendererSystem::RendererSystem() {
 			.add(gVS, ShaderType::VertexShader)
 			.add(gFS, ShaderType::FragmentShader);
 	m_gbufferShader.link();
+	
+	String giVS =
+#include "../shaders/gbufferInstV.glsl"
+			;
+	
+	m_gbufferInstancedShader = Builder<ShaderProgram>::build()
+			.add(giVS, ShaderType::VertexShader)
+			.add(gFS, ShaderType::FragmentShader);
+	m_gbufferInstancedShader.link();
 	
 	String lVS =
 #include "../shaders/lightingV.glsl"
@@ -175,6 +185,9 @@ RendererSystem::RendererSystem() {
 	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, 1));
 	m_cube.flush();
 	
+	m_instanceBuffer = Builder<VertexBuffer>::build();
+	m_instanceBuffer.bind(BufferType::ArrayBuffer).unbind();
+	
 	m_screenMipSampler = Builder<Sampler>::build()
 			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
@@ -221,7 +234,7 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	Mat4 viewMat(1.0f);
 	if (m_activeCameraTransform) {
-		Quat qRot = glm::conjugate(glm::quat_cast(m_activeCameraTransform->worldRotation()));
+		Quat qRot = glm::conjugate(m_activeCameraTransform->worldRotation());
 		Mat4 rot = glm::mat4_cast(qRot);
 		Mat4 loc = glm::translate(Mat4(1.0f), m_activeCameraTransform->worldPosition() * -1.0f);
 		viewMat = rot * loc;
@@ -247,7 +260,7 @@ void RendererSystem::render(EntityWorld& world) {
 	// Render everything that has a transform
 	m_cube.bind();
 	world.each([&](Entity& ent, Transform& T) {
-		Mat4 modelMat = T.localToWorldMatrix();
+		Mat4 modelMat = T.getTransformation();
 		
 		// Scale the cube to the same size of the object
 		Vec3 scale = Vec3(1.0f);
@@ -280,8 +293,19 @@ void RendererSystem::render(EntityWorld& world) {
 		m_gbufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
 	}
 	
+	UMap<u32, Material> instancedMaterials;
+	Map<u32, MeshInstance> instancedMeshes;
+	
 	world.each([&](Entity& ent, Transform& T, Drawable3D& D) {
-		Mat4 modelMat = T.localToWorldMatrix();
+		Mat4 modelMat = T.getTransformation();
+		
+		if (D.material.instanced) {
+			instancedMeshes[D.material.id()].models.push_back(modelMat);
+			instancedMeshes[D.material.id()].mesh = D.mesh;
+			instancedMaterials[D.material.id()] = D.material;
+			return;
+		}
+		
 		m_gbufferShader.get("mModel").set(modelMat);
 		
 		m_gbufferShader.get("material.roughness").set(D.material.roughness);
@@ -317,8 +341,87 @@ void RendererSystem::render(EntityWorld& world) {
 		D.mesh.bind();
 		glDrawElements(GL_TRIANGLES, D.mesh.indexCount(), GL_UNSIGNED_INT, nullptr);
 	});
-	
 	m_gbufferShader.unbind();
+	
+	if (!instancedMeshes.empty()) {
+		m_gbufferInstancedShader.bind();
+		m_gbufferInstancedShader.get("mProjection").set(projMat);
+		m_gbufferInstancedShader.get("mView").set(viewMat);
+
+		if (m_activeCameraTransform) {
+			m_gbufferInstancedShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+		}
+
+		for (Map<u32, MeshInstance>::value_type& e : instancedMeshes) {
+			Material mat = instancedMaterials[e.first];
+			MeshInstance mi = e.second;
+			Vector<Mat4> modelMats;
+			
+			for (Mat4& m : mi.models) {
+				modelMats.push_back(m);
+			}
+			
+			mi.mesh.bind();
+			m_instanceBuffer.bind();
+			
+			glEnableVertexAttribArray(5); // Instance matrix
+			glVertexAttribPointer(5, 4, GL_FLOAT, false, sizeof(glm::mat4), (void*)0);
+			glEnableVertexAttribArray(6);
+			glVertexAttribPointer(6, 4, GL_FLOAT, false, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+			glEnableVertexAttribArray(7);
+			glVertexAttribPointer(7, 4, GL_FLOAT, false, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+			glEnableVertexAttribArray(8);
+			glVertexAttribPointer(8, 4, GL_FLOAT, false, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+			glVertexAttribDivisor(5, 1);
+			glVertexAttribDivisor(6, 1);
+			glVertexAttribDivisor(7, 1);
+			glVertexAttribDivisor(8, 1);
+			
+			m_instanceBuffer.setData(modelMats.size(), modelMats.data(), BufferUsage::Stream);
+
+			m_gbufferInstancedShader.get("material.roughness").set(mat.roughness);
+			m_gbufferInstancedShader.get("material.metallic").set(mat.metallic);
+			m_gbufferInstancedShader.get("material.emission").set(mat.emission);
+			m_gbufferInstancedShader.get("material.baseColor").set(mat.baseColor);
+			m_gbufferInstancedShader.get("material.heightScale").set(mat.heightScale);
+			m_gbufferInstancedShader.get("material.discardEdges").set(mat.discardParallaxEdges);
+
+			int sloti = 0;
+			for (TextureSlot slot : mat.textures) {
+				if (!slot.enabled|| slot.texture.id() == 0) continue;
+
+				String tname = "";
+				switch (slot.type) {
+					case TextureSlotType::NormalMap: tname = "tNormalMap"; break;
+					case TextureSlotType::RougnessMetallicEmission: tname = "tRMEMap"; break;
+					case TextureSlotType::Albedo0: tname = "tAlbedo0"; break;
+					case TextureSlotType::Albedo1: tname = "tAlbedo1"; break;
+					case TextureSlotType::HeightMap: tname = "tHeightMap"; break;
+					default: break;
+				}
+
+				if (!tname.empty()) {
+					slot.texture.bind(slot.sampler, sloti);
+					m_gbufferInstancedShader.get(tname + String(".img")).set(sloti);
+					m_gbufferInstancedShader.get(tname + String(".opt.enabled")).set(true);
+					m_gbufferInstancedShader.get(tname + String(".opt.uv_transform")).set(slot.uvTransform);
+					sloti++;
+				}
+			}
+
+			glDrawElementsInstanced(
+					GL_TRIANGLES,
+					mi.mesh.indexCount(),
+					GL_UNSIGNED_INT,
+					nullptr,
+					modelMats.size()
+			);
+			
+			mi.mesh.unbind();
+		}
+		m_gbufferInstancedShader.unbind();
+	}
 	m_gbuffer.unbind();
 	
 	glDisable(GL_DEPTH_TEST);
@@ -336,7 +439,7 @@ void RendererSystem::render(EntityWorld& world) {
 	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
 	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo	
 	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
-	m_gbuffer.getColorAttachment(3).bind(m_screenTextureSampler, 3); //
+	m_gbuffer.getColorAttachment(3).bind(m_screenTextureSampler, 3); // Position
 	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 4); // Depth
 	
 	m_lightingShader.get("tNormals").set(0);
@@ -359,21 +462,21 @@ void RendererSystem::render(EntityWorld& world) {
 	
 	// IBL
 	if (m_IBLGenerated) {
-//		m_brdf.bind(m_screenTextureSampler, 4);
-		m_irradiance.bind(m_cubeMapSamplerNoMip, 5);
-		m_radiance.bind(m_cubeMapSampler, 6);
+		m_brdf.bind(m_screenTextureSampler, 5);
+		m_irradiance.bind(m_cubeMapSamplerNoMip, 6);
+		m_radiance.bind(m_cubeMapSampler, 7);
 		m_lightingShader.get("uIBL").set(true);
-//		m_lightingShader.get("tBRDFLUT").set(4);
-		m_lightingShader.get("tIrradiance").set(5);
-		m_lightingShader.get("tRadiance").set(6);
+		m_lightingShader.get("tBRDFLUT").set(5);
+		m_lightingShader.get("tIrradiance").set(6);
+		m_lightingShader.get("tRadiance").set(7);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 		m_lightingShader.get("uIBL").set(false);
 	}
 	
 //	// Emit
-//	m_lightingShader.get("uEmit").set(true);
-//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-//	m_lightingShader.get("uEmit").set(false);
+	m_lightingShader.get("uEmit").set(true);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+	m_lightingShader.get("uEmit").set(false);
 	
 	// Directional Lights
 	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {
@@ -540,7 +643,7 @@ void RendererSystem::render(EntityWorld& world) {
 void RendererSystem::computeIrradiance() {
 	if (m_envMap.id() == 0) return;
 	
-	const Mat4 capProj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
+	const Mat4 capProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	const Mat4 capViews[6] = {
 		glm::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
 		glm::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
@@ -587,7 +690,7 @@ void RendererSystem::computeIrradiance() {
 void RendererSystem::computeRadiance() {
 	if (m_envMap.id() == 0) return;
 	
-	const Mat4 capProj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
+	const Mat4 capProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	const Mat4 capViews[6] = {
 		glm::lookAt(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
 		glm::lookAt(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
@@ -680,7 +783,7 @@ void RendererSystem::computeBRDF() {
 void RendererSystem::computeIBL() {
 	computeIrradiance();
 	computeRadiance();
-//	computeBRDF();
+	computeBRDF();
 }
 
 RendererSystem& RendererSystem::addPostEffect(ShaderProgram effect) {

@@ -171,8 +171,52 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		}
 		return tup(ifmt, fmt, type);
 	}
-	
 }
+
+class VertexBuffer {
+public:
+	VertexBuffer() : m_id(0), m_size(0) {}
+	VertexBuffer(GLuint id) : m_id(id), m_size(0) {}
+
+	VertexBuffer& bind();
+	VertexBuffer& bind(api::BufferType type);
+	VertexBuffer& unbind();
+
+	template <typename T>
+	VertexBuffer& setData(u32 count, T* data, api::BufferUsage usage = api::BufferUsage::Static, u32 offset = 0) {
+		if (m_size < count) {
+			glBufferData(m_type, sizeof(T) * count, data, usage);
+			m_size = count;
+			m_usage = usage;
+		} else {
+			if (m_usage != api::BufferUsage::Static)
+				glBufferSubData(m_type, offset, sizeof(T) * count, data);
+		}
+	}
+
+private:
+	GLuint m_id;
+	api::BufferType m_type;
+	api::BufferUsage m_usage;
+	u32 m_size;
+};
+
+template <>
+class Builder<VertexBuffer> {
+public:
+	static VertexBuffer build() {
+		g_vbos.push_back(api::GLBuffer::create());
+		return VertexBuffer(g_vbos.back());
+	}
+
+	static void clean() {
+		for (GLuint b : g_vbos) {
+			api::GLBuffer::destroy(b);
+		}
+	}
+private:
+	static Vector<GLuint> g_vbos;
+};
 
 NS_END
 

@@ -33,7 +33,7 @@ class Material {
 public:
 	Material() 
 		: roughness(0.5f), metallic(0.0f), emission(0.0f), baseColor(Vec3(1.0f)), heightScale(1.0f),
-			discardParallaxEdges(false)
+			discardParallaxEdges(false), instanced(false), m_id(++g_matID)
 	{}
 	
 	Vec3 baseColor;
@@ -41,7 +41,7 @@ public:
 	float roughness;
 	float emission;
 	float heightScale;
-	bool discardParallaxEdges;
+	bool discardParallaxEdges, instanced;
 	
 	Material& setTextureEnabled(u32 index, bool enabled);
 	Material& setTextureUVTransform(u32 index, Vec4 uvt);
@@ -50,6 +50,11 @@ public:
 	Material& setTextureSampler(u32 index, Sampler sampler);
 	
 	Array<TextureSlot, TextureSlotCount> textures;
+	
+	u32 id() const { return m_id; }
+private:
+	static u32 g_matID;
+	u32 m_id;
 };
 
 NS_END

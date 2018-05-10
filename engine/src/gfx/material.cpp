@@ -2,6 +2,8 @@
 
 NS_BEGIN
 
+u32 Material::g_matID = 0;
+
 Material& Material::setTexture(u32 index, const Texture& texture) {
 	assert(index >= 0 && index < TextureSlotCount);
 	textures[index].texture = texture;

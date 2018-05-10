@@ -42,8 +42,22 @@ public:
 		
 		rsys.setEnvironmentMap(envMap);
 		
+		// Floor
+		Material floorMat;
+		floorMat.baseColor = Vec3(0.7f, 0.7f, 0.7f);
+		floorMat.metallic = 0.0f;
+		floorMat.roughness = 1.0f;
+		
+		Mesh floor = Builder<Mesh>::build();
+		floor.addPlane(Axis::Y, 64.0f, Vec3(0.0f)).flush();
+		
+		Entity& floorEnt = eworld.create();
+		floorEnt.assign<Transform>();
+		floorEnt.assign<Drawable3D>(floor, floorMat);
+		//
+		
 		model = Builder<Mesh>::build();
-		model.addFromFile("sphere.obj").flush();
+		model.addFromFile("test.glb").flush();
 		
 		alb0 = Builder<Texture>::build()
 				.bind(TextureTarget::Texture2D)
@@ -70,11 +84,7 @@ public:
 		camera->assign<Camera>(0.02f, 1000.0f, glm::radians(50.0f));
 		
 		Transform& camt = camera->assign<Transform>();
-		
-		Material def;
-		def.roughness = 0.1f;
-		def.metallic = 1.0f;
-		def.heightScale = 0.3f;
+		camt.position = Vec3(-7.5f, 2.0f, 5.0f);
 		
 //		def.setTexture(0, rme)
 //			.setTextureEnabled(0, true)
@@ -93,21 +103,37 @@ public:
 //			.setTextureType(3, TextureSlotType::HeightMap);
 		
 		// Models
-		mod1 = &eworld.create();
-		mod1->assign<Drawable3D>(model, def);
-		mod1->assign<Transform>();
+		Material def;
+		def.roughness = 1.0f;
+		def.metallic = 0.0f;
+		def.instanced = true;
+		const i32 COUNT = 10;
+		for (i32 i = 0; i < COUNT; i++) {
+			float fact = float(i) / float(COUNT-1);
+			
+//			Material def;
+//			def.roughness = (1.0f - fact) + Epsilon;
+//			def.metallic = fact;
+			
+			Entity& mod1 = eworld.create();
+			mod1.assign<Drawable3D>(model, def);
+			Transform& modt = mod1.assign<Transform>();
+			modt.rotate(Vec3(0, 0, 1), glm::radians(180.0f));
+			modt.rotate(Vec3(0, 1, 0), glm::radians(45.0f));
+			modt.position = Vec3((fact * 2.0f - 1.0f) * COUNT * 1.5f, 1, 0);
+		}
 		
 		// Lights
 		Entity& l0 = eworld.create();
 		Transform& l0t = l0.assign<Transform>();
 		SpotLight& l0p = l0.assign<SpotLight>();
 		
-		l0t.position = Vec3(-2.0f, 2.0f, 2.0f);
+		l0t.position = Vec3(-3.0f, 4.0f, 2.0f);
 		l0t.lookAt(l0t.position, Vec3(0.0f), Vec3(0, 1, 0));
 		l0p.radius = 10.0f;
 		l0p.intensity = 1.5f;
-		l0p.color = Vec3(1.0f, 0.6f, 0.0f);
-		l0p.spotCutOff = 0.8f;
+		l0p.color = Vec3(1.0f, 0.5f, 0.0f);
+		l0p.spotCutOff = 0.9f;
 //		
 //		Entity& l1 = eworld.create();
 //		Transform& l1t = l1.assign<Transform>();
@@ -118,16 +144,16 @@ public:
 //		l1p.color = Vec3(0.0f, 0.6f, 1.0f);
 //		l1p.intensity = 1.0f;
 //		
-//		Entity& l2 = eworld.create();
-//		Transform& l2t = l2.assign<Transform>();
-//		SpotLight& l2p = l2.assign<SpotLight>();
-//		
-//		l2t.position = Vec3(2.0f, 2.0f, 2.0f);
-//		l2t.rotation.lookAt(l2t.position * -1.0f, Vec3());
-//		l2p.radius = 10.0f;
-//		l2p.intensity = 1.5f;
-//		l2p.color = Vec3(0.0f, 0.6f, 1.0f);
-//		l2p.spotCutOff = 0.8f;
+		Entity& l2 = eworld.create();
+		Transform& l2t = l2.assign<Transform>();
+		SpotLight& l2p = l2.assign<SpotLight>();
+		
+		l2t.position = Vec3(3.0f, 4.0f, 2.0f);
+		l2t.lookAt(l2t.position, Vec3(0.0f), Vec3(0, 1, 0));
+		l2p.radius = 10.0f;
+		l2p.intensity = 1.5f;
+		l2p.color = Vec3(0.0f, 0.5f, 1.0f);
+		l2p.spotCutOff = 0.9f;
 	}
 
 	void update(float timeDelta) {
@@ -153,11 +179,11 @@ public:
 			bool rotX = delta.y != 0;
 			
 			if (rotY) {
-				t->rotate(t->up(), glm::radians(delta.x * sensitivity));
+				t->rotate(Vec3(0, 1, 0), glm::radians(-delta.x * sensitivity));
 			}
 			
 			if (rotX) {
-				t->rotate(t->right(), glm::radians(delta.y * sensitivity));
+				t->rotate(Vec3(1, 0, 0), glm::radians(-delta.y * sensitivity));
 			}
 
 			if (rotY || rotX) {
@@ -169,15 +195,14 @@ public:
 		if (Input::isKeyDown(SDLK_w)) {
 			t->position += t->forward() * speed * timeDelta;
 		} else if (Input::isKeyDown(SDLK_s)) {
-			t->position += t->back() * speed * timeDelta;
+			t->position -= t->forward() * speed * timeDelta;
 		}
 		
 		if (Input::isKeyDown(SDLK_a)) {
-			t->position += t->left() * speed * timeDelta;
+			t->position -= t->right() * speed * timeDelta;
 		} else if (Input::isKeyDown(SDLK_d)) {
 			t->position += t->right() * speed * timeDelta;
 		}
-		t->setDirty();
 		
 		eworld.update(timeDelta);
 	}
@@ -189,8 +214,6 @@ public:
 
 	Mesh model;
 	Texture rme, alb0, nrm, disp;
-	
-	Entity* mod1;
 	
 	Entity* camera;
 	float sensitivity;

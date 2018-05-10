@@ -25,6 +25,11 @@ enum class CameraType {
 	Perspective
 };
 
+struct MeshInstance {
+	Vector<Mat4> models;
+	Mesh mesh;
+};
+
 struct Camera : public Component {
 	Camera() = default;
 	Camera(float n, float f, float fov, CameraType t = CameraType::Perspective, float oscale = 1.0f)
@@ -67,7 +72,8 @@ private:
 					m_irradianceShader,
 					m_preFilterShader,
 					m_brdfLUTShader,
-					m_pickingShader;
+					m_pickingShader,
+					m_gbufferInstancedShader;
 	
 	// EnvMap
 	Texture m_envMap, m_irradiance, m_radiance, m_brdf;
@@ -77,6 +83,8 @@ private:
 	Sampler m_screenTextureSampler, m_cubeMapSampler,
 			m_screenDepthSampler, m_screenMipSampler,
 			m_cubeMapSamplerNoMip;
+	
+	VertexBuffer m_instanceBuffer;
 	
 	// PostFX
 	Vector<ShaderProgram> m_postEffects;

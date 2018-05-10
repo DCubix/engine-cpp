@@ -15,7 +15,7 @@ uniform sampler2D tAlbedo;
 uniform sampler2D tRME;
 uniform sampler2D tPositions;
 uniform sampler2D tDepth;
-//uniform sampler2D tBRDFLUT;
+uniform sampler2D tBRDFLUT;
 uniform samplerCube tIrradiance;
 uniform samplerCube tRadiance;
 
@@ -53,9 +53,8 @@ void main() {
 			 kD *= 1.0 - M;
 
 		vec3 Rf = reflect(-V, N);
-//		vec2 envBRDF = texture(tBRDFLUT, vec2(NoV, R)).rg;
-		vec3 envBRDF = envBRDFApprox(F0, R, NoV);
-
+		vec2 envBRDF = texture(tBRDFLUT, vec2(NoV, R)).rg;
+		
 		vec3 diff = texture(tIrradiance, N).rgb * A;
 		vec3 spec = textureLod(tRadiance, Rf, R * MAX_REFLECTION_LOD).rgb * (F * envBRDF.x + envBRDF.y);
 
@@ -94,33 +93,16 @@ void main() {
 				if (S > uLight.spotCutoff) {
 					att *= (1.0 - (1.0 - S) * 1.0 / (1.0 - uLight.spotCutoff));
 				} else {
-					att = 0.0;
+					att *= 0.0;
 				}
 			}
 
 			float NoL = lambert(N, L);
 			float fact = NoL * att;
-//			vec3 H = normalize(V + L);
-//			float NoV = dot(N, V);
-//			float NoH = saturate(dot(N, H));
-//			float VoH = saturate(dot(V, H));
-//			NoL = saturate(NoL);
-//			NoV = saturate(abs(NoV) + 1e-5);
 
-//			vec3 F = F_Schlick(F0, VoH, R);
-//			float D = D_GGX(R, NoH);
-//			float G = G_Schlick(R, NoV, NoL);
+			vec3 b = principledBRDF(mat, L, V, N) * fact;
 
-//			vec3 kd = 1.0 - F;
-
-//			vec3 diffuse = A * kd;
-//			vec3 specular = (D * G * F) / max(Epsilon, 4.0 * NoL * NoV);
-
-//			fragColor = vec4(uLight.color * (diffuse + specular) * fact, 1.0);
-
-			vec3 b = principledBRDF(mat, L, V, N);
-
-			fragColor = vec4(uLight.color * uLight.intensity * b * fact, 1.0);
+			fragColor = vec4(uLight.color * uLight.intensity * b, 1.0);
 			//fragColor = vec4(wP, 1.0);
 		}
 	}

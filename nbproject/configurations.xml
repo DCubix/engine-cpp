@@ -38,6 +38,9 @@
         <in>quat.cpp</in>
         <in>vec.cpp</in>
       </df>
+      <df name="shaders">
+        <in>gbufferInstV</in>
+      </df>
       <df name="systems">
         <in>renderer.cpp</in>
       </df>
@@ -181,6 +184,8 @@
       <item path="engine/src/math/vec.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
+      </item>
+      <item path="engine/src/shaders/gbufferInstV" ex="false" tool="3" flavor2="0">
       </item>
       <item path="engine/src/systems/renderer.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">

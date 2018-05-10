@@ -78,6 +78,7 @@
         <in>common.glsl</in>
         <in>fxaaF.glsl</in>
         <in>gbufferF.glsl</in>
+        <in>gbufferInstV</in>
         <in>gbufferV.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>
@@ -117,6 +118,8 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
