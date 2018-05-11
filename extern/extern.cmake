@@ -46,14 +46,16 @@ set_target_properties(extern::sdl2 PROPERTIES
 add_definitions(-DSDL_MAIN_HANDLED)
 
 ### GLM ###
-set(GLM_STATIC_LIBRARY_ENABLE ON CACHE BOOL "DoNotTouch")
+set(GLM_STATIC_LIBRARY_ENABLE OFF CACHE BOOL "DoNotTouch")
+set(GLM_TEST_ENABLE OFF CACHE BOOL "DoNotTouch")
 add_subdirectory("extern/glm")
 
 add_library(extern::glm INTERFACE IMPORTED)
 set_target_properties(extern::glm PROPERTIES
 	INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/extern/glm
-	INTERFACE_LINK_LIBRARIES glm
 )
+
+add_definitions(-DGLM_FORCE_CTOR_INIT)
 
 if (CMAKE_DL_LIBS)
 	### DL ###

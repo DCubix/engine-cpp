@@ -24,7 +24,7 @@ public:
 	void set(Vec3 v) { glUniform(3f, v.x, v.y, v.z); }
 	void set(Vec4 v) { glUniform(4f, v.x, v.y, v.z, v.w); }
 	void set(Mat4 v) { glUniform(Matrix4fv, 1, false, glm::value_ptr(v)); }
-	
+
 	void set(const Mat4* v, u32 size) {
 		Vector<float> mv; mv.reserve(size * 16);
 		for (u32 i = 0; i < size; i++) {
@@ -33,7 +33,7 @@ public:
 		}
 		glUniform(Matrix4fv, size, false, mv.data());
 	}
-	
+
 	void set(const Vector<Mat4>& v) {
 		Vector<float> mv; mv.reserve(v.size() * 16);
 		for (Mat4 m : v) {
@@ -50,12 +50,12 @@ protected:
 
 class ShaderProgram {
 public:
-	ShaderProgram() = default;
-	ShaderProgram(GLuint prog) : m_program(prog) {}
-	
+	ShaderProgram() : m_valid(false), m_program(0) {}
+	ShaderProgram(GLuint prog) : m_valid(false), m_program(prog) {}
+
 	ShaderProgram& add(const String& source, ShaderType type);
 	void link();
-	
+
 	void bind();
 	void unbind();
 
@@ -63,9 +63,12 @@ public:
 	i32 getUniformLocation(const String& name);
 
 	Uniform get(const String& name);
+	bool has(const String& name);
 
 	bool valid() const { return m_valid; }
-	
+
+	GLuint id() const { return m_program; }
+
 protected:
 	GLuint m_program;
 	bool m_valid;
@@ -79,14 +82,21 @@ public:
 		g_programs.push_back(GLProgram::create());
 		return ShaderProgram(g_programs.back());
 	}
-	
+
 	static void clean() {
 		for (GLuint prog : g_programs) {
 			GLProgram::destroy(prog);
 		}
 	}
+
+	static void destroy(ShaderProgram obj) {
+		if (obj.valid()) {
+			GLProgram::destroy(obj.id());
+			g_programs.eraseObject(obj.id());
+		}
+	}
 private:
-	static Vector<GLuint> g_programs;
+	static GLObjectList g_programs;
 };
 
 NS_END

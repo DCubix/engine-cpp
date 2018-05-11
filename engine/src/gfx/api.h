@@ -173,6 +173,13 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 	}
 }
 
+class GLObjectList : public Vector<GLuint> {
+public:
+	void eraseObject(GLuint obj) {
+		erase(std::remove(begin(), end(), obj), end());
+	}
+};
+
 class VertexBuffer {
 public:
 	VertexBuffer() : m_id(0), m_size(0) {}
@@ -192,7 +199,14 @@ public:
 			if (m_usage != api::BufferUsage::Static)
 				glBufferSubData(m_type, offset, sizeof(T) * count, data);
 		}
+		return *this;
 	}
+
+	VertexBuffer& addVertexAttrib(u32 index, u32 size, api::DataType type, bool normalized, u32 stride, u32 offset);
+	VertexBuffer& setAttribDivisor(u32 index, u32 divisor);
+
+	u32 size() const { return m_size; }
+	GLuint id() const { return m_id; }
 
 private:
 	GLuint m_id;
@@ -214,8 +228,53 @@ public:
 			api::GLBuffer::destroy(b);
 		}
 	}
+
+	static void destroy(VertexBuffer buf) {
+		if (buf.id() != 0) {
+			api::GLBuffer::destroy(buf.id());
+			g_vbos.eraseObject(buf.id());
+		}
+	}
 private:
-	static Vector<GLuint> g_vbos;
+	static GLObjectList g_vbos;
+};
+
+class VertexArray {
+public:
+	VertexArray() : m_id(0) {}
+	VertexArray(GLuint id) : m_id(id) {}
+
+	void bind();
+	void unbind();
+
+	GLuint id() const { return m_id; }
+
+private:
+	GLuint m_id;
+};
+
+template <>
+class Builder<VertexArray> {
+public:
+	static VertexArray build() {
+		g_vaos.push_back(api::GLVertexArray::create());
+		return VertexArray(g_vaos.back());
+	}
+
+	static void clean() {
+		for (GLuint b : g_vaos) {
+			api::GLVertexArray::destroy(b);
+		}
+	}
+
+	static void destroy(VertexArray buf) {
+		if (buf.id() != 0) {
+			api::GLVertexArray::destroy(buf.id());
+			g_vaos.eraseObject(buf.id());
+		}
+	}
+private:
+	static GLObjectList g_vaos;
 };
 
 NS_END

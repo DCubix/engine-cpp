@@ -63,8 +63,8 @@ FrameBuffer& FrameBuffer::addColorAttachment(TextureFormat format, TextureTarget
 	tex.generateMipmaps();
 	
 	Vector<GLenum> db;
-	i32 att = m_colorAttachments.size();
-	for (int i = 0; i < att + 1; i++) {
+	u32 att = m_colorAttachments.size();
+	for (u32 i = 0; i < att + 1; i++) {
 		db.push_back(GL_COLOR_ATTACHMENT0 + i);
 	}
 	
@@ -235,10 +235,11 @@ FrameBuffer& FrameBuffer::setColorAttachment(u32 attachment, TextureTarget targe
 		);
 	}
 	glDrawBuffer(GL_COLOR_ATTACHMENT0 + attachment);
+	return *this;
 }
 
 FrameBuffer& FrameBuffer::setColorAttachment(u32 attachment, TextureTarget target, u32 mip) {
-	setColorAttachment(attachment, target, m_colorAttachments[attachment], mip);
+	return setColorAttachment(attachment, target, m_colorAttachments[attachment], mip);
 }
 
 NS_END

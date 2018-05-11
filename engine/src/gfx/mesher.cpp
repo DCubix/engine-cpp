@@ -6,106 +6,60 @@
 
 NS_BEGIN
 
-Vector<GLuint> Builder<Mesh>::g_vbos;
-Vector<GLuint> Builder<Mesh>::g_ibos;
-Vector<GLuint> Builder<Mesh>::g_vaos;
-
-void VertexFormat::put(const String& name, AttributeType type, bool normalized, i32 location) {
-	VertexAttribute attr;
-	attr.size = type;
-	attr.normalized = normalized;
-	attr.location = location;
-	attr.name = name;
-	m_attributes.push_back(attr);
-
-	m_stride += u32(type) * 4;
-}
-
-void VertexFormat::bind(ShaderProgram* shader) {
-	u32 off = 0;
-	bool shaderValid = shader != nullptr;
-	for (auto attr : m_attributes) {
-		i32 loc = attr.location;
-		if (shaderValid && attr.location == -1) {
-			loc = shader->getAttributeLocation(attr.name);
-		}
-		if (loc != -1) {
-			glEnableVertexAttribArray(loc);
-			glVertexAttribPointer(loc, attr.size, GL_FLOAT, attr.normalized, m_stride, ((void*) off));
-		}
-		off += attr.size * 4;
-	}
-}
-
-void VertexFormat::unbind(ShaderProgram* shader) {
-	if (shader == nullptr) return;
-	for (auto attr : m_attributes) {
-		i32 loc = attr.location;
-		if (attr.location == -1) {
-			loc = shader->getAttributeLocation(attr.name);
-		}
-		if (loc != -1) {
-			glDisableVertexAttribArray(loc);
-		}
-	}
-}
-
 void Mesh::bind() {
-	glBindVertexArray(m_vao);
+	m_vao.bind();
 }
 
 void Mesh::unbind() {
-	glBindVertexArray(0);
+	m_vao.unbind();
+}
+
+void Mesh::drawIndexed(PrimitiveType primitive, u32 start, u32 count) {
+	u32 c = count == 0 ? indexCount() : count;
+	glDrawElements(primitive, c, GL_UNSIGNED_INT, (void*)(start * sizeof(i32)));
+}
+
+void Mesh::drawIndexedInstanced(PrimitiveType primitive, u32 instances, u32 start, u32 count) {
+	u32 c = count == 0 ? indexCount() : count;
+	glDrawElementsInstanced(primitive, c, GL_UNSIGNED_INT, (void*)(start * sizeof(i32)), instances);
 }
 
 u8* Mesh::map() {
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	m_vbo.bind();
 	return (u8*) glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
 }
 
 void Mesh::unmap() {
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	m_vbo.bind();
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
 void Mesh::flush() {
 	if (m_vertexData.empty()) return;
 
-	glBindVertexArray(m_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	m_vao.bind();
+	m_vbo.bind(BufferType::ArrayBuffer);
 
 	const size_t vertexSize = sizeof(Vertex);
-	
-	glEnableVertexAttribArray(0); // Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, false, vertexSize, ((void*) 0));
-	
-	glEnableVertexAttribArray(1); // Normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, false, vertexSize, ((void*) 12));
-	
-	glEnableVertexAttribArray(2); // Tangent
-	glVertexAttribPointer(2, 3, GL_FLOAT, false, vertexSize, ((void*) 24));
-	
-	glEnableVertexAttribArray(3); // TexCoord
-	glVertexAttribPointer(3, 2, GL_FLOAT, false, vertexSize, ((void*) 36));
-	
-	glEnableVertexAttribArray(4); // Color
-	glVertexAttribPointer(4, 4, GL_FLOAT, true, vertexSize, ((void*) 44));
-	
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	
-	glBindVertexArray(0);
 
-	i32 vsize = vertexSize * m_vertexData.size();
+	m_vbo.addVertexAttrib(0, 3, DataType::Float, false, vertexSize,  0);
+	m_vbo.addVertexAttrib(1, 3, DataType::Float, false, vertexSize, 12);
+	m_vbo.addVertexAttrib(2, 3, DataType::Float, false, vertexSize, 24);
+	m_vbo.addVertexAttrib(3, 2, DataType::Float, false, vertexSize, 36);
+	m_vbo.addVertexAttrib(4, 4, DataType::Float,  true, vertexSize, 44);
 
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, vsize, m_vertexData.data(), GL_STATIC_DRAW);
+	m_ibo.bind(BufferType::IndexBuffer);
 
-	i32 isize = 4 * m_indexData.size();
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, isize, m_indexData.data(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	m_vao.unbind();
+
+	m_vbo.bind();
+	m_vbo.setData<Vertex>(m_vertexData.size(), m_vertexData.data());
+
+	m_ibo.bind();
+	m_ibo.setData<u32>(m_indexData.size(), m_indexData.data());
+
+	m_ibo.unbind();
+	m_vbo.unbind();
 
 	m_vertexCount = m_vertexData.size();
 	m_indexCount = m_indexData.size();
@@ -122,7 +76,7 @@ void Mesh::flush() {
 		aabbMax.z = std::max(aabbMax.z, v.position.z);
 	}
 	m_aabb = AABB(aabbMin, aabbMax);
-	
+
 	m_vertexData.clear();
 	m_indexData.clear();
 }
@@ -132,19 +86,19 @@ Mesh& Mesh::addVertex(const Vertex& vert) {
 	return *this;
 }
 
-Mesh& Mesh::addIndex(i32 index) {
+Mesh& Mesh::addIndex(u32 index) {
 	m_indexData.push_back(index);
 	return *this;
 }
 
-Mesh& Mesh::addTriangle(i32 i0, i32 i1, i32 i2) {
+Mesh& Mesh::addTriangle(u32 i0, u32 i1, u32 i2) {
 	m_indexData.push_back(i0);
 	m_indexData.push_back(i1);
 	m_indexData.push_back(i2);
 	return *this;
 }
 
-Mesh& Mesh::addData(const Vector<Vertex>& vertices, const Vector<i32>& indices) {
+Mesh& Mesh::addData(const Vector<Vertex>& vertices, const Vector<u32>& indices) {
 	i32 off = m_vertexData.size();
 	m_vertexData.insert(m_vertexData.end(), vertices.begin(), vertices.end());
 	for (auto i : indices) {
@@ -155,23 +109,23 @@ Mesh& Mesh::addData(const Vector<Vertex>& vertices, const Vector<i32>& indices) 
 
 Mesh& Mesh::addFromFile(const String& file) {
 	Assimp::Importer imp;
-	
+
 	String ext = file.substr(file.find_last_of('.')+1);
-	
+
 	VFS::get().openRead(file);
 	fsize len;
 	u8* data = VFS::get().read(&len);
 	VFS::get().close();
-	
+
 	const aiScene* scene = imp.ReadFileFromMemory(data, len,
 			aiPostProcessSteps::aiProcess_Triangulate |
 			aiPostProcessSteps::aiProcess_FlipUVs |
 			aiPostProcessSteps::aiProcess_CalcTangentSpace,
 			ext.c_str()
 	);
-	
+
 	delete[] data;
-	
+
 	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) {
 		LogError(imp.GetErrorString());
 		return *this;
@@ -204,7 +158,7 @@ Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off, bool flip) {
 			addVertex(Vertex(off + Vec3(-s,  s, 0), Vec2(0, 1)));
 		} break;
 	}
-	
+
 	if (!flip) {
 		addTriangle(ioff+0, ioff+1, ioff+2);
 		addTriangle(ioff+2, ioff+3, ioff+0);
@@ -212,7 +166,7 @@ Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off, bool flip) {
 		addTriangle(ioff+0, ioff+3, ioff+2);
 		addTriangle(ioff+2, ioff+1, ioff+0);
 	}
-	
+
 	return *this;
 }
 
@@ -323,7 +277,7 @@ Mesh& Mesh::transformTexCoords(const Mat4& t) {
 	return *this;
 }
 
-void Mesh::triNormal(i32 i0, i32 i1, i32 i2) {
+void Mesh::triNormal(u32 i0, u32 i1, u32 i2) {
 	Vec3 v0 = m_vertexData[i0].position;
 	Vec3 v1 = m_vertexData[i1].position;
 	Vec3 v2 = m_vertexData[i2].position;
@@ -337,7 +291,7 @@ void Mesh::triNormal(i32 i0, i32 i1, i32 i2) {
 	m_vertexData[i2].normal += n;
 }
 
-void Mesh::triTangent(i32 i0, i32 i1, i32 i2) {
+void Mesh::triTangent(u32 i0, u32 i1, u32 i2) {
 	Vec3 v0 = m_vertexData[i0].position;
 	Vec3 v1 = m_vertexData[i1].position;
 	Vec3 v2 = m_vertexData[i2].position;
@@ -348,7 +302,7 @@ void Mesh::triTangent(i32 i0, i32 i1, i32 i2) {
 
 	Vec3 e0 = v1 - v0;
 	Vec3 e1 = v2 - v0;
-	
+
 	Vec2 dt1 = t1 - t0;
 	Vec2 dt2 = t2 - t0;
 

@@ -52,7 +52,7 @@ public:
 		return false;
 	}
 	
-	bool removeAll();
+	void removeAll();
 	
 	template <class C>
 	bool has() const {

@@ -45,6 +45,8 @@
         </df>
         <in>api.cpp</in>
         <in>api.h</in>
+        <in>filter.cpp</in>
+        <in>filter.h</in>
         <in>framebuffer.cpp</in>
         <in>framebuffer.h</in>
         <in>material.cpp</in>
@@ -79,6 +81,7 @@
         <in>fxaaF.glsl</in>
         <in>gbufferF.glsl</in>
         <in>gbufferInstV</in>
+        <in>gbufferInstV.glsl</in>
         <in>gbufferV.glsl</in>
         <in>lightingF.glsl</in>
         <in>lightingV.glsl</in>

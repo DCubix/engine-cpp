@@ -7,11 +7,11 @@
 NS_BEGIN
 
 //#ifdef ENG_DEBUG
-Logger Logger::logger = Logger();
-std::ofstream* Logger::logFile = nullptr;
+//Logger Logger::logger = Logger();
+//std::ofstream* Logger::logFile = nullptr;
 //#else
-//std::ofstream* Logger::logFile = new std::ofstream("Log_" + Util::currentDateTimeNoFormat() + ".txt");
-//Logger Logger::logger = Logger(Logger::logFile);
+std::ofstream* Logger::logFile = new std::ofstream("Log_" + Util::currentDateTimeNoFormat() + ".txt");
+Logger Logger::logger = Logger(Logger::logFile);
 //#endif
 
 Logger::Logger() : m_output(&std::cout) {

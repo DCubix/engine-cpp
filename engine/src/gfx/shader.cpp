@@ -4,7 +4,7 @@
 
 NS_BEGIN
 
-Vector<GLuint> Builder<ShaderProgram>::g_programs;
+GLObjectList Builder<ShaderProgram>::g_programs;
 
 void ShaderProgram::bind() {
 	if (m_valid) glUseProgram(m_program);
@@ -42,6 +42,10 @@ i32 ShaderProgram::getUniformLocation(const String& name) {
 
 Uniform ShaderProgram::get(const String& name) {
 	return Uniform(getUniformLocation(name));
+}
+
+bool ShaderProgram::has(const String& name) {
+	return getUniformLocation(name) != -1;
 }
 
 ShaderProgram& ShaderProgram::add(const String& source, ShaderType type) {

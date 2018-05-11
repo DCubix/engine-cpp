@@ -26,7 +26,10 @@ public:
 
 class DirectionalLight : public LightBase {
 public:
-	DirectionalLight() : LightBase() {}
+	DirectionalLight() : LightBase(), shadows(false), shadowFrustumSize(10.0f), size(1.0f) {}
+
+	bool shadows;
+	float shadowFrustumSize, size;
 
 	LightType getType() const { return LightType::Directional; }
 };

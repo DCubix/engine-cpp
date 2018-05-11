@@ -17,7 +17,7 @@ void EntityWorld::destroy(const Entity& entity) {
 	m_entities.erase(m_entities.begin() + (entity.id() - 1));
 }
 
-bool Entity::removeAll() {
+void Entity::removeAll() {
 	m_components.clear();
 }
 

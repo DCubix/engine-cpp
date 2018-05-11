@@ -13,9 +13,9 @@ out vec4 fragColor;
 in vec2 oScreenPosition;
 
 uniform sampler2D tScreen;
-uniform vec2 tResolution;
+uniform vec2 uResolution;
 
-//optimized version for mobile, where dependent 
+//optimized version for mobile, where dependent
 //texture reads can be a bottleneck
 vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution) {
 	vec4 color;
@@ -69,7 +69,7 @@ vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution) {
 }
 
 void main() {
-	fragColor.rgb = fxaa(tScreen, gl_FragCoord.st, tResolution).rgb;
+	fragColor.rgb = fxaa(tScreen, gl_FragCoord.st, uResolution).rgb;
 	fragColor.a = 1.0f;
 }
 )"

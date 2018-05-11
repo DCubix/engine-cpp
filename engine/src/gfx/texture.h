@@ -29,6 +29,8 @@ public:
 			TextureWrap r = TextureWrap::None
 	);
 	Sampler& setFilter(TextureFilter min, TextureFilter mag);
+
+	Sampler& setBorderColor(float r, float g, float b, float a);
 	
 	Sampler& setSeamlessCubemap(bool enable);
 	
@@ -40,10 +42,9 @@ protected:
 };
 
 class Texture {
-	friend class Builder<Texture>;
 public:
-	Texture() : m_id(0), m_builderPosition(-1) {}
-	Texture(GLuint id) : m_id(id), m_builderPosition(-1) {}
+	Texture() : m_id(0) {}
+	Texture(GLuint id) : m_id(id) {}
 
 	Texture& setFromFile(const String& file, TextureTarget tgt);
 	Texture& setFromFile(const String& file);
@@ -70,7 +71,6 @@ public:
 	static Sampler DEFAULT_SAMPLER;
 	
 protected:
-	i32 m_builderPosition;
 	GLuint m_id;
 	TextureTarget m_target;
 	u32 m_width, m_height;
@@ -83,9 +83,7 @@ class Builder<Texture> {
 public:
 	static Texture build() {
 		g_textures.push_back(GLTexture::create());
-		Texture tex = Texture(g_textures.back());
-		tex.m_builderPosition = g_textures.size()-1;
-		return tex;
+		return Texture(g_textures.back());
 	}
 	
 	static void clean() {
@@ -95,18 +93,14 @@ public:
 		g_textures.clear();
 	}
 	
-	static void dispose(Texture& texture) {
-		if (texture.m_builderPosition == -1) {
-			LogError("Cannot dispose an unexisting resource.");
-			return;
+	static void destroy(Texture obj) {
+		if (obj.id() != 0) {
+			GLTexture::destroy(obj.id());
+			g_textures.eraseObject(obj.id());
 		}
-		GLTexture::destroy(texture.m_id);
-		g_textures[texture.m_builderPosition] = 0;
-		texture.m_builderPosition = -1;
-		texture.m_id = 0;
 	}
 private:
-	static Vector<GLuint> g_textures;
+	static GLObjectList g_textures;
 };
 
 template <>

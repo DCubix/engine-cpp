@@ -25,6 +25,10 @@ bld/
 [Ll]og/
 [Bb]uild/
 [Tt]ools/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-relwithdebinfo/
+cmake-build-minsizerel/
 
 # Visual Studio 2015 cache/options directory
 .vs/

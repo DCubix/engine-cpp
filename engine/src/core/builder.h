@@ -8,6 +8,7 @@ class Builder {
 public:
 	static T build() {}
 	static void clean() {}
+	static void destroy(T object) {}
 };
 
 #endif /* BUILDER_H */

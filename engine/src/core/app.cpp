@@ -149,8 +149,9 @@ void Application::run() {
 	eng_mainloop();
 	
 	// Free resources
+	Builder<VertexArray>::clean();
+	Builder<VertexBuffer>::clean();
 	Builder<ShaderProgram>::clean();
-	Builder<Mesh>::clean();
 	Builder<Texture>::clean();
 	Builder<Sampler>::clean();
 	VFS::get().shutdown();

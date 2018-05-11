@@ -5,7 +5,7 @@
 #include "types.h"
 #include "msg.h"
 
-#include <SDL2/SDL.h>
+#include "SDL.h"
 
 NS_BEGIN
 

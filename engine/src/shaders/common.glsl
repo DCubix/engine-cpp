@@ -52,6 +52,8 @@ struct Light {
 	float intensity;
 	
 	float radius;
+	float size;
+	float nearPlane;
 
 	vec3 position;
 	vec3 direction;
@@ -81,11 +83,10 @@ float lambert(vec3 n, vec3 l) {
 	return saturate(dot(n, l));
 }
 
-
 vec3 worldPosition(mat4 projection, mat4 view, vec2 uv, float z) {
 	mat4 vp = projection * view;
-	vec4 wp = inverse(vp) * vec4(uv * 2.0 - 1.0, z, 1.0);
-	return (wp.xyz / wp.w);
+	vec4 wp = inverse(vp) * vec4(uv * 2.0 - 1.0, z * 2.0 - 1.0, 1.0);
+	return wp.xyz / wp.w;
 }
 
 float lightAttenuation(Light light, vec3 L, float dist) {

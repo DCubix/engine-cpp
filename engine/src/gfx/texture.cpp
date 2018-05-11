@@ -5,7 +5,7 @@
 
 NS_BEGIN
 
-Vector<GLuint> Builder<Texture>::g_textures;
+GLObjectList Builder<Texture>::g_textures;
 Vector<GLuint> Builder<Sampler>::g_samplers;
 
 Sampler& Sampler::setWrap(TextureWrap s, TextureWrap t, TextureWrap r) {
@@ -27,19 +27,25 @@ Sampler& Sampler::setSeamlessCubemap(bool enable) {
 	return *this;
 }
 
+Sampler& Sampler::setBorderColor(float r, float g, float b, float a) {
+	float borderColor[] = { r, g, b, a };
+	glSamplerParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, borderColor);
+	return *this;
+}
+
 static ImageData loadImage(const String& file) {
 	VFS::get().openRead(file);
 	fsize fileSize;
 	u8* fileData = VFS::get().read(&fileSize);
 	VFS::get().close();
-	
+
 	ImageData im;
 	im.comp = 0;
 	im.w = 0;
 	im.h = 0;
 	im.data = NULL;
 	im.fdata = NULL;
-	
+
 	if (fileData) {
 		int w, h, comp;
 		im.hdr = stbi_is_hdr_from_memory(fileData, fileSize);
@@ -79,7 +85,7 @@ Texture& Texture::setNull(int w, int h, TextureFormat format) {
 void Texture::setFromData(const ImageData& data, TextureTarget tgt) {
 	GLint ifmt;
 	GLenum fmt, type;
-	
+
 	switch (data.comp) {
 		case 1: {
 			if (data.hdr) {
@@ -127,7 +133,7 @@ void Texture::setFromData(const ImageData& data, TextureTarget tgt) {
 			return;
 		}
 	}
-	
+
 	if (data.hdr) {
 		glTexImage2D(tgt, 0, ifmt, data.w, data.h, 0, fmt, type, data.fdata);
 		free(data.fdata);
@@ -135,24 +141,24 @@ void Texture::setFromData(const ImageData& data, TextureTarget tgt) {
 		glTexImage2D(tgt, 0, ifmt, data.w, data.h, 0, fmt, type, data.data);
 		free(data.data);
 	}
-	
+
 	m_width = data.w;
 	m_height = data.h;
 }
 
-static ImageData subImage(const ImageData& data, int x, int y, int w, int h, bool flipY) {
+static ImageData subImage(const ImageData& data, u32 x, u32 y, u32 w, u32 h, bool flipY) {
 	ImageData ndata;
 	ndata.w = w;
 	ndata.h = h;
 	ndata.comp = data.comp;
 	ndata.hdr = data.hdr;
-	
+
 	if (ndata.hdr) {
 		ndata.fdata = new float[w * h * ndata.comp];
 	} else {
 		ndata.data = new u8[w * h * ndata.comp];
 	}
-	
+
 	for (u32 iy = y; iy < y + h; iy++) {
 		for (u32 ix = x; ix < x + w; ix++) {
 			u32 ny = iy - y;
@@ -170,7 +176,7 @@ static ImageData subImage(const ImageData& data, int x, int y, int w, int h, boo
 			}
 		}
 	}
-	
+
 	return ndata;
 }
 

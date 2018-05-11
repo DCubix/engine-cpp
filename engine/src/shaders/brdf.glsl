@@ -36,23 +36,22 @@ vec3 mon2lin(vec3 x) {
 
 // X is tangent, Y is biTangent
 vec3 principledBRDF(Material params, vec3 L, vec3 V, vec3 N) {
-	float NoL = dot(N, L);
-    float NoV = dot(N, V);
-    if (NoL < 0.0 || NoV < 0.0) return vec3(0.0);
+	float NoL = max(dot(N, L), 0.0);
+	float NoV = max(dot(N, V), 0.0);
 
-    vec3 H = normalize(L + V);
-    float NoH = dot(N, H);
-    float LoH = dot(L, H);
+	vec3 H = normalize(L + V);
+	float NoH = max(dot(N, H), 0.0);
+	float LoH = max(dot(L, H), 0.0);
 
-    vec3 Cdlin = mon2lin(params.baseColor);
-    vec3 Cspec0 = mix(vec3(0.08), Cdlin, params.metallic);
+	vec3 Cdlin = mon2lin(params.baseColor);
+	vec3 Cspec0 = mix(vec3(0.08), Cdlin, params.metallic);
 
-    float Ds = D_GGX(params.roughness, NoH);
-    float FH = fresnelSchlick(LoH);
-    vec3 Fs = mix(Cspec0, vec3(1.0), FH);
-    float Gs = G_Schlick(params.roughness, NoV, NoL);
+	float Ds = D_GGX(params.roughness, NoH);
+	float FH = fresnelSchlick(LoH);
+	vec3 Fs = mix(Cspec0, vec3(1.0), FH);
+	float Gs = G_Schlick(params.roughness, NoV, NoL);
 
-    return ((1.0 / PI) * Cdlin)
+	return ((1.0 / PI) * Cdlin)
 			* (1.0 - params.metallic)
 			+ Gs * Fs * Ds;
 }
