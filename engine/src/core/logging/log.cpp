@@ -6,13 +6,13 @@
 
 NS_BEGIN
 
-//#ifdef ENG_DEBUG
-//Logger Logger::logger = Logger();
-//std::ofstream* Logger::logFile = nullptr;
-//#else
+#ifdef ENG_DEBUG
+Logger Logger::logger = Logger();
+std::ofstream* Logger::logFile = nullptr;
+#else
 std::ofstream* Logger::logFile = new std::ofstream("Log_" + Util::currentDateTimeNoFormat() + ".txt");
 Logger Logger::logger = Logger(Logger::logFile);
-//#endif
+#endif
 
 Logger::Logger() : m_output(&std::cout) {
 }

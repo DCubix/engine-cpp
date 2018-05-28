@@ -1,6 +1,6 @@
-#include <vector>
-
 #include "renderer.h"
+
+#include <vector>
 
 NS_BEGIN
 
@@ -55,6 +55,7 @@ RendererSystem::RendererSystem() {
 
 	m_shadowBuffer = Builder<FrameBuffer>::build()
 			.setSize(2048, 2048)
+			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
 			.addDepthAttachment();
 
 	String common =
@@ -200,12 +201,7 @@ RendererSystem::RendererSystem() {
 		.flush();
 
 	m_cube = Builder<Mesh>::build();
-	m_cube.addPlane(Axis::X, 1.0f, Vec3(-1, 0, 0), true);
-	m_cube.addPlane(Axis::X, 1.0f, Vec3(1, 0, 0));
-	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, -1, 0), true);
-	m_cube.addPlane(Axis::Y, 1.0f, Vec3(0, 1, 0));
-	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, -1), true);
-	m_cube.addPlane(Axis::Z, 1.0f, Vec3(0, 0, 1));
+	m_cube.addCube(1.0f);
 	m_cube.flush();
 
 	m_instanceBuffer = Builder<VertexBuffer>::build();
@@ -220,7 +216,7 @@ RendererSystem::RendererSystem() {
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge);
 
 	m_screenDepthSampler = Builder<Sampler>::build()
-			.setFilter(TextureFilter::Linear, TextureFilter::Linear)
+			.setFilter(TextureFilter::Nearest, TextureFilter::Nearest)
 			.setWrap(TextureWrap::ClampToBorder, TextureWrap::ClampToBorder)
 			.setBorderColor(1, 1, 1, 1);
 
@@ -234,8 +230,7 @@ RendererSystem::RendererSystem() {
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge, TextureWrap::ClampToEdge)
 			.setSeamlessCubemap(true);
 
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
+	Imm::initialize();
 }
 
 void RendererSystem::update(float dt) {
@@ -280,367 +275,17 @@ void RendererSystem::render(EntityWorld& world) {
 		renderMeshes.push_back(rm);
 	});
 
+	pickingPass(world, projMat, viewMat, renderMeshes);
+	gbufferPass(projMat, viewMat, renderMeshes);
+	lightingPass(world, projMat, viewMat, renderMeshes);
+	finalPass(projMat, viewMat, renderMeshes);
+
+	// Immediate geom
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-
-	/// Fill picking buffer
-	m_pickingBuffer.bind();
-	clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer, 1, 1, 1, 1);
-
-	m_pickingShader.bind();
-	m_pickingShader.get("mProjection").set(projMat);
-	m_pickingShader.get("mView").set(viewMat);
-
-	// Render everything that has a transform
-	m_cube.bind();
-	world.each([&](Entity &ent, Transform &T) {
-		Mat4 modelMat = T.getTransformation();
-
-		// Scale the cube to the same size of the object
-		Vec3 scale = Vec3(1.0f);
-		if (ent.has<Drawable3D>()) {
-			Drawable3D *drw = ent.get<Drawable3D>();
-			scale = (drw->mesh.aabb().max() - drw->mesh.aabb().min()) * 0.5f;
-		} else {
-			scale = Vec3(0.1f);
-		}
-		modelMat = modelMat * glm::scale(Mat4(1.0f), scale);
-
-		m_pickingShader.get("mModel").set(modelMat);
-		m_pickingShader.get("uEID").set(ent.id());
-		m_cube.drawIndexed(PrimitiveType::Triangles, 0);
-	});
-	m_pickingShader.unbind();
-	m_cube.unbind();
-	m_pickingBuffer.unbind();
-
-	/// Fill GBuffer
-	m_gbuffer.bind();
-	clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer, 0, 0, 0, 1);
-
-	m_gbufferShader.bind();
-	m_gbufferShader.get("mProjection").set(projMat);
-	m_gbufferShader.get("mView").set(viewMat);
-
-	if (m_activeCameraTransform) {
-		m_gbufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
-	}
-
-	if (!renderMeshes.empty()) {
-		render(m_gbufferShader, renderMeshes);
-	}
-
-	m_gbufferShader.unbind();
-
-	m_gbufferInstancedShader.bind();
-	m_gbufferInstancedShader.get("mProjection").set(projMat);
-	m_gbufferInstancedShader.get("mView").set(viewMat);
-
-	if (m_activeCameraTransform) {
-		m_gbufferInstancedShader.get("uEye").set(m_activeCameraTransform->worldPosition());
-	}
-
-	renderInstanced(m_gbufferInstancedShader, renderMeshes);
-
-	m_gbufferInstancedShader.unbind();
-
-	m_gbuffer.unbind();
-
-	glDisable(GL_DEPTH_TEST);
-
-	// Lights
-	m_finalBuffer.bind();
-
-	clear(ClearBufferMask::ColorBuffer, 0, 0, 0, 0);
-
-	m_lightingShader.bind();
-	m_lightingShader.get("mProjection").set(projMat);
-	m_lightingShader.get("mView").set(viewMat);
-
-	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
-	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo
-	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
-	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
-
-	m_lightingShader.get("tNormals").set(0);
-	m_lightingShader.get("tAlbedo").set(1);
-	m_lightingShader.get("tRME").set(2);
-	m_lightingShader.get("tDepth").set(3);
-
-	if (m_activeCameraTransform) {
-		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
-		m_lightingShader.get("uNF").set(Vec2(m_activeCamera->zNear, m_activeCamera->zFar));
-	}
-
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-
-	m_plane.bind();
-
-	m_lightingShader.get("uEmit").set(false);
-	m_lightingShader.get("uIBL").set(false);
-
-	// IBL
-	if (m_IBLGenerated) {
-		m_brdf.bind(m_screenTextureSampler, 4);
-		m_irradiance.bind(m_cubeMapSamplerNoMip, 5);
-		m_radiance.bind(m_cubeMapSampler,6);
-		m_lightingShader.get("uIBL").set(true);
-		m_lightingShader.get("tBRDFLUT").set(4);
-		m_lightingShader.get("tIrradiance").set(5);
-		m_lightingShader.get("tRadiance").set(6);
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-		m_lightingShader.get("uIBL").set(false);
-	}
-
-//	// Emit
-	m_lightingShader.get("uEmit").set(true);
-	m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-	m_lightingShader.get("uEmit").set(false);
-
-	// Directional Lights
-	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {
-		Mat4 lightVP(1.0f);
-		if (L.shadows) {
-			m_finalBuffer.unbind();
-			m_shadowBuffer.bind();
-
-			glEnable(GL_DEPTH_TEST);
-			glEnable(GL_CULL_FACE);
-			glCullFace(GL_FRONT);
-
-			clear(ClearBufferMask::DepthBuffer);
-
-			float s = L.shadowFrustumSize;
-			Mat4 projMatLight = glm::ortho(-s, s, -s, s, -s, s);
-
-			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
-			Mat4 vT = glm::translate(Mat4(1.0f), T.worldPosition() * -1.0f);
-			Mat4 viewMatLight = vR * vT;
-
-			lightVP = projMatLight * viewMatLight;
-
-			m_shadowShader.bind();
-			m_shadowShader.get("mProjection").set(projMatLight);
-			m_shadowShader.get("mView").set(viewMatLight);
-
-			render(m_shadowShader, renderMeshes, false);
-
-			m_shadowShader.unbind();
-
-			m_shadowInstancedShader.bind();
-			m_shadowInstancedShader.get("mProjection").set(projMatLight);
-			m_shadowInstancedShader.get("mView").set(viewMatLight);
-
-			renderInstanced(m_shadowInstancedShader, renderMeshes, false);
-
-			m_shadowInstancedShader.unbind();
-
-			glCullFace(GL_BACK);
-			glDisable(GL_CULL_FACE);
-			glDisable(GL_DEPTH_TEST);
-			m_shadowBuffer.unbind();
-			m_finalBuffer.bind();
-
-			m_lightingShader.bind();
-			m_plane.bind();
-		}
-
-		m_lightingShader.get("uLight.type").set(L.getType());
-		m_lightingShader.get("uLight.color").set(L.color);
-		m_lightingShader.get("uLight.intensity").set(L.intensity);
-
-		m_lightingShader.get("uLight.direction").set(T.forward());
-
-		// Shadow
-		m_shadowBuffer.getDepthAttachment().bind(m_screenDepthSampler, 7);
-		m_lightingShader.get("tShadowMap").set(7);
-		m_lightingShader.get("uShadowEnabled").set(L.shadows ? 1 : 0);
-		m_lightingShader.get("uLightViewProj").set(lightVP);
-		m_lightingShader.get("uLight.size").set(L.size);
-
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-
-		m_shadowBuffer.getDepthAttachment().unbind();
-	});
-
-	// Point Lights
-	world.each([&](Entity& ent, Transform& T, PointLight& L) {
-		m_lightingShader.get("uLight.type").set(L.getType());
-		m_lightingShader.get("uLight.color").set(L.color);
-		m_lightingShader.get("uLight.intensity").set(L.intensity);
-
-		m_lightingShader.get("uLight.position").set(T.worldPosition());
-		m_lightingShader.get("uLight.radius").set(L.radius);
-		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
-
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-	});
-
-	// Spot Lights
-	world.each([&](Entity& ent, Transform& T, SpotLight& L) {
-		m_lightingShader.get("uLight.type").set(L.getType());
-		m_lightingShader.get("uLight.color").set(L.color);
-		m_lightingShader.get("uLight.intensity").set(L.intensity);
-
-		m_lightingShader.get("uLight.position").set(T.worldPosition());
-		m_lightingShader.get("uLight.direction").set(T.forward());
-		m_lightingShader.get("uLight.radius").set(L.radius);
-		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
-		m_lightingShader.get("uLight.spotCutoff").set(L.spotCutOff);
-
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-	});
-
-	m_plane.unbind();
-	m_lightingShader.unbind();
-
-	glDisable(GL_BLEND);
-
-	if (m_envMap.id() != 0) {
-		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
-		glDepthFunc(GL_LEQUAL);
-		glClear(GL_DEPTH_BUFFER_BIT);
-
-		m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
-		m_finalBuffer.blit(
-				0, 0, m_gbuffer.width(), m_gbuffer.height(),
-				0, 0, m_gbuffer.width(), m_gbuffer.height(),
-				ClearBufferMask::DepthBuffer,
-				TextureFilter::Nearest
-		);
-
-		m_cube.bind();
-		m_cubeMapShader.bind();
-		m_cubeMapShader.get("mProjection").set(projMat);
-		m_cubeMapShader.get("mView").set(viewMat);
-
-		m_envMap.bind(m_cubeMapSampler, 0);
-		m_cubeMapShader.get("tCubeMap").set(0);
-
-		m_cube.drawIndexed(PrimitiveType::Triangles, 0);
-
-		m_gbuffer.unbind();
-		m_envMap.unbind();
-		m_cube.unbind();
-		m_cubeMapShader.unbind();
-
-		glDepthFunc(GL_LESS);
-		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-	}
-
-	m_finalBuffer.unbind();
-
-	m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
-	m_finalBuffer.getColorAttachment(0).generateMipmaps();
-	m_finalBuffer.getColorAttachment(0).unbind();
-
-	/// Final render
-	clear(ClearBufferMask::ColorBuffer);
-
-	m_plane.bind();
-
-	/// Post processing
-	if (m_postEffects.empty()) {
-		m_finalShader.bind();
-
-		m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
-		m_finalShader.get("tTex").set(0);
-
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-
-		m_finalShader.unbind();
-	} else {
-		int currActive = 0;
-		bool first = true;
-
-		m_pingPongBuffer.bind();
-		for (Filter& filter : m_postEffects) {
-			filter.shader().bind();
-			for (Pass pass : filter.passes()) {
-				int src = currActive;
-				int dest = 1 - currActive;
-
-				m_pingPongBuffer.setDrawBuffer(dest);
-
-				if (first) {
-					m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
-				} else {
-					m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
-					m_pingPongBuffer.getColorAttachment(src).bind(m_screenMipSampler, 0);
-				}
-
-				filter.shader().get("tScreen").set(0);
-
-				i32 slot = 1;
-				if (filter.shader().has("tOriginal")) {
-					m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, slot);
-					filter.shader().get("tOriginal").set(slot);
-					slot++;
-				}
-
-				if (filter.shader().has("tDepth")) {
-					m_gbuffer.getDepthAttachment().bind(m_screenMipSampler, slot);
-					filter.shader().get("tDepth").set(slot);
-					slot++;
-				}
-
-				if (filter.shader().has("tNormals")) {
-					m_gbuffer.getColorAttachment(0).bind(m_screenMipSampler, slot);
-					filter.shader().get("tNormals").set(slot);
-					slot++;
-				}
-
-				if (filter.shader().has("uTime"))
-					filter.shader().get("tTime").set(m_time);
-
-				if (filter.shader().has("uResolution")) {
-					filter.shader().get("uResolution").set(
-						Vec2(m_finalBuffer.width(), m_finalBuffer.height())
-					);
-				}
-
-				pass(filter);
-
-				m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-
-				if (first) {
-					m_finalBuffer.getColorAttachment(0).unbind();
-					first = false;
-				} else {
-					m_pingPongBuffer.getColorAttachment(src).unbind();
-				}
-
-				currActive = 1 - currActive;
-			}
-			filter.shader().unbind();
-		}
-		m_pingPongBuffer.unbind();
-
-		m_finalShader.bind();
-
-		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
-		m_finalShader.get("tTex").set(0);
-
-		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
-
-		m_finalShader.unbind();
-	}
-
-	m_plane.unbind();
-
-	m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	glBlitFramebuffer(
-			0, 0, m_gbuffer.width(), m_gbuffer.height(),
-			0, 0, m_gbuffer.width(), m_gbuffer.height(),
-			ClearBufferMask::DepthBuffer,
-			TextureFilter::Nearest
-	);
-	m_gbuffer.unbind();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	Imm::render(viewMat, projMat);
 }
 
 void RendererSystem::computeIrradiance() {
@@ -788,6 +433,445 @@ void RendererSystem::computeIBL() {
 	computeBRDF();
 }
 
+void RendererSystem::pickingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+
+	/// Fill picking buffer
+	m_pickingBuffer.bind();
+	clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer, 1, 1, 1, 1);
+
+	m_pickingShader.bind();
+	m_pickingShader.get("mProjection").set(projection);
+	m_pickingShader.get("mView").set(view);
+
+	// Render everything that has a transform
+	m_cube.bind();
+	world.each([&](Entity &ent, Transform &T) {
+		Mat4 modelMat = T.getTransformation();
+
+		// Scale the cube to the same size of the object
+		Vec3 scale = Vec3(1.0f);
+		if (ent.has<Drawable3D>()) {
+			Drawable3D *drw = ent.get<Drawable3D>();
+			scale = (drw->mesh.aabb().max() - drw->mesh.aabb().min()) * 0.5f;
+		} else {
+			scale = Vec3(0.1f);
+		}
+		modelMat = modelMat * glm::scale(Mat4(1.0f), scale);
+
+		m_pickingShader.get("mModel").set(modelMat);
+		m_pickingShader.get("uEID").set(ent.id());
+		m_cube.drawIndexed(PrimitiveType::Triangles, 0);
+	});
+	m_pickingShader.unbind();
+	m_cube.unbind();
+	m_pickingBuffer.unbind();
+}
+
+void RendererSystem::gbufferPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+
+	/// Fill GBuffer
+	m_gbuffer.bind();
+	clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer, 0, 0, 0, 1);
+
+	m_gbufferShader.bind();
+	m_gbufferShader.get("mProjection").set(projection);
+	m_gbufferShader.get("mView").set(view);
+
+	if (m_activeCameraTransform) {
+		m_gbufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+	}
+
+	if (!renderables.empty()) {
+		render(m_gbufferShader, renderables);
+	}
+
+	m_gbufferShader.unbind();
+
+	m_gbufferInstancedShader.bind();
+	m_gbufferInstancedShader.get("mProjection").set(projection);
+	m_gbufferInstancedShader.get("mView").set(view);
+
+	if (m_activeCameraTransform) {
+		m_gbufferInstancedShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+	}
+
+	renderInstanced(m_gbufferInstancedShader, renderables);
+
+	m_gbufferInstancedShader.unbind();
+
+	m_gbuffer.unbind();
+}
+
+void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
+	glDisable(GL_DEPTH_TEST);
+
+	// Lights
+	m_finalBuffer.bind();
+
+	clear(ClearBufferMask::ColorBuffer, 0, 0, 0, 0);
+
+	m_lightingShader.bind();
+	m_lightingShader.get("mProjection").set(projection);
+	m_lightingShader.get("mView").set(view);
+
+	m_gbuffer.getColorAttachment(0).bind(m_screenTextureSampler, 0); // Normals
+	m_gbuffer.getColorAttachment(1).bind(m_screenTextureSampler, 1); // Albedo
+	m_gbuffer.getColorAttachment(2).bind(m_screenTextureSampler, 2); // RME
+	m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, 3); // Depth
+
+	m_lightingShader.get("tNormals").set(0);
+	m_lightingShader.get("tAlbedo").set(1);
+	m_lightingShader.get("tRME").set(2);
+	m_lightingShader.get("tDepth").set(3);
+
+	if (m_activeCameraTransform) {
+		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+		m_lightingShader.get("uNF").set(Vec2(m_activeCamera->zNear, m_activeCamera->zFar));
+	}
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
+
+	m_plane.bind();
+
+	m_lightingShader.get("uEmit").set(false);
+	m_lightingShader.get("uIBL").set(false);
+
+	// IBL
+	if (m_IBLGenerated) {
+		m_brdf.bind(m_screenTextureSampler, 4);
+		m_irradiance.bind(m_cubeMapSamplerNoMip, 5);
+		m_radiance.bind(m_cubeMapSampler,6);
+		m_lightingShader.get("uIBL").set(true);
+		m_lightingShader.get("tBRDFLUT").set(4);
+		m_lightingShader.get("tIrradiance").set(5);
+		m_lightingShader.get("tRadiance").set(6);
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+		m_lightingShader.get("uIBL").set(false);
+	}
+
+	// Emit
+	m_lightingShader.get("uEmit").set(true);
+	m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+	m_lightingShader.get("uEmit").set(false);
+
+	RenderCondition shadowRenderCond = [&](RenderMesh& rm) {
+		return rm.material.castsShadow;
+	};
+
+	// Directional Lights
+	world.each([&](Entity& ent, Transform& T, DirectionalLight& L) {
+		Mat4 lightVP(1.0f);
+		if (L.shadows) {
+			m_finalBuffer.unbind();
+			m_shadowBuffer.bind();
+
+			glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
+
+			clear(ClearBufferMask::DepthBuffer);
+
+			float s = L.shadowFrustumSize;
+			Mat4 projMatLight = glm::ortho(-s, s, -s, s, -s, s);
+
+			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
+			Mat4 vT = glm::translate(Mat4(1.0f), T.worldPosition() * -1.0f);
+			Mat4 viewMatLight = vR * vT;
+
+			lightVP = projMatLight * viewMatLight;
+
+			m_shadowShader.bind();
+			m_shadowShader.get("mProjection").set(projMatLight);
+			m_shadowShader.get("mView").set(viewMatLight);
+
+			render(m_shadowShader, renderables, false, shadowRenderCond);
+
+			m_shadowShader.unbind();
+
+			m_shadowInstancedShader.bind();
+			m_shadowInstancedShader.get("mProjection").set(projMatLight);
+			m_shadowInstancedShader.get("mView").set(viewMatLight);
+
+			renderInstanced(m_shadowInstancedShader, renderables, false, shadowRenderCond);
+
+			m_shadowInstancedShader.unbind();
+
+			glCullFace(GL_BACK);
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_DEPTH_TEST);
+			glEnable(GL_BLEND);
+
+			m_shadowBuffer.unbind();
+			m_finalBuffer.bind();
+
+			m_lightingShader.bind();
+			m_plane.bind();
+		}
+
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
+
+		m_lightingShader.get("uLight.direction").set(T.forward());
+
+		// Shadow
+		m_shadowBuffer.getDepthAttachment().bind(m_screenDepthSampler, 7);
+		m_lightingShader.get("tShadowMap").set(7);
+		m_lightingShader.get("uShadowEnabled").set(L.shadows ? 1 : 0);
+		m_lightingShader.get("uLightViewProj").set(lightVP);
+		m_lightingShader.get("uLight.size").set(L.size);
+
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+
+		m_shadowBuffer.getDepthAttachment().unbind();
+	});
+
+	// Point Lights
+	world.each([&](Entity& ent, Transform& T, PointLight& L) {
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
+
+		m_lightingShader.get("uLight.position").set(T.worldPosition());
+		m_lightingShader.get("uLight.radius").set(L.radius);
+		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
+
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+	});
+
+	// Spot Lights
+	world.each([&](Entity& ent, Transform& T, SpotLight& L) {
+		Mat4 lightVP(1.0f);
+		if (L.shadows) {
+			m_finalBuffer.unbind();
+			m_shadowBuffer.bind();
+
+			glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
+
+			clear(ClearBufferMask::DepthBuffer);
+
+			float fov = L.spotCutOff * 179.0f;
+			Mat4 projMatLight = glm::perspective(fov, 1.0f, 0.01f, L.radius * 4.0f);
+
+			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
+			Mat4 vT = glm::translate(Mat4(1.0f), T.worldPosition() * -1.0f);
+			Mat4 viewMatLight = vR * vT;
+
+			lightVP = projMatLight * viewMatLight;
+
+			m_shadowShader.bind();
+			m_shadowShader.get("mProjection").set(projMatLight);
+			m_shadowShader.get("mView").set(viewMatLight);
+
+			render(m_shadowShader, renderables, false, shadowRenderCond);
+
+			m_shadowShader.unbind();
+
+			m_shadowInstancedShader.bind();
+			m_shadowInstancedShader.get("mProjection").set(projMatLight);
+			m_shadowInstancedShader.get("mView").set(viewMatLight);
+
+			renderInstanced(m_shadowInstancedShader, renderables, false, shadowRenderCond);
+
+			m_shadowInstancedShader.unbind();
+
+			glCullFace(GL_BACK);
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_DEPTH_TEST);
+			glEnable(GL_BLEND);
+
+			m_shadowBuffer.unbind();
+			m_finalBuffer.bind();
+
+			m_lightingShader.bind();
+			m_plane.bind();
+		}
+
+		m_lightingShader.get("uLight.type").set(L.getType());
+		m_lightingShader.get("uLight.color").set(L.color);
+		m_lightingShader.get("uLight.intensity").set(L.intensity);
+
+		m_lightingShader.get("uLight.position").set(T.worldPosition());
+		m_lightingShader.get("uLight.direction").set(T.forward());
+		m_lightingShader.get("uLight.radius").set(L.radius);
+		m_lightingShader.get("uLight.lightCutoff").set(L.lightCutOff);
+		m_lightingShader.get("uLight.spotCutoff").set(L.spotCutOff);
+
+		// Shadow
+		m_shadowBuffer.getDepthAttachment().bind(m_screenDepthSampler, 7);
+		m_lightingShader.get("tShadowMap").set(7);
+		m_lightingShader.get("uShadowEnabled").set(L.shadows ? 1 : 0);
+		m_lightingShader.get("uLightViewProj").set(lightVP);
+		m_lightingShader.get("uLight.size").set(L.size);
+
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+	});
+
+	m_plane.unbind();
+	m_lightingShader.unbind();
+
+	glDisable(GL_BLEND);
+
+	if (m_envMap.id() != 0) {
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
+		m_finalBuffer.blit(
+				0, 0, m_gbuffer.width(), m_gbuffer.height(),
+				0, 0, m_gbuffer.width(), m_gbuffer.height(),
+				ClearBufferMask::DepthBuffer,
+				TextureFilter::Nearest
+		);
+
+		m_cube.bind();
+		m_cubeMapShader.bind();
+		m_cubeMapShader.get("mProjection").set(projection);
+		m_cubeMapShader.get("mView").set(view);
+
+		m_envMap.bind(m_cubeMapSampler, 0);
+		m_cubeMapShader.get("tCubeMap").set(0);
+
+		m_cube.drawIndexed(PrimitiveType::Triangles, 0);
+
+		m_gbuffer.unbind();
+		m_envMap.unbind();
+		m_cube.unbind();
+		m_cubeMapShader.unbind();
+
+		glDepthFunc(GL_LESS);
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+	}
+
+	m_finalBuffer.unbind();
+}
+
+void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
+	/// Final render
+	m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
+	m_finalBuffer.getColorAttachment(0).generateMipmaps();
+	m_finalBuffer.getColorAttachment(0).unbind();
+
+	clear(ClearBufferMask::ColorBuffer);
+
+	m_plane.bind();
+
+	/// Post processing
+	if (m_postEffects.empty()) {
+		m_finalShader.bind();
+
+		m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
+		m_finalShader.get("tTex").set(0);
+
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+
+		m_finalShader.unbind();
+	} else {
+		int currActive = 0;
+		bool first = true;
+
+		m_pingPongBuffer.bind();
+		for (Filter& filter : m_postEffects) {
+			filter.shader().bind();
+			for (Pass pass : filter.passes()) {
+				int src = currActive;
+				int dest = 1 - currActive;
+
+				m_pingPongBuffer.setDrawBuffer(dest);
+
+				if (first) {
+					m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
+				} else {
+					m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
+					m_pingPongBuffer.getColorAttachment(src).bind(m_screenMipSampler, 0);
+				}
+
+				filter.shader().get("tScreen").set(0);
+
+				i32 slot = 1;
+				if (filter.shader().has("tOriginal")) {
+					m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, slot);
+					filter.shader().get("tOriginal").set(slot);
+					slot++;
+				}
+
+				if (filter.shader().has("tDepth")) {
+					m_gbuffer.getDepthAttachment().bind(m_screenMipSampler, slot);
+					filter.shader().get("tDepth").set(slot);
+					slot++;
+				}
+
+				if (filter.shader().has("tNormals")) {
+					m_gbuffer.getColorAttachment(0).bind(m_screenMipSampler, slot);
+					filter.shader().get("tNormals").set(slot);
+					slot++;
+				}
+
+				if (filter.shader().has("uTime"))
+					filter.shader().get("tTime").set(m_time);
+
+				if (filter.shader().has("uResolution")) {
+					filter.shader().get("uResolution").set(
+						Vec2(m_finalBuffer.width(), m_finalBuffer.height())
+					);
+				}
+
+				pass(filter);
+
+				m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+
+				if (first) {
+					m_finalBuffer.getColorAttachment(0).unbind();
+					first = false;
+				} else {
+					m_pingPongBuffer.getColorAttachment(src).unbind();
+				}
+
+				currActive = 1 - currActive;
+			}
+			filter.shader().unbind();
+		}
+		m_pingPongBuffer.unbind();
+
+		m_finalShader.bind();
+
+		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
+		m_finalShader.get("tTex").set(0);
+
+		m_plane.drawIndexed(PrimitiveType::Triangles, 0);
+
+		m_finalShader.unbind();
+	}
+
+	m_plane.unbind();
+
+	m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBlitFramebuffer(
+			0, 0, m_gbuffer.width(), m_gbuffer.height(),
+			0, 0, m_gbuffer.width(), m_gbuffer.height(),
+			ClearBufferMask::DepthBuffer,
+			TextureFilter::Nearest
+	);
+	m_gbuffer.unbind();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 RendererSystem& RendererSystem::addPostEffect(Filter effect) {
 	m_postEffects.push_back(effect);
 	return *this;
@@ -817,9 +901,12 @@ void RendererSystem::renderScreenQuad() {
 	m_plane.drawIndexed(PrimitiveType::Triangles, 0);
 }
 
-void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& renderables, bool textures) {
+void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
+							bool textures, const RenderCondition& cond)
+{
 	for (RenderMesh rm : renderables) {
 		if (rm.material.instanced) continue;
+		if (cond && !cond(rm)) continue;
 
 		shader.get("mModel").set(rm.modelMatrix);
 
@@ -873,11 +960,14 @@ void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& ren
 	}
 }
 
-void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderMesh>& renderables, bool textures) {
+void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
+									 bool textures, const RenderCondition& cond)
+{
 	UMap<u32, Material> instancedMaterials;
 	Map<u32, MeshInstance> instancedMeshes;
 
 	for (RenderMesh rm : renderables) {
+		if (cond && !cond(rm)) continue;
 		if (rm.material.instanced) {
 			instancedMaterials[rm.material.id()] = rm.material;
 			instancedMeshes[rm.material.id()].mesh = rm.mesh;

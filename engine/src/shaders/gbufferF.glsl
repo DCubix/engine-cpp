@@ -2,7 +2,6 @@ R"(#version 330 core
 layout (location = 0) out vec2 oNormals;
 layout (location = 1) out vec3 oAlbedo;
 layout (location = 2) out vec3 oRME;
-layout (location = 3) out float oDepth; // Future: Stencil
 
 #define FRAGMENT_SHADER_COMMON
 #include common
@@ -26,9 +25,9 @@ uniform Material material;
 
 uniform vec3 uEye;
 
-vec2 parallaxMapping(vec2 texCoords, vec3 viewDir) { 
+vec2 parallaxMapping(vec2 texCoords, vec3 viewDir) {
 	vec2 tuv = transformUV(TexSlotGet(HeightMap).opt, texCoords);
-	
+
 	// number of depth layers
 	const float numLayers = 32;
 	// calculate the size of each layer
@@ -104,7 +103,5 @@ void main() {
 		vec2 uv = transformUV(TexSlotGet(RMEMap).opt, iuv);
 		oRME *= texture(TexSlotGet(RMEMap).img, uv).rgb;
 	}
-
-	oDepth = gl_FragCoord.z;
 }
 )"

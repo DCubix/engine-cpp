@@ -12,7 +12,7 @@ bool Transform::changed() {
 	if (m_parent && m_parent->changed()) {
 		return true;
 	}
-	
+
 	if (position.x != m_prevPosition.x ||
 		position.y != m_prevPosition.y ||
 		position.z != m_prevPosition.z) {

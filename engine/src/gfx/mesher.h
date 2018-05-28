@@ -72,6 +72,7 @@ public:
 	Mesh& addTriangle(u32 i0, u32 i1, u32 i2);
 
 	Mesh& addPlane(Axis axis, float size, const Vec3& off, bool flip = false);
+	Mesh& addCube(float size, bool flip = false);
 
 	Mesh& addData(const Vector<Vertex>& vertices, const Vector<u32>& indices);
 

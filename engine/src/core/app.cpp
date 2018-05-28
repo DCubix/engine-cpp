@@ -81,13 +81,11 @@ void Application::run() {
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-	
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	
+
 #ifdef GL_DEBUG
 	int contextFlags = 0;
 	SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &contextFlags);
@@ -128,7 +126,7 @@ void Application::run() {
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 	glDebugMessageCallbackARB((GLDEBUGPROCARB) GLDebug, NULL);
 #endif
-	
+
 	if (GLVersion.major < 3) {
 		SDL_Quit();
 		LogFatal("Your GPU doesn't seem to support OpenGL 3.3 Core.");
@@ -138,16 +136,16 @@ void Application::run() {
 	LogInfo("OpenGL ", glGetString(GL_VERSION), ", GLSL ", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	m_running = true;
-	
+
 	Texture::DEFAULT_SAMPLER = Builder<Sampler>::build()
 			.setFilter(TextureFilter::LinearMipLinear, TextureFilter::Linear)
 			.setWrap();
-	
+
 	Input::m_window = m_window;
-	
+
 	LogInfo("Application Started...");
 	eng_mainloop();
-	
+
 	// Free resources
 	Builder<VertexArray>::clean();
 	Builder<VertexBuffer>::clean();
@@ -155,7 +153,7 @@ void Application::run() {
 	Builder<Texture>::clean();
 	Builder<Sampler>::clean();
 	VFS::get().shutdown();
-	
+
 	LogInfo("Application Finished.");
 }
 
@@ -187,7 +185,7 @@ void Application::eng_mainloop() {
 
 			m_applicationAdapter->update(float(timeStep));
 			MessageSystem::get().processQueue(float(timeStep));
-			
+
 			canRender = true;
 		}
 

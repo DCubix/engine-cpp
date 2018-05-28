@@ -8,6 +8,7 @@
 #include "../gfx/filter.h"
 #include "../gfx/framebuffer.h"
 #include "../gfx/material.h"
+#include "../gfx/imm.h"
 
 #include "../components/light.h"
 
@@ -48,6 +49,8 @@ struct Camera : public Component {
 
 	Mat4 getProjection();
 };
+
+using RenderCondition = Fn<bool(RenderMesh&)>;
 
 class RendererSystem : public EntitySystem {
 public:
@@ -113,8 +116,15 @@ private:
 	void computeBRDF();
 	void computeIBL();
 
-	void render(ShaderProgram& shader, const Vector<RenderMesh>& renderables, bool textures = true);
-	void renderInstanced(ShaderProgram& shader, const Vector<RenderMesh>& renderables, bool textures = true);
+	void pickingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
+	void gbufferPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
+	void lightingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
+	void finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
+
+	void render(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
+				bool textures = true, const RenderCondition& cond = nullptr);
+	void renderInstanced(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
+						bool textures = true, const RenderCondition& cond = nullptr);
 };
 
 NS_END

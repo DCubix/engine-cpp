@@ -33,7 +33,7 @@ class Material {
 public:
 	Material() 
 		: roughness(0.5f), metallic(0.0f), emission(0.0f), baseColor(Vec3(1.0f)), heightScale(1.0f),
-			discardParallaxEdges(false), instanced(false), m_id(++g_matID)
+			discardParallaxEdges(false), instanced(false), m_id(++g_matID), castsShadow(true)
 	{}
 	
 	Vec3 baseColor;
@@ -41,7 +41,7 @@ public:
 	float roughness;
 	float emission;
 	float heightScale;
-	bool discardParallaxEdges, instanced;
+	bool discardParallaxEdges, instanced, castsShadow;
 	
 	Material& setTextureEnabled(u32 index, bool enabled);
 	Material& setTextureUVTransform(u32 index, Vec4 uvt);

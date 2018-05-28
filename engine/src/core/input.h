@@ -29,7 +29,7 @@ public:
 	static i32 getScrollOffset() { return m_scrollOffset; }
 	static i32 getMouseX() { return m_mouseX; }
 	static i32 getMouseY() { return m_mouseY; }
-	
+
 	static Vec2 getMousePosition();
 	static void setMousePosition(int x, int y);
 	static void setMousePosition(const Vec2& pos);
@@ -37,7 +37,7 @@ public:
 	static bool isCloseRequested() { return m_closeRequested; }
 
 	static void setCursorVisible(bool state);
-	
+
 private:
 	static SDL_Event m_sdlEvent;
 	static UMap<int, State> m_keyboard;

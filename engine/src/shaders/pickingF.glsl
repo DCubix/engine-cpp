@@ -13,9 +13,9 @@ in DATA {
 uniform uint uEID;
 
 void main() {
-	uint r = (uEID & 0xFF0000) >> 16;
-	uint g = (uEID & 0x00FF00) >> 8;
-	uint b = (uEID & 0x0000FF);
+	uint r = (uEID & uint(0xFF0000)) >> uint(16);
+	uint g = (uEID & uint(0x00FF00)) >> uint(8);
+	uint b = (uEID & uint(0x0000FF));
 	fragColor = vec4(
 		float(r) / 255.0,
 		float(g) / 255.0,

@@ -170,6 +170,16 @@ Mesh& Mesh::addPlane(Axis axis, float size, const Vec3& off, bool flip) {
 	return *this;
 }
 
+Mesh&Mesh::addCube(float size, bool flip) {
+	addPlane(Axis::X, size, Vec3(-size, 0, 0), !flip);
+	addPlane(Axis::X, size, Vec3(size, 0, 0), flip);
+	addPlane(Axis::Y, size, Vec3(0, -size, 0), flip);
+	addPlane(Axis::Y, size, Vec3(0, size, 0), !flip);
+	addPlane(Axis::Z, size, Vec3(0, 0, -size), !flip);
+	addPlane(Axis::Z, size, Vec3(0, 0, size), flip);
+	return *this;
+}
+
 Mesh& Mesh::calculateNormals(PrimitiveType primitive) {
 	switch (primitive) {
 		case PrimitiveType::Points:

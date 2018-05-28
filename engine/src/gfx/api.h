@@ -27,7 +27,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 	DEF_GL_TYPE_TRAIT(Framebuffer, glGenFramebuffers, glDeleteFramebuffers);
 	DEF_GL_TYPE_TRAIT(Renderbuffer, glGenRenderbuffers, glDeleteRenderbuffers);
 	DEF_GL_TYPE_TRAIT(VertexArray, glGenVertexArrays, glDeleteVertexArrays);
-	
+
 	DEF_GL_TYPE_TRAIT_R(Shader, { return glCreateShader(param); }, { glDeleteShader(v); });
 	DEF_GL_TYPE_TRAIT_R(Program, { return glCreateProgram(); }, { glDeleteProgram(v); });
 
@@ -36,7 +36,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		DepthBuffer = GL_DEPTH_BUFFER_BIT,
 		StencilBuffer = GL_STENCIL_BUFFER_BIT
 	};
-	
+
 	enum PrimitiveType {
 		Points = GL_POINTS,
 		Lines = GL_LINES,
@@ -89,14 +89,14 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		CubeMapPZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 		CubeMapNZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 	};
-	
+
 	enum TextureWrap {
 		None = 0,
 		Repeat = GL_REPEAT,
 		ClampToEdge = GL_CLAMP_TO_EDGE,
 		ClampToBorder = GL_CLAMP_TO_BORDER
 	};
-	
+
 	enum TextureFilter {
 		Nearest = GL_NEAREST,
 		Linear = GL_LINEAR,
@@ -105,7 +105,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		LinearMipLinear = GL_LINEAR_MIPMAP_LINEAR,
 		LinearMipNearest = GL_LINEAR_MIPMAP_NEAREST
 	};
-	
+
 	enum TextureFormat {
 		R = 0,
 		RG,
@@ -131,13 +131,13 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		StencilAttachment = GL_STENCIL_ATTACHMENT,
 		DepthStencilAttachment = GL_DEPTH_STENCIL_ATTACHMENT
 	};
-	
+
 	enum DataAccess {
 		ReadOnly = GL_READ_ONLY,
 		WriteOnly = GL_WRITE_ONLY,
 		ReadWrite = GL_READ_WRITE
 	};
-	
+
 	static i32 getDataTypeSize(DataType dt) {
 		switch (dt) {
 			case DataType::Byte:
@@ -151,8 +151,9 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 			case DataType::UShort:
 				return 2;
 		}
+		return 0;
 	}
-	
+
 	static std::tuple<GLint, GLenum, DataType> getTextureFormat(TextureFormat format) {
 		GLenum ifmt;
 		GLint fmt;

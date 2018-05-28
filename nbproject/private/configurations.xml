@@ -49,6 +49,8 @@
         <in>filter.h</in>
         <in>framebuffer.cpp</in>
         <in>framebuffer.h</in>
+        <in>imm.cpp</in>
+        <in>imm.h</in>
         <in>material.cpp</in>
         <in>material.h</in>
         <in>mesher.cpp</in>
@@ -59,9 +61,285 @@
         <in>texture.h</in>
       </df>
       <df name="math">
+        <df name="glm">
+          <df name="detail">
+            <in>_features.hpp</in>
+            <in>_fixes.hpp</in>
+            <in>_noise.hpp</in>
+            <in>_swizzle.hpp</in>
+            <in>_swizzle_func.hpp</in>
+            <in>_vectorize.hpp</in>
+            <in>compute_vector_relational.hpp</in>
+            <in>dummy.cpp</in>
+            <in>func_common.inl</in>
+            <in>func_common_simd.inl</in>
+            <in>func_exponential.inl</in>
+            <in>func_exponential_simd.inl</in>
+            <in>func_geometric.inl</in>
+            <in>func_geometric_simd.inl</in>
+            <in>func_integer.inl</in>
+            <in>func_integer_simd.inl</in>
+            <in>func_matrix.inl</in>
+            <in>func_matrix_simd.inl</in>
+            <in>func_packing.inl</in>
+            <in>func_packing_simd.inl</in>
+            <in>func_trigonometric.inl</in>
+            <in>func_trigonometric_simd.inl</in>
+            <in>func_vector_relational.inl</in>
+            <in>func_vector_relational_simd.inl</in>
+            <in>glm.cpp</in>
+            <in>qualifier.hpp</in>
+            <in>setup.hpp</in>
+            <in>type_float.hpp</in>
+            <in>type_gentype.hpp</in>
+            <in>type_gentype.inl</in>
+            <in>type_half.hpp</in>
+            <in>type_half.inl</in>
+            <in>type_int.hpp</in>
+            <in>type_mat.hpp</in>
+            <in>type_mat.inl</in>
+            <in>type_mat2x2.hpp</in>
+            <in>type_mat2x2.inl</in>
+            <in>type_mat2x3.hpp</in>
+            <in>type_mat2x3.inl</in>
+            <in>type_mat2x4.hpp</in>
+            <in>type_mat2x4.inl</in>
+            <in>type_mat3x2.hpp</in>
+            <in>type_mat3x2.inl</in>
+            <in>type_mat3x3.hpp</in>
+            <in>type_mat3x3.inl</in>
+            <in>type_mat3x4.hpp</in>
+            <in>type_mat3x4.inl</in>
+            <in>type_mat4x2.hpp</in>
+            <in>type_mat4x2.inl</in>
+            <in>type_mat4x3.hpp</in>
+            <in>type_mat4x3.inl</in>
+            <in>type_mat4x4.hpp</in>
+            <in>type_mat4x4.inl</in>
+            <in>type_mat4x4_simd.inl</in>
+            <in>type_vec.hpp</in>
+            <in>type_vec.inl</in>
+            <in>type_vec1.hpp</in>
+            <in>type_vec1.inl</in>
+            <in>type_vec2.hpp</in>
+            <in>type_vec2.inl</in>
+            <in>type_vec3.hpp</in>
+            <in>type_vec3.inl</in>
+            <in>type_vec4.hpp</in>
+            <in>type_vec4.inl</in>
+            <in>type_vec4_simd.inl</in>
+          </df>
+          <df name="ext">
+            <in>vec1.hpp</in>
+            <in>vec1.inl</in>
+            <in>vector_relational.hpp</in>
+            <in>vector_relational.inl</in>
+          </df>
+          <df name="gtc">
+            <in>bitfield.hpp</in>
+            <in>bitfield.inl</in>
+            <in>color_space.hpp</in>
+            <in>color_space.inl</in>
+            <in>constants.hpp</in>
+            <in>constants.inl</in>
+            <in>epsilon.hpp</in>
+            <in>epsilon.inl</in>
+            <in>integer.hpp</in>
+            <in>integer.inl</in>
+            <in>matrix_access.hpp</in>
+            <in>matrix_access.inl</in>
+            <in>matrix_integer.hpp</in>
+            <in>matrix_inverse.hpp</in>
+            <in>matrix_inverse.inl</in>
+            <in>matrix_transform.hpp</in>
+            <in>matrix_transform.inl</in>
+            <in>noise.hpp</in>
+            <in>noise.inl</in>
+            <in>packing.hpp</in>
+            <in>packing.inl</in>
+            <in>quaternion.hpp</in>
+            <in>quaternion.inl</in>
+            <in>quaternion_simd.inl</in>
+            <in>random.hpp</in>
+            <in>random.inl</in>
+            <in>reciprocal.hpp</in>
+            <in>reciprocal.inl</in>
+            <in>round.hpp</in>
+            <in>round.inl</in>
+            <in>type_aligned.hpp</in>
+            <in>type_precision.hpp</in>
+            <in>type_precision.inl</in>
+            <in>type_ptr.hpp</in>
+            <in>type_ptr.inl</in>
+            <in>ulp.hpp</in>
+            <in>ulp.inl</in>
+            <in>vec1.hpp</in>
+            <in>vec1.inl</in>
+          </df>
+          <df name="gtx">
+            <in>associated_min_max.hpp</in>
+            <in>associated_min_max.inl</in>
+            <in>bit.hpp</in>
+            <in>bit.inl</in>
+            <in>closest_point.hpp</in>
+            <in>closest_point.inl</in>
+            <in>color_encoding.hpp</in>
+            <in>color_encoding.inl</in>
+            <in>color_space.hpp</in>
+            <in>color_space.inl</in>
+            <in>color_space_YCoCg.hpp</in>
+            <in>color_space_YCoCg.inl</in>
+            <in>common.hpp</in>
+            <in>common.inl</in>
+            <in>compatibility.hpp</in>
+            <in>compatibility.inl</in>
+            <in>component_wise.hpp</in>
+            <in>component_wise.inl</in>
+            <in>dual_quaternion.hpp</in>
+            <in>dual_quaternion.inl</in>
+            <in>euler_angles.hpp</in>
+            <in>euler_angles.inl</in>
+            <in>extend.hpp</in>
+            <in>extend.inl</in>
+            <in>extended_min_max.hpp</in>
+            <in>extended_min_max.inl</in>
+            <in>exterior_product.hpp</in>
+            <in>exterior_product.inl</in>
+            <in>fast_exponential.hpp</in>
+            <in>fast_exponential.inl</in>
+            <in>fast_square_root.hpp</in>
+            <in>fast_square_root.inl</in>
+            <in>fast_trigonometry.hpp</in>
+            <in>fast_trigonometry.inl</in>
+            <in>float_notmalize.inl</in>
+            <in>functions.hpp</in>
+            <in>functions.inl</in>
+            <in>gradient_paint.hpp</in>
+            <in>gradient_paint.inl</in>
+            <in>handed_coordinate_space.hpp</in>
+            <in>handed_coordinate_space.inl</in>
+            <in>hash.hpp</in>
+            <in>hash.inl</in>
+            <in>integer.hpp</in>
+            <in>integer.inl</in>
+            <in>intersect.hpp</in>
+            <in>intersect.inl</in>
+            <in>io.hpp</in>
+            <in>io.inl</in>
+            <in>log_base.hpp</in>
+            <in>log_base.inl</in>
+            <in>matrix_cross_product.hpp</in>
+            <in>matrix_cross_product.inl</in>
+            <in>matrix_decompose.hpp</in>
+            <in>matrix_decompose.inl</in>
+            <in>matrix_factorisation.hpp</in>
+            <in>matrix_factorisation.inl</in>
+            <in>matrix_interpolation.hpp</in>
+            <in>matrix_interpolation.inl</in>
+            <in>matrix_major_storage.hpp</in>
+            <in>matrix_major_storage.inl</in>
+            <in>matrix_operation.hpp</in>
+            <in>matrix_operation.inl</in>
+            <in>matrix_query.hpp</in>
+            <in>matrix_query.inl</in>
+            <in>matrix_transform_2d.hpp</in>
+            <in>matrix_transform_2d.inl</in>
+            <in>mixed_product.hpp</in>
+            <in>mixed_product.inl</in>
+            <in>norm.hpp</in>
+            <in>norm.inl</in>
+            <in>normal.hpp</in>
+            <in>normal.inl</in>
+            <in>normalize_dot.hpp</in>
+            <in>normalize_dot.inl</in>
+            <in>number_precision.hpp</in>
+            <in>number_precision.inl</in>
+            <in>optimum_pow.hpp</in>
+            <in>optimum_pow.inl</in>
+            <in>orthonormalize.hpp</in>
+            <in>orthonormalize.inl</in>
+            <in>perpendicular.hpp</in>
+            <in>perpendicular.inl</in>
+            <in>polar_coordinates.hpp</in>
+            <in>polar_coordinates.inl</in>
+            <in>projection.hpp</in>
+            <in>projection.inl</in>
+            <in>quaternion.hpp</in>
+            <in>quaternion.inl</in>
+            <in>range.hpp</in>
+            <in>raw_data.hpp</in>
+            <in>raw_data.inl</in>
+            <in>rotate_normalized_axis.hpp</in>
+            <in>rotate_normalized_axis.inl</in>
+            <in>rotate_vector.hpp</in>
+            <in>rotate_vector.inl</in>
+            <in>scalar_multiplication.hpp</in>
+            <in>scalar_relational.hpp</in>
+            <in>scalar_relational.inl</in>
+            <in>spline.hpp</in>
+            <in>spline.inl</in>
+            <in>std_based_type.hpp</in>
+            <in>std_based_type.inl</in>
+            <in>string_cast.hpp</in>
+            <in>string_cast.inl</in>
+            <in>texture.hpp</in>
+            <in>texture.inl</in>
+            <in>transform.hpp</in>
+            <in>transform.inl</in>
+            <in>transform2.hpp</in>
+            <in>transform2.inl</in>
+            <in>type_aligned.hpp</in>
+            <in>type_aligned.inl</in>
+            <in>type_trait.hpp</in>
+            <in>type_trait.inl</in>
+            <in>vec_swizzle.hpp</in>
+            <in>vector_angle.hpp</in>
+            <in>vector_angle.inl</in>
+            <in>vector_query.hpp</in>
+            <in>vector_query.inl</in>
+            <in>wrap.hpp</in>
+            <in>wrap.inl</in>
+          </df>
+          <df name="simd">
+            <in>common.h</in>
+            <in>exponential.h</in>
+            <in>geometric.h</in>
+            <in>integer.h</in>
+            <in>matrix.h</in>
+            <in>packing.h</in>
+            <in>platform.h</in>
+            <in>trigonometric.h</in>
+            <in>vector_relational.h</in>
+          </df>
+          <in>common.hpp</in>
+          <in>exponential.hpp</in>
+          <in>ext.hpp</in>
+          <in>fwd.hpp</in>
+          <in>geometric.hpp</in>
+          <in>glm.hpp</in>
+          <in>integer.hpp</in>
+          <in>mat2x2.hpp</in>
+          <in>mat2x3.hpp</in>
+          <in>mat2x4.hpp</in>
+          <in>mat3x2.hpp</in>
+          <in>mat3x3.hpp</in>
+          <in>mat3x4.hpp</in>
+          <in>mat4x2.hpp</in>
+          <in>mat4x3.hpp</in>
+          <in>mat4x4.hpp</in>
+          <in>matrix.hpp</in>
+          <in>packing.hpp</in>
+          <in>trigonometric.hpp</in>
+          <in>vec2.hpp</in>
+          <in>vec3.hpp</in>
+          <in>vec4.hpp</in>
+          <in>vector_relational.hpp</in>
+        </df>
         <in>aabb.cpp</in>
         <in>aabb.h</in>
         <in>consts.h</in>
+        <in>frustum.cpp</in>
+        <in>frustum.h</in>
         <in>mat.cpp</in>
         <in>mat.h</in>
         <in>quat.cpp</in>
@@ -87,6 +365,9 @@
         <in>lightingV.glsl</in>
         <in>pickingF.glsl</in>
         <in>screenF.glsl</in>
+        <in>shadowF.glsl</in>
+        <in>shadowInstV.glsl</in>
+        <in>shadowV.glsl</in>
         <in>tonemapF.glsl</in>
       </df>
       <df name="systems">
@@ -121,8 +402,6 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
-        <gdb_signals>
-        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>

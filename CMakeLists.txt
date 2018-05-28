@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
-project(engine C CXX)
+project(engine VERSION 0.5 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED False)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS False)
 
 if (MSVC)
@@ -11,7 +11,15 @@ endif(MSVC)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 
-include(extern/extern.cmake)
+find_package(Assimp REQUIRED)
+find_package(SDL2 REQUIRED SDL2)
+find_package(PhysFS REQUIRED)
+
+include_directories(
+	${ASSIMP_INCLUDE_DIR}
+	${SDL2_INCLUDE_DIR}
+	${PHYSFS_INCLUDE_DIR}
+)
 
 file(GLOB HEADERS
 	"engine/src/*.h"
@@ -19,8 +27,6 @@ file(GLOB HEADERS
 	"engine/src/core/*.hpp"
 	"engine/src/core/logging/*.h"
 	"engine/src/core/logging/*.hpp"
-	"engine/src/core/im3d/*.h"
-	"engine/src/core/im3d/*.hpp"
 	"engine/src/gfx/*.h"
 	"engine/src/gfx/glad/*.h"
 	"engine/src/gfx/stb/*.h"
@@ -29,11 +35,15 @@ file(GLOB HEADERS
 	"engine/src/systems/*.h"
 )
 
+file(GLOB_RECURSE GLM_HEADERS
+	"engine/src/math/glm/*.hpp"
+)
+set(HEADERS ${HEADERS} ${GLM_HEADERS})
+
 file(GLOB SRC
 	"engine/src/*.cpp"
 	"engine/src/core/*.cpp"
 	"engine/src/core/logging/*.cpp"
-	"engine/src/core/im3d/*.cpp"
 	"engine/src/gfx/*.cpp"
 	"engine/src/gfx/glad/*.c"
 	"engine/src/gfx/stb/*.c"
@@ -53,9 +63,12 @@ endif()
 add_executable(${PROJECT_NAME} ${SRC} ${HEADERS} ${SHADERS})
 
 target_link_libraries(${PROJECT_NAME}
-	extern::glm
-	extern::sdl2
-	extern::assimp
-	extern::physfs
-	extern::dl
+	${SDL2_LIBRARY}
+	${ASSIMP_LIBRARY}
+	${PHYSFS_LIBRARY}
 )
+if (CMAKE_DL_LIBS)
+	target_link_libraries(${PROJECT_NAME}
+		${CMAKE_DL_LIBS}
+	)
+endif()

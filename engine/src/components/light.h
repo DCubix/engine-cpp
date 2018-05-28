@@ -36,18 +36,20 @@ public:
 
 class PointLight : public LightBase {
 public:
-	PointLight() : LightBase(), radius(5.0f), lightCutOff(0.003f) {}
+	PointLight() : LightBase(), radius(5.0f), lightCutOff(0.003f), volumetric(false) {}
 	
 	float radius, lightCutOff;
-	
+	bool volumetric;
+
 	LightType getType() const { return LightType::Point; }
 };
 
 class SpotLight : public PointLight {
 public:
-	SpotLight() : PointLight(), spotCutOff(Pi / 4.0f) {}
+	SpotLight() : PointLight(), shadows(false), spotCutOff(0.5f), size(1.0f) {}
 
-	float spotCutOff;
+	bool shadows;
+	float spotCutOff, size;
 	
 	LightType getType() const { return LightType::Spot; }
 };

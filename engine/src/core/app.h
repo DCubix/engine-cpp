@@ -17,7 +17,7 @@ struct ApplicationConfig {
 	i32 frameCap;
 
 	ApplicationConfig()
-		: width(640), height(480), fullScreen(false), title("Engine"), frameCap(60) 
+		: width(640), height(480), fullScreen(false), title("Engine"), frameCap(60)
 	{}
 };
 
@@ -26,8 +26,8 @@ public:
 	virtual void init() = 0;
 	virtual void update(float timeDelta) = 0;
 	virtual void render() = 0;
-	virtual ~IApplicationAdapter() {};
-	
+	virtual ~IApplicationAdapter() {}
+
 	ApplicationConfig config;
 };
 
@@ -35,13 +35,13 @@ class Application final : public IObject {
 public:
 	Application() = default;
 	Application(IApplicationAdapter* adapter, ApplicationConfig config = ApplicationConfig());
-	
+
 	void run();
 
 	void processMessage(const Message& msg);
 
 	ApplicationConfig config() const { return m_config; }
-	
+
 	Application(const Application&) = delete;
 	Application& operator =(const Application&) = delete;
 private:
