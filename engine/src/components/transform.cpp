@@ -57,7 +57,7 @@ void Transform::setParent(Transform* parent) {
 }
 
 Quat Transform::worldRotation() {
-	Quat parentRotation(0, 0, 0, 1.0f);
+	Quat parentRotation(0, 0, 0, 1);
 
 	if (m_parent) {
 		parentRotation = m_parent->worldRotation();
@@ -70,6 +70,13 @@ Mat4 Transform::getTransformation() {
 	update();
 	return getParentTransform() *
 			glm::translate(Mat4(1.0f), position) *
+			glm::mat4_cast(rotation) *
+			glm::scale(Mat4(1.0f), scale);
+}
+
+Mat4 Transform::getTransformationLocal() {
+	update();
+	return glm::translate(Mat4(1.0f), position) *
 			glm::mat4_cast(rotation) *
 			glm::scale(Mat4(1.0f), scale);
 }

@@ -7,6 +7,7 @@
 #include <typeindex>
 #include <typeinfo>
 #include <type_traits>
+#include <cassert>
 
 #define ECS_INVALID_ENTITY 0
 
@@ -18,7 +19,9 @@ static TypeIndex getTypeIndex() {
 	return std::type_index(typeid(T));
 }
 
-struct Component {  virtual ~Component() = default; }; // Base for components
+struct Component {
+	virtual ~Component() = default;
+};
 
 using ComponentMap = UMap<TypeIndex, uptr<Component>>;
 
@@ -27,7 +30,7 @@ class Entity {
 public:
 	Entity() = default;
 	virtual ~Entity() = default;
-	
+
 	template <class C, typename... Args>
 	C& assign(Args&&... args) {
 		static_assert(
@@ -37,7 +40,7 @@ public:
 		m_components.insert(std::make_pair(getTypeIndex<C>(), uptr<C>(new C(args...))));
 		return *((C*) m_components.at(getTypeIndex<C>()).get());
 	}
-	
+
 	template <class C>
 	bool remove() {
 		static_assert(
@@ -51,9 +54,9 @@ public:
 		}
 		return false;
 	}
-	
+
 	void removeAll();
-	
+
 	template <class C>
 	bool has() const {
 		static_assert(
@@ -62,12 +65,12 @@ public:
 		);
 		return m_components.find(getTypeIndex<C>()) != m_components.end();
 	}
-	
+
 	template<typename T, typename V, typename... Types>
 	bool has() const {
 		return has<T>() && has<V, Types...>();
 	}
-	
+
 	template <class C>
 	C* get() {
 		static_assert(
@@ -80,9 +83,9 @@ public:
 		}
 		return ((C*) found->second.get());
 	}
-	
+
 	u64 id() const { return m_id; }
-	
+
 protected:
 	ComponentMap m_components;
 	u64 m_id;
@@ -91,8 +94,11 @@ protected:
 class EntityWorld;
 class EntitySystem {
 public:
+	virtual ~EntitySystem() = default;
 	virtual void update(EntityWorld& world, float dt) {}
 	virtual void render(EntityWorld& world) {}
+	virtual void entityCreated(EntityWorld& world, Entity& ent) {}
+	virtual void entityDestroyed(EntityWorld& world, Entity& ent) {}
 };
 
 using EntityList = Vector<uptr<Entity>>;
@@ -102,11 +108,11 @@ class EntityWorld {
 public:
 	EntityWorld() = default;
 	virtual ~EntityWorld() = default;
-	
-	Entity& create();
-	void destroy(const Entity& entity);
 
-	template<class... Cs> 
+	Entity& create();
+	void destroy(Entity& entity);
+
+	template<class... Cs>
 	void each(void(*f)(Entity&, Cs...)) {
 		each_internal<Cs...>(f);
 	}
@@ -115,7 +121,7 @@ public:
 	void each(F&& func) {
 		lambda_each_internal(&F::operator(), func);
 	}
-	
+
 	template <class S>
 	S& registerSystem() {
 		static_assert(
@@ -125,7 +131,7 @@ public:
 		m_systems.push_back(uptr<S>(new S()));
 		return *((S*) m_systems.back().get());
 	}
-	
+
 	template <class C>
 	Entity* find() {
 		for (uptr<Entity>& ent : m_entities) {
@@ -133,14 +139,15 @@ public:
 		}
 		return nullptr;
 	}
-	
+
 	void update(float dt);
 	void render();
-	
+
 private:
+	Vector<Entity*> m_recentlyCreated, m_recentlyDestroyed;
 	EntityList m_entities;
 	SystemList m_systems;
-	
+
 	template<class... Cs, class F>
 	void each_internal(F&& func) {
 		for(uptr<Entity>& ent : m_entities) {
@@ -149,12 +156,12 @@ private:
 			}
 		}
 	}
-	
+
 	template<class G, class... Cs, class F>
 	void lambda_each_internal(void (G::*)(Entity&, Cs&...), F&& f) {
 		each_internal<Cs...>(std::forward<F>(f));
 	}
-	
+
 	template<class G, class... Cs, class F>
 	void lambda_each_internal(void (G::*)(Entity&, Cs&...) const, F&& f) {
 		each_internal<Cs...>(std::forward<F>(f));

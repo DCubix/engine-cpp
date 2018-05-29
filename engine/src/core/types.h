@@ -25,7 +25,7 @@
 #	define HAS_INCLUDE(arg)  0
 #endif
 
-#define HAVE_STD_OPTIONAL (CPP17_OR_GREATER && HAS_INCLUDE(<optional>))
+#define HAVE_STD_OPTIONAL (CPP17_OR_GREATER)
 
 #include <cstdint>
 #include <string>
@@ -96,5 +96,7 @@ public:
 	static double getTime();
 	static String replace(const String& str, const String& what, const String& by);
 };
+
+#define SAFE_RELEASE(x) if (x) { delete x; x = nullptr; }
 
 #endif // TYPES_H

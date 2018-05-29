@@ -3,38 +3,25 @@ Game engine written in C++
 
 ### Building
 
-After cloning this repo:
+Clone the repo:
 ```
 $ git clone https://github.com/DCubix/engine-cpp
 ```
-
-Make _sure_ you run:
-```
-$ git submodule update --init --recursive
-```
-
-To properly fetch the depencency submodules!
 
 #### Linux
 
 Building on Linux is pretty straight-forward.
 
-- First, get the SDL2 dependency, the rest of the dependencies are included
-as Git submodules so don't worry about them.
+- Simply get the dependencies.
 
 ##### Arch:
 ```
-$ sudo pacman -S sdl2
+$ sudo pacman -S sdl2 assimp ode physfs
 ```
 
 ##### Ubuntu:
 ```
-$ sudo apt-get libsdl2-dev
-```
-
-##### Fedora:
-```
-$ sudo yum install SDL2-devel
+$ sudo apt-get libsdl2-dev libsdl2-2.0-0 libassimp-dev libassimp4 libphysfs-dev libphysfs1 libode-dev libode6
 ```
 
 - Then just run CMake, generate Unix Make Files and just make it.
@@ -52,12 +39,12 @@ TODO! (Need Help)
 
 #### Windows
 
-On Windows, you have to install CMake-GUI to help you out with setting the SDL2
-library.
+On Windows, you have to install CMake-GUI. And get the respective libraries for your compiler:
 
-- You have to get it from here: https://www.libsdl.org/download-2.0.php
-In `Development Libraries`, pick one for your desired compiler. Extract it somewhere you
-think it's easy to find.
+	1. SDL2: https://www.libsdl.org/download-2.0.php
+	2. Assimp: https://github.com/assimp/assimp/releases
+	3. PhysFS: https://icculus.org/physfs/
+	4. ODE: http://www.ode.org/download.html
 
 - Then open CMake-GUI, set the `Source code` path to the repository root (where the CMakeLists.txt resides)
 and set the `build` path to the build folder (create it!).
@@ -65,9 +52,7 @@ and set the `build` path to the build folder (create it!).
 - Click `Configure` and pick the desired compiler (Visual Studio XX if you picked the VS libraries or
 MSYS/MinGW Makefiles if you picked the MinGW libraries) and then click `Finish`.
 
-- An error should appear telling you SDL2 was not found, then set the fields in red
-that read `SDL2_LIBRARIES` and `SDL2_INCLUDE_DIRS` to the respective `lib` and `include` folders
-you extracted earlier.
+- An error should appear telling you the libraries were not found. In this case, set all library paths accordingly.
 
 - Now click `Configure` again and then `Generate`.
 

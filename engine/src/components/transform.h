@@ -33,6 +33,7 @@ public:
 	Vec3 up() { return Vec3(worldRotation() * Vec4(0, 1, 0, 0)); }
 
 	Mat4 getTransformation();
+	Mat4 getTransformationLocal();
 	Mat4 getParentTransform();
 
 private:

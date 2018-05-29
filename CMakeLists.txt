@@ -14,11 +14,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 find_package(Assimp REQUIRED)
 find_package(SDL2 REQUIRED SDL2)
 find_package(PhysFS REQUIRED)
+find_package(Bullet REQUIRED)
 
 include_directories(
 	${ASSIMP_INCLUDE_DIR}
 	${SDL2_INCLUDE_DIR}
 	${PHYSFS_INCLUDE_DIR}
+	${BULLET_INCLUDE_DIRS}
 )
 
 file(GLOB HEADERS
@@ -66,6 +68,7 @@ target_link_libraries(${PROJECT_NAME}
 	${SDL2_LIBRARY}
 	${ASSIMP_LIBRARY}
 	${PHYSFS_LIBRARY}
+	${BULLET_LIBRARIES}
 )
 if (CMAKE_DL_LIBS)
 	target_link_libraries(${PROJECT_NAME}

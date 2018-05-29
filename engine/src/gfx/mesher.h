@@ -96,6 +96,9 @@ public:
 	u32 vertexCount() const { return m_vertexCount; }
 	u32 indexCount() const { return m_indexCount; }
 
+	Vector<Vertex> vertexData() const { return m_vertexData; }
+	Vector<u32> indexData() const { return m_indexData; }
+
 	u32 index(u32 i) const { return m_indexData[i]; }
 
 	AABB aabb() const { return m_aabb; }
