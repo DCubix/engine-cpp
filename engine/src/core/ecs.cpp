@@ -19,10 +19,6 @@ void EntityWorld::destroy(Entity& entity) {
 	m_entities.erase(m_entities.begin() + (entity.id() - 1));
 }
 
-void Entity::removeAll() {
-	m_components.clear();
-}
-
 void EntityWorld::update(float dt) {
 	for (Entity* ent : m_recentlyCreated) {
 		for (uptr<EntitySystem>& sys : m_systems) {
@@ -49,5 +45,8 @@ void EntityWorld::render() {
 	}
 }
 
+void Entity::removeAll() {
+	m_components.clear();
+}
 
 NS_END

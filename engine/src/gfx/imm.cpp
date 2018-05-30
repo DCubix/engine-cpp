@@ -1,6 +1,8 @@
 #include "imm.h"
 #include "../math/consts.h"
 
+#include "../core/logging/log.h"
+
 NS_BEGIN
 
 Vector<ImmDrawable> Imm::g_drawables;

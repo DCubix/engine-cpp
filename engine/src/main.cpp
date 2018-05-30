@@ -60,7 +60,7 @@ public:
 		Transform &t = floorEnt.assign<Transform>();
 
 		// Physics
-		floorEnt.assign<CollisionShape>(PlaneShape::create(Vec3(0, 1, 0), 32.0f));
+		floorEnt.assign<CollisionShape>(BoxShape::create(Vec3(32, 0.02f, 32)));
 		floorEnt.assign<RigidBody>(0.0f);
 		//
 
@@ -81,8 +81,12 @@ public:
 		//
 
 		model = Builder<Mesh>::build();
-		model.addFromFile("test.glb");
+		model.addCube(1.0f);
+		model.calculateNormals().calculateTangents();
+		model.flush();
+//		model.addFromFile("test.glb");
 		Vector<Vertex> vertices = model.vertexData();
+		Vector<u32> indices = model.indexData();
 		model.flush();
 
 //		alb0 = Builder<Texture>::build()
@@ -110,7 +114,7 @@ public:
 		camera->assign<Camera>(0.02f, 1000.0f, glm::radians(50.0f));
 
 		Transform& camt = camera->assign<Transform>();
-		camt.position = Vec3(-7.5f, 2.0f, 5.0f);
+		camt.position = Vec3(0, 2.0f, 5.0f);
 
 //		def.setTexture(0, rme)
 //			.setTextureEnabled(0, true)
@@ -130,15 +134,18 @@ public:
 
 		// Models
 		Material def;
-		def.roughness = 1.0f;
-		def.metallic = 0.0f;
+		def.roughness = 0.8f;
+		def.metallic = 0.2f;
 		def.instanced = true;
 
-		btConvexHullShape *shape = ConvexHullShape::create(vertices);
+//		btBvhTriangleMeshShape *shape = TriangleMeshShape::create(vertices, indices);
+//		btConvexHullShape *shape = ConvexHullShape::create(vertices);
+		btBoxShape *shape = BoxShape::create(Vec3(1.0f));
 
-		const i32 COUNT = 10;
+		const i32 COUNT = 8;
+		const i32 COUNT_1 = COUNT > 1 ? COUNT-1 : 1;
 		for (i32 i = 0; i < COUNT; i++) {
-			float fact = float(i) / float(COUNT-1);
+			float fact = float(i) / float(COUNT_1);
 
 //			Material def;
 //			def.roughness = (1.0f - fact) + Epsilon;
@@ -147,13 +154,14 @@ public:
 			Entity& mod1 = eworld.create();
 			mod1.assign<Drawable3D>(model, def);
 			Transform& modt = mod1.assign<Transform>();
-			modt.rotate(Vec3(0, 0, 1), glm::radians(180.0f));
-			modt.rotate(Vec3(0, 1, 0), glm::radians(45.0f));
-			modt.position = Vec3((fact * 2.0f - 1.0f) * COUNT * 1.5f, 5, 0);
-//			modt.position = Vec3(0, fact * 2.5f + 5.0f, 0);
+//			modt.rotate(Vec3(0, 0, 1), glm::radians(180.0f));
+//			modt.rotate(Vec3(0, 1, 0), glm::radians(45.0f));
+			modt.rotate(Vec3(0, 0, 1), glm::radians(25.0f));
+//			modt.position = Vec3((fact * 2.0f - 1.0f) * COUNT * 1.8f, 8, 0);
+			modt.position = Vec3(0, COUNT*3 + (fact * 2.0f - 1.0f) * COUNT * 2.5f, 0);
 
 			mod1.assign<CollisionShape>(shape);
-			mod1.assign<RigidBody>(2.0f);
+			mod1.assign<RigidBody>(1.0f);
 		}
 
 		// Lights

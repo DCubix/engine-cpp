@@ -46,12 +46,12 @@ struct CSParams2Arg {
 };
 
 // Some shapes
-template <>
-struct CSParams2Arg<btStaticPlaneShape, const Vec3&, float> {
-	static btStaticPlaneShape* create(const Vec3& n, float pc) {
-		return SHAPE_SAVE(new btStaticPlaneShape(btVector3(n.x, n.y, n.z), pc));
-	}
-};
+//template <>
+//struct CSParams2Arg<btStaticPlaneShape, const Vec3&, float> {
+//	static btStaticPlaneShape* create(const Vec3& n, float pc) {
+//		return SHAPE_SAVE(new btStaticPlaneShape(btVector3(n.x, n.y, n.z), pc));
+//	}
+//};
 
 template <>
 struct CSParams1Arg<btBoxShape, const Vec3&> {
@@ -91,7 +91,7 @@ struct CSParams1Arg<btConvexHullShape, const Vector<Vertex>&> {
 			points.push_back(v.position.z);
 		}
 
-		btConvexHullShape convexHullShape(points.data(), points.size());
+		btConvexHullShape convexHullShape(points.data(), points.size()/3, sizeof(btVector3));
 		convexHullShape.setMargin(0);
 
 		btShapeHull* hull = new btShapeHull(&convexHullShape);
@@ -132,7 +132,7 @@ struct CSParams2Arg<btBvhTriangleMeshShape, const Vector<Vertex>&, const Vector<
 	}
 };
 
-using PlaneShape = CSParams2Arg<btStaticPlaneShape, const Vec3&, float>;
+//using PlaneShape = CSParams2Arg<btStaticPlaneShape, const Vec3&, float>;
 using BoxShape = CSParams1Arg<btBoxShape, const Vec3&>;
 using SphereShape = CSParams1Arg<btSphereShape, float>;
 using CylinderShape = CSParams1Arg<btCylinderShape, const Vec3&>;

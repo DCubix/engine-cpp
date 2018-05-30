@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 find_package(Assimp REQUIRED)
 find_package(SDL2 REQUIRED SDL2)
 find_package(PhysFS REQUIRED)
-find_package(Bullet REQUIRED)
+find_package(Bullet 2.85 EXACT REQUIRED)
 
 include_directories(
 	${ASSIMP_INCLUDE_DIR}

@@ -9,9 +9,9 @@
 NS_BEGIN
 
 PhysicsSystem::PhysicsSystem() {
-	m_broadPhase = new btDbvtBroadphase();
 	m_collisionConfiguration = new btDefaultCollisionConfiguration();
 	m_collisionDispatcher = new btCollisionDispatcher(m_collisionConfiguration);
+	m_broadPhase = new btDbvtBroadphase();
 	m_solver = new btSequentialImpulseConstraintSolver();
 	m_world = new btDiscreteDynamicsWorld(
 				  m_collisionDispatcher,
@@ -20,6 +20,12 @@ PhysicsSystem::PhysicsSystem() {
 				  m_collisionConfiguration
 	);
 	m_world->setGravity(btVector3(0, -10, 0));
+
+	m_debugDraw = new EngDebugDraw();
+	m_debugDraw->setDebugMode(
+				btIDebugDraw::DBG_DrawWireframe
+	);
+	m_world->setDebugDrawer(m_debugDraw);
 }
 
 PhysicsSystem::~PhysicsSystem() {
@@ -28,17 +34,25 @@ PhysicsSystem::~PhysicsSystem() {
 	SAFE_RELEASE(m_collisionConfiguration);
 	SAFE_RELEASE(m_collisionDispatcher);
 	SAFE_RELEASE(m_solver);
+	SAFE_RELEASE(m_debugDraw);
 //	SAFE_RELEASE(m_world);
 }
 
 void PhysicsSystem::update(EntityWorld& world, float dt) {
-	m_world->stepSimulation(dt, 10);
-
-	world.each([=](Entity& ent, RigidBody& R, Transform& T) {
+	world.each([=](Entity& ent, RigidBody& R, Transform& T, CollisionShape& S) {
 		btRigidBody *body = R.rigidBody();
+
 		btTransform trans; body->getMotionState()->getWorldTransform(trans);
 
-		Vec3 pos(trans.getOrigin().x(), trans.getOrigin().y(), trans.getOrigin().z());
+		Vec3 pos = T.position;
+		Quat rot = T.rotation;
+		body->getMotionState()->setWorldTransform(btTransform(
+													  btQuaternion(rot.x, rot.y, rot.z, rot.w),
+													  btVector3(pos.x, pos.y, pos.z)
+												  )
+		);
+
+		Vec3 position(trans.getOrigin().x(), trans.getOrigin().y(), trans.getOrigin().z());
 		Quat rotation(
 					trans.getRotation().getW(),
 					trans.getRotation().getX(),
@@ -48,14 +62,14 @@ void PhysicsSystem::update(EntityWorld& world, float dt) {
 
 //		LogInfo(pos.x, ", ", pos.y, ", ", pos.z);
 
-		T.position.x = pos.x;
-		T.position.y = pos.y;
-		T.position.z = pos.z;
-		T.rotation.x = rotation.x;
-		T.rotation.y = rotation.y;
-		T.rotation.z = rotation.z;
-		T.rotation.w = rotation.w;
+		T.position = position;
+		T.rotation = rotation;
 	});
+	m_world->stepSimulation(dt, 10);
+}
+
+void PhysicsSystem::render(EntityWorld& world) {
+	m_world->debugDrawWorld();
 }
 
 void PhysicsSystem::entityCreated(EntityWorld& world, Entity& ent) {
@@ -69,24 +83,19 @@ void PhysicsSystem::entityCreated(EntityWorld& world, Entity& ent) {
 	Vec3 pos = T->position;
 	Quat rot = T->rotation;
 
-//	LogInfo(pos.x, ", ", pos.y, ", ", pos.z);
-
-	btTransform st;
-	st.setIdentity();
-	st.setRotation(btQuaternion(rot.x, rot.y, rot.z, rot.w));
-	st.setOrigin(btVector3(pos.x, pos.y, pos.z));
-
 	btVector3 inertia(0, 0, 0);
 	if (R->m_mass != 0.0f)
 		S->shape()->calculateLocalInertia(R->m_mass, inertia);
 
-	btDefaultMotionState *mst = new btDefaultMotionState(st);
+	btTransform xform(
+				btQuaternion(rot.x, rot.y, rot.z, rot.w),
+				btVector3(pos.x, pos.y, pos.z)
+	);
+	btDefaultMotionState *mst = new btDefaultMotionState(xform);
 	btRigidBody::btRigidBodyConstructionInfo rbinfo(R->m_mass, mst, S->shape(), inertia);
+	rbinfo.m_startWorldTransform = xform;
+
 	R->m_rigidBody = new btRigidBody(rbinfo);
-
-//	btVector3 p = R->rigidBody()->getWorldTransform().getOrigin();
-//	LogInfo(p.x(), ", ", p.y(), ", ", p.z());
-
 	m_world->addRigidBody(R->m_rigidBody);
 }
 
