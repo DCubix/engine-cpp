@@ -22,7 +22,7 @@ class Sampler {
 public:
 	Sampler() = default;
 	Sampler(GLuint id) : m_id(id) {}
-	
+
 	Sampler& setWrap(
 			TextureWrap s = TextureWrap::Repeat,
 			TextureWrap t = TextureWrap::Repeat,
@@ -31,12 +31,12 @@ public:
 	Sampler& setFilter(TextureFilter min, TextureFilter mag);
 
 	Sampler& setBorderColor(float r, float g, float b, float a);
-	
+
 	Sampler& setSeamlessCubemap(bool enable);
-	
+
 	void bind(u32 slot) const { glBindSampler(slot, m_id); }
 	void unbind(u32 slot) const { glBindSampler(slot, 0); }
-	
+
 protected:
 	GLuint m_id;
 };
@@ -49,32 +49,34 @@ public:
 	Texture& setFromFile(const String& file, TextureTarget tgt);
 	Texture& setFromFile(const String& file);
 	Texture& setNull(int w, int h, TextureFormat format);
-	
+
 	// Horizontal cross, like this <https://learnopengl.com/img/advanced/cubemaps_skybox.png>
 	Texture& setCubemap(const String& file, bool flipY=false);
-	
+
 	Texture& setCubemapNull(int w, int h, TextureFormat format);
-	
+
 	Texture& generateMipmaps();
-	
+
 	Texture& bind(TextureTarget target);
 	void bind(const Sampler& sampler, u32 slot = 0);
 	void unbind();
-	
+
 	TextureTarget target() const { return m_target; }
-	
+
 	GLuint id() const { return m_id; }
-	
+
 	u32 width() const { return m_width; }
 	u32 height() const { return m_height; }
-	
+
 	static Sampler DEFAULT_SAMPLER;
-	
+
+	void invalidate() { m_id = 0; }
+
 protected:
 	GLuint m_id;
 	TextureTarget m_target;
 	u32 m_width, m_height;
-	
+
 	void setFromData(const ImageData& data, TextureTarget tgt);
 };
 
@@ -85,14 +87,14 @@ public:
 		g_textures.push_back(GLTexture::create());
 		return Texture(g_textures.back());
 	}
-	
+
 	static void clean() {
 		for (GLuint b : g_textures) {
 			GLTexture::destroy(b);
 		}
 		g_textures.clear();
 	}
-	
+
 	static void destroy(Texture obj) {
 		if (obj.id() != 0) {
 			GLTexture::destroy(obj.id());
@@ -110,7 +112,7 @@ public:
 		g_samplers.push_back(GLSampler::create());
 		return Sampler(g_samplers.back());
 	}
-	
+
 	static void clean() {
 		for (GLuint b : g_samplers) {
 			GLSampler::destroy(b);

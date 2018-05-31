@@ -4,6 +4,12 @@
 
 NS_BEGIN
 
+void EntityWorld::processMessage(const Message& msg) {
+	for (uptr<EntitySystem>& sys : m_systems) {
+		sys->messageReceived(*this, msg);
+	}
+}
+
 Entity& EntityWorld::create() {
 	m_entities.push_back(uptr<Entity>(new Entity()));
 	m_entities.back()->m_id = m_entities.size();

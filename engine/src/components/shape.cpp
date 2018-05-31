@@ -2,6 +2,6 @@
 
 NS_BEGIN
 
-Vector<btCollisionShape*> ShapeBuilder::g_shapes;
+Vector<ShapeWrapper> ShapeBuilder::g_shapes;
 
 NS_END

@@ -115,7 +115,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		RGf,
 		RGBf,
 		RGBAf,
-		Depth,
+		Depthf,
 		DepthStencil
 	};
 
@@ -167,7 +167,7 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 			case TextureFormat::RGf: ifmt = GL_RG32F; fmt = GL_RG; type = DataType::Float; break;
 			case TextureFormat::RGBf: ifmt = GL_RGB32F; fmt = GL_RGB; type = DataType::Float; break;
 			case TextureFormat::RGBAf: ifmt = GL_RGBA32F; fmt = GL_RGBA; type = DataType::Float; break;
-			case TextureFormat::Depth: ifmt = GL_DEPTH_COMPONENT24; fmt = GL_DEPTH_COMPONENT; type = DataType::Float; break;
+			case TextureFormat::Depthf: ifmt = GL_DEPTH_COMPONENT24; fmt = GL_DEPTH_COMPONENT; type = DataType::Float; break;
 			case TextureFormat::DepthStencil: ifmt = GL_DEPTH24_STENCIL8; fmt = GL_DEPTH_STENCIL; type = DataType::Float; break;
 		}
 		return tup(ifmt, fmt, type);

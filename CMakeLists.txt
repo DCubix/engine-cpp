@@ -35,6 +35,7 @@ file(GLOB HEADERS
 	"engine/src/math/*.h"
 	"engine/src/components/*.h"
 	"engine/src/systems/*.h"
+	"engine/src/imgui/*.h"
 )
 
 file(GLOB_RECURSE GLM_HEADERS
@@ -52,6 +53,7 @@ file(GLOB SRC
 	"engine/src/math/*.cpp"
 	"engine/src/components/*.cpp"
 	"engine/src/systems/*.cpp"
+	"engine/src/imgui/*.cpp"
 )
 
 file(GLOB SHADERS

@@ -8,12 +8,11 @@ void MessageSystem::subscribe(IObject* obj) {
 	m_subscribers.push_back(obj);
 }
 
-void MessageSystem::submit(const String& type, Message* msg, float delay) {
-	if (msg == nullptr) {
-		msg = new Message();
-	}
+void MessageSystem::submit(const String& type, void* data, float delay) {
+	Message* msg = new Message();
 	msg->time = delay;
 	msg->type = type;
+	msg->data = mov(data);
 	m_messages.push(uptr<Message>(mov(msg)));
 }
 
@@ -27,6 +26,7 @@ void MessageSystem::processQueue(float dt) {
 			for (auto sub : m_subscribers) {
 				sub->processMessage(*msg);
 			}
+			SAFE_RELEASE(msg->data);
 		}
 	}
 }

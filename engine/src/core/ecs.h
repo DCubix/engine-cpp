@@ -2,6 +2,7 @@
 #define ECS_H
 
 #include "../core/types.h"
+#include "../core/msg.h"
 
 #include <memory>
 #include <typeindex>
@@ -99,15 +100,18 @@ public:
 	virtual void render(EntityWorld& world) {}
 	virtual void entityCreated(EntityWorld& world, Entity& ent) {}
 	virtual void entityDestroyed(EntityWorld& world, Entity& ent) {}
+	virtual void messageReceived(EntityWorld& world, const Message& msg) {}
 };
 
 using EntityList = Vector<uptr<Entity>>;
 using SystemList = Vector<uptr<EntitySystem>>;
 
-class EntityWorld {
+class EntityWorld : public IObject {
 public:
-	EntityWorld() = default;
+	EntityWorld() { MessageSystem::get().subscribe(this); }
 	virtual ~EntityWorld() = default;
+
+	void processMessage(const Message& msg) override;
 
 	Entity& create();
 	void destroy(Entity& entity);
@@ -122,13 +126,13 @@ public:
 		lambda_each_internal(&F::operator(), func);
 	}
 
-	template <class S>
-	S& registerSystem() {
+	template <class S, typename... Args>
+	S& registerSystem(Args&&... args) {
 		static_assert(
 				std::is_base_of<EntitySystem, S>::value,
 				"System must be derived from 'EntitySystem'."
 		);
-		m_systems.push_back(uptr<S>(new S()));
+		m_systems.push_back(uptr<S>(new S(args...)));
 		return *((S*) m_systems.back().get());
 	}
 

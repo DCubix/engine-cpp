@@ -17,16 +17,16 @@ enum LightType {
 class LightBase : public Component {
 public:
 	LightBase() : color(Vec3(1.0f)), intensity(1.0f) {}
-	
+
 	Vec3 color;
 	float intensity;
-	
+
 	virtual LightType getType() const = 0;
 };
 
 class DirectionalLight : public LightBase {
 public:
-	DirectionalLight() : LightBase(), shadows(false), shadowFrustumSize(10.0f), size(1.0f) {}
+	DirectionalLight() : LightBase(), shadows(false), shadowFrustumSize(10.0f), size(0.5f) {}
 
 	bool shadows;
 	float shadowFrustumSize, size;
@@ -37,7 +37,7 @@ public:
 class PointLight : public LightBase {
 public:
 	PointLight() : LightBase(), radius(5.0f), lightCutOff(0.003f), volumetric(false) {}
-	
+
 	float radius, lightCutOff;
 	bool volumetric;
 
@@ -46,11 +46,11 @@ public:
 
 class SpotLight : public PointLight {
 public:
-	SpotLight() : PointLight(), shadows(false), spotCutOff(0.5f), size(1.0f) {}
+	SpotLight() : PointLight(), shadows(false), spotCutOff(0.5f), size(0.5f) {}
 
 	bool shadows;
 	float spotCutOff, size;
-	
+
 	LightType getType() const { return LightType::Spot; }
 };
 

@@ -12,104 +12,122 @@
 #include "bullet/btBulletCollisionCommon.h"
 #include "bullet/BulletCollision/CollisionShapes/btShapeHull.h"
 
+#include "quickhull.h"
+
 NS_BEGIN
 
 class CollisionShape;
 
+struct ShapeWrapper {
+	u32 id;
+	btCollisionShape *shape;
+	ShapeWrapper() {}
+	ShapeWrapper(u32 id, btCollisionShape* shape) : id(id), shape(shape) {}
+};
+
 class ShapeBuilder {
 public:
-	template <typename T>
-	static T* save(T* shape) {
-		g_shapes.push_back(shape);
-		return shape;
+	static ShapeWrapper save(btCollisionShape* shape) {
+		ShapeWrapper sw(0, shape);
+		sw.id = g_shapes.size();
+		g_shapes.push_back(sw);
+		return sw;
 	}
 
 	static void destroy() {
-		for (btCollisionShape* s : g_shapes) {
-			delete s;
+		for (ShapeWrapper s : g_shapes) {
+			if (s.shape) delete s.shape;
 		}
 		g_shapes.clear();
 	}
+
+	static void destroy(u32 id) {
+		assert(id < g_shapes.size());
+		delete g_shapes[id].shape;
+		g_shapes[id].shape = nullptr;
+	}
 private:
-	static Vector<btCollisionShape*> g_shapes;
+	static Vector<ShapeWrapper> g_shapes;
 };
 #define SHAPE_SAVE(s) ShapeBuilder::save(s)
 
 template <typename St, typename Arg1>
 struct CSParams1Arg {
-	static St* create(Arg1 a) { return nullptr; }
+	static ShapeWrapper create(Arg1 a) { return nullptr; }
 };
 
 template <typename St, typename Arg1, typename Arg2>
 struct CSParams2Arg {
-	static St* create(Arg1 a, Arg2 b) { return nullptr; }
+	static ShapeWrapper create(Arg1 a, Arg2 b) { return nullptr; }
 };
 
 // Some shapes
-//template <>
-//struct CSParams2Arg<btStaticPlaneShape, const Vec3&, float> {
-//	static btStaticPlaneShape* create(const Vec3& n, float pc) {
-//		return SHAPE_SAVE(new btStaticPlaneShape(btVector3(n.x, n.y, n.z), pc));
-//	}
-//};
+template <>
+struct CSParams2Arg<btStaticPlaneShape, const Vec3&, float> {
+	static ShapeWrapper create(const Vec3& n, float pc) {
+		return SHAPE_SAVE(new btStaticPlaneShape(btVector3(n.x, n.y, n.z), pc));
+	}
+};
 
 template <>
 struct CSParams1Arg<btBoxShape, const Vec3&> {
-	static btBoxShape* create(const Vec3& hextents) {
+	static ShapeWrapper create(const Vec3& hextents) {
 		return SHAPE_SAVE(new btBoxShape(btVector3(hextents.x, hextents.y, hextents.z)));
 	}
 };
 
 template <>
 struct CSParams1Arg<btSphereShape, float> {
-	static btSphereShape* create(float radius) {
+	static ShapeWrapper create(float radius) {
 		return SHAPE_SAVE(new btSphereShape(radius));
 	}
 };
 
 template <>
 struct CSParams1Arg<btCylinderShape, const Vec3&> {
-	static btCylinderShape* create(const Vec3& hextents) {
+	static ShapeWrapper create(const Vec3& hextents) {
 		return SHAPE_SAVE(new btCylinderShape(btVector3(hextents.x, hextents.y, hextents.z)));
 	}
 };
 
 template <>
 struct CSParams2Arg<btCapsuleShape, float, float> {
-	static btCapsuleShape* create(float radius, float height) {
+	static ShapeWrapper create(float radius, float height) {
 		return SHAPE_SAVE(new btCapsuleShape(radius, height));
 	}
 };
 
 template <>
 struct CSParams1Arg<btConvexHullShape, const Vector<Vertex>&> {
-	static btConvexHullShape* create(const Vector<Vertex>& vertices) {
-		Vector<float> points;
+	static ShapeWrapper create(const Vector<Vertex>& vertices) {
+		Vector<qh_vertex_t> points;
 		for (Vertex v : vertices) {
-			points.push_back(v.position.x);
-			points.push_back(v.position.y);
-			points.push_back(v.position.z);
+			qh_vertex_t vt;
+			vt.x = v.position.x;
+			vt.y = v.position.y;
+			vt.z = v.position.z;
+			points.push_back(vt);
+		}
+		qh_mesh_t mesh = qh_quickhull3d(points.data(), points.size());
+
+		Vector<float> verts;
+		for (u32 i = 0; i < mesh.nvertices; i++) {
+			verts.push_back(mesh.vertices[i].x);
+			verts.push_back(mesh.vertices[i].y);
+			verts.push_back(mesh.vertices[i].z);
 		}
 
-		btConvexHullShape convexHullShape(points.data(), points.size()/3, sizeof(btVector3));
-		convexHullShape.setMargin(0);
+		qh_free_mesh(mesh);
 
-		btShapeHull* hull = new btShapeHull(&convexHullShape);
-		hull->buildHull(0);
+		btConvexHullShape* ret = new btConvexHullShape(verts.data(), mesh.nvertices, sizeof(btVector3));
 
-		btConvexHullShape* ret = new btConvexHullShape(
-									 (const btScalar*)hull->getVertexPointer(),
-									 hull->numVertices()
-		);
-
-		delete hull;
 		return SHAPE_SAVE(ret);
 	}
 };
 
 template <>
 struct CSParams2Arg<btBvhTriangleMeshShape, const Vector<Vertex>&, const Vector<u32>&> {
-	static btBvhTriangleMeshShape* create(const Vector<Vertex>& vertices, const Vector<u32>& indices) {
+	static ShapeWrapper create(const Vector<Vertex>& vertices, const Vector<u32>& indices) {
 		Vector<Vec3> verts;
 		for (Vertex v : vertices) {
 			verts.push_back(v.position);
@@ -132,7 +150,7 @@ struct CSParams2Arg<btBvhTriangleMeshShape, const Vector<Vertex>&, const Vector<
 	}
 };
 
-//using PlaneShape = CSParams2Arg<btStaticPlaneShape, const Vec3&, float>;
+using PlaneShape = CSParams2Arg<btStaticPlaneShape, const Vec3&, float>;
 using BoxShape = CSParams1Arg<btBoxShape, const Vec3&>;
 using SphereShape = CSParams1Arg<btSphereShape, float>;
 using CylinderShape = CSParams1Arg<btCylinderShape, const Vec3&>;
@@ -145,11 +163,14 @@ public:
 	CollisionShape() = default;
 	virtual ~CollisionShape() = default;
 
-	CollisionShape(btCollisionShape* shape) : m_shape(shape) {}
+	CollisionShape(const ShapeWrapper& shape) {
+		this->m_shape.id = shape.id;
+		this->m_shape.shape = shape.shape;
+	}
 
-	btCollisionShape* shape() { return m_shape; }
+	ShapeWrapper shape() const { return m_shape; }
 private:
-	btCollisionShape* m_shape;
+	ShapeWrapper m_shape;
 };
 
 NS_END

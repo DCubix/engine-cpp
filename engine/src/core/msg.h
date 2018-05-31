@@ -8,7 +8,9 @@ NS_BEGIN
 class Message {
 	friend class MessageSystem;
 public:
+	Message() : type(""), data(nullptr) {}
 	String type;
+	void *data;
 protected:
 	float time;
 };
@@ -23,10 +25,10 @@ public:
 	MessageSystem() {}
 
 	void subscribe(IObject* obj);
-	void submit(const String& type, Message* msg = nullptr, float delay = 0);
+	void submit(const String& type, void* data = nullptr, float delay = 0);
 
 	void processQueue(float dt);
-	
+
 	static MessageSystem& get() { return *s_ston; }
 private:
 	MessageSystem(const MessageSystem&) = delete;

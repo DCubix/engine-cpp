@@ -39,7 +39,7 @@ PhysicsSystem::~PhysicsSystem() {
 }
 
 void PhysicsSystem::update(EntityWorld& world, float dt) {
-	world.each([=](Entity& ent, RigidBody& R, Transform& T, CollisionShape& S) {
+	world.each([=](Entity& ent, RigidBody& R, Transform& T) {
 		btRigidBody *body = R.rigidBody();
 
 		btTransform trans; body->getMotionState()->getWorldTransform(trans);
@@ -83,16 +83,18 @@ void PhysicsSystem::entityCreated(EntityWorld& world, Entity& ent) {
 	Vec3 pos = T->position;
 	Quat rot = T->rotation;
 
+	btCollisionShape* shape = S->shape().shape;
+
 	btVector3 inertia(0, 0, 0);
 	if (R->m_mass != 0.0f)
-		S->shape()->calculateLocalInertia(R->m_mass, inertia);
+		shape->calculateLocalInertia(R->m_mass, inertia);
 
 	btTransform xform(
 				btQuaternion(rot.x, rot.y, rot.z, rot.w),
 				btVector3(pos.x, pos.y, pos.z)
 	);
 	btDefaultMotionState *mst = new btDefaultMotionState(xform);
-	btRigidBody::btRigidBodyConstructionInfo rbinfo(R->m_mass, mst, S->shape(), inertia);
+	btRigidBody::btRigidBodyConstructionInfo rbinfo(R->m_mass, mst, shape, inertia);
 	rbinfo.m_startWorldTransform = xform;
 
 	R->m_rigidBody = new btRigidBody(rbinfo);
@@ -108,7 +110,7 @@ void PhysicsSystem::entityDestroyed(EntityWorld& world, Entity& ent) {
 
 	m_world->removeRigidBody(R->rigidBody());
 
-	delete S->shape();
+	ShapeBuilder::destroy(S->shape().id);
 	delete R->m_rigidBody;
 }
 

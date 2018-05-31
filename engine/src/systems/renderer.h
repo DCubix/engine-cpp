@@ -47,7 +47,7 @@ struct Camera : public Component {
 	float zNear, zFar, FOV, orthoScale;
 	CameraType type;
 
-	Mat4 getProjection();
+	Mat4 getProjection(u32 width, u32 height);
 };
 
 using RenderCondition = Fn<bool(RenderMesh&)>;
@@ -55,9 +55,13 @@ using RenderCondition = Fn<bool(RenderMesh&)>;
 class RendererSystem : public EntitySystem {
 public:
 	RendererSystem();
+	RendererSystem(u32 width, u32 height);
 
-	void update(float dt);
+	void update(EntityWorld& world, float dt);
 	void render(EntityWorld& world);
+	void messageReceived(EntityWorld& world, const Message& msg);
+
+	void resizeBuffers(u32 width, u32 height);
 
 	static const String POST_FX_VS;
 
@@ -74,6 +78,9 @@ public:
 	float time() const { return m_time; }
 
 	void renderScreenQuad();
+
+	u32 renderHeight() const;
+	u32 renderWidth() const;
 
 private:
 	Camera *m_activeCamera;
@@ -125,6 +132,8 @@ private:
 				bool textures = true, const RenderCondition& cond = nullptr);
 	void renderInstanced(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
 						bool textures = true, const RenderCondition& cond = nullptr);
+
+	u32 m_renderWidth, m_renderHeight;
 };
 
 NS_END

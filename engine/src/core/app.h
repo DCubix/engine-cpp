@@ -4,6 +4,7 @@
 #include "logging/log.h"
 #include "types.h"
 #include "msg.h"
+#include "../math/vec.h"
 
 #include "SDL.h"
 
@@ -15,9 +16,10 @@ struct ApplicationConfig {
 	bool fullScreen;
 	String title;
 	i32 frameCap;
+	bool notifyResize;
 
 	ApplicationConfig()
-		: width(640), height(480), fullScreen(false), title("Engine"), frameCap(60)
+		: width(640), height(480), fullScreen(false), title("Engine"), frameCap(60), notifyResize(true)
 	{}
 };
 

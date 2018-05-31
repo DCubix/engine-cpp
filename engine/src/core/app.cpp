@@ -4,6 +4,9 @@
 #include "types.h"
 #include "input.h"
 
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl.h"
+
 extern "C" {
 	#include "../gfx/glad/glad.h"
 }
@@ -99,7 +102,7 @@ void Application::run() {
 		SDL_WINDOWPOS_CENTERED,
 		m_config.width,
 		m_config.height,
-		SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+		SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
 	);
 
 	if (m_window == nullptr) {
@@ -143,10 +146,16 @@ void Application::run() {
 
 	Input::m_window = m_window;
 
+	ImGui::CreateContext();
+	ImGui_Impl_Init(m_window);
+
 	LogInfo("Application Started...");
 	eng_mainloop();
 
 	// Free resources
+	ImGui_Impl_Shutdown();
+	ImGui::DestroyContext();
+
 	Builder<VertexArray>::clean();
 	Builder<VertexBuffer>::clean();
 	Builder<ShaderProgram>::clean();
@@ -181,7 +190,16 @@ void Application::eng_mainloop() {
 		while (accum >= timeStep) {
 			accum -= timeStep;
 
-			Input::update();
+			Input::update([&](SDL_Event& evt) {
+				ImGui_Impl_ProcessEvent(&evt);
+				if (evt.type == SDL_WINDOWEVENT &&
+					evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED &&
+					m_config.notifyResize)
+				{
+					Vec2 *sz = new Vec2(evt.window.data1, evt.window.data2);
+					MessageSystem::get().submit("app_window_resized", sz);
+				}
+			});
 
 			m_applicationAdapter->update(float(timeStep));
 			MessageSystem::get().processQueue(float(timeStep));
@@ -190,7 +208,13 @@ void Application::eng_mainloop() {
 		}
 
 		if (canRender) {
+			ImGui_Impl_NewFrame(m_window);
+
 			m_applicationAdapter->render();
+
+			ImGui::Render();
+			ImGui_Impl_RenderDrawData(ImGui::GetDrawData());
+
 			SDL_GL_SwapWindow(m_window);
 		}
 

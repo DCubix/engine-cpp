@@ -4,58 +4,57 @@
 
 NS_BEGIN
 
-Mat4 Camera::getProjection() {
+Mat4 Camera::getProjection(u32 width, u32 height) {
 	if (type == CameraType::Orthographic) {
 		return glm::ortho(-orthoScale, orthoScale, -orthoScale, orthoScale, zNear, zFar);
 	}
-
-	int vp[4];
-	glGetIntegerv(GL_VIEWPORT, vp);
-
-	return glm::perspective(FOV, float(vp[2]) / float(vp[3]), zNear, zFar);
+	return glm::perspective(FOV, float(width) / float(height), zNear, zFar);
 }
 
 const String RendererSystem::POST_FX_VS =
 #include "../shaders/lightingV.glsl"
 ;
 
-RendererSystem::RendererSystem() {
+RendererSystem::RendererSystem() : RendererSystem(640, 480) {
+
+}
+
+RendererSystem::RendererSystem(u32 width, u32 height) {
 	m_activeCamera = nullptr;
 	m_activeCameraTransform = nullptr;
 	m_IBLGenerated = false;
-
-	int vp[4];
-	glGetIntegerv(GL_VIEWPORT, vp);
+	m_renderWidth = width;
+	m_renderHeight = height;
 
 	m_gbuffer = Builder<FrameBuffer>::build()
-			.setSize(vp[2], vp[3])
-			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
+			.setSize(width, height)
+			.addRenderBuffer(TextureFormat::Depthf, Attachment::DepthAttachment)
 			.addColorAttachment(TextureFormat::RGf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
 			.addColorAttachment(TextureFormat::RGBf) // RME
 			.addDepthAttachment();
 
 	m_finalBuffer = Builder<FrameBuffer>::build()
-			.setSize(vp[2], vp[3])
+			.setSize(width, height)
 			.addColorAttachment(TextureFormat::RGBf)
 			.addDepthAttachment();
 
 	m_pingPongBuffer = Builder<FrameBuffer>::build()
-			.setSize(vp[2], vp[3])
+			.setSize(width, height)
 			.addColorAttachment(TextureFormat::RGBf)
 			.addColorAttachment(TextureFormat::RGBf);
 
 	m_captureBuffer = Builder<FrameBuffer>::build()
 			.setSize(128, 128)
-			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment);
+			.addRenderBuffer(TextureFormat::Depthf, Attachment::DepthAttachment);
 
 	m_pickingBuffer = Builder<FrameBuffer>::build()
-			.setSize(vp[2], vp[3])
+			.setSize(width, height)
 			.addColorAttachment(TextureFormat::RGB);
 
 	m_shadowBuffer = Builder<FrameBuffer>::build()
 			.setSize(2048, 2048)
-			.addRenderBuffer(TextureFormat::Depth, Attachment::DepthAttachment)
+			.addRenderBuffer(TextureFormat::Depthf, Attachment::DepthAttachment)
 			.addDepthAttachment();
 
 	String common =
@@ -233,7 +232,7 @@ RendererSystem::RendererSystem() {
 	Imm::initialize();
 }
 
-void RendererSystem::update(float dt) {
+void RendererSystem::update(EntityWorld& world, float dt) {
 	m_time += dt;
 }
 
@@ -248,7 +247,7 @@ void RendererSystem::render(EntityWorld& world) {
 
 	Mat4 projMat(1.0f);
 	if (m_activeCamera) {
-		projMat = m_activeCamera->getProjection();
+		projMat = m_activeCamera->getProjection(m_renderWidth, m_renderHeight);
 	}
 
 	Mat4 viewMat(1.0f);
@@ -286,6 +285,25 @@ void RendererSystem::render(EntityWorld& world) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Imm::render(viewMat, projMat);
+}
+
+void RendererSystem::messageReceived(EntityWorld& world, const Message& msg) {
+	if (msg.type == "app_window_resized") {
+		Vec2 size = *((Vec2*)msg.data);
+		resizeBuffers(i32(size.x), i32(size.y));
+	}
+}
+
+void RendererSystem::resizeBuffers(u32 width, u32 height) {
+	glViewport(0, 0, width, height);
+
+	m_finalBuffer.resize(width, height);
+	m_pickingBuffer.resize(width, height);
+	m_pingPongBuffer.resize(width, height);
+	m_gbuffer.resize(width, height);
+
+	m_renderWidth = width;
+	m_renderHeight = height;
 }
 
 void RendererSystem::computeIrradiance() {
@@ -373,7 +391,7 @@ void RendererSystem::computeRadiance() {
 		u32 mipWidth = u32(128 * std::pow(0.5, i));
 		u32 mipHeight = u32(128 * std::pow(0.5, i));
 
-		m_captureBuffer.setRenderBufferStorage(TextureFormat::Depth, mipWidth, mipHeight);
+		m_captureBuffer.setRenderBufferStorage(TextureFormat::Depthf, mipWidth, mipHeight);
 		glViewport(0, 0, mipWidth, mipHeight);
 
 		float roughness = float(i) / float(maxMip - 1);
@@ -409,7 +427,7 @@ void RendererSystem::computeBRDF() {
 	glEnable(GL_DEPTH_TEST);
 
 	m_captureBuffer.bind();
-	m_captureBuffer.setRenderBufferStorage(TextureFormat::Depth, 512, 512);
+	m_captureBuffer.setRenderBufferStorage(TextureFormat::Depthf, 512, 512);
 	glViewport(0, 0, 512, 512);
 
 	m_plane.bind();
@@ -658,11 +676,11 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 			glDisable(GL_BLEND);
 			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_CULL_FACE);
-			glCullFace(GL_FRONT);
+			//glCullFace(GL_FRONT);
 
 			clear(ClearBufferMask::DepthBuffer);
 
-			float fov = L.spotCutOff * 179.0f;
+			float fov = L.spotCutOff * 2.0f;
 			Mat4 projMatLight = glm::perspective(fov, 1.0f, 0.01f, L.radius * 4.0f);
 
 			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
@@ -687,7 +705,7 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 
 			m_shadowInstancedShader.unbind();
 
-			glCullFace(GL_BACK);
+			//glCullFace(GL_BACK);
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_DEPTH_TEST);
 			glEnable(GL_BLEND);
@@ -797,8 +815,8 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 				if (first) {
 					m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 				} else {
-					m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
 					m_pingPongBuffer.getColorAttachment(src).bind(m_screenMipSampler, 0);
+					m_pingPongBuffer.getColorAttachment(src).generateMipmaps();
 				}
 
 				filter.shader().get("tScreen").set(0);
@@ -1054,5 +1072,14 @@ void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderM
 		mi.mesh.unbind();
 	}
 }
+
+u32 RendererSystem::renderWidth() const {
+	return m_renderWidth;
+}
+
+u32 RendererSystem::renderHeight() const {
+	return m_renderHeight;
+}
+
 
 NS_END

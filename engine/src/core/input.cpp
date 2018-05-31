@@ -13,7 +13,7 @@ int Input::m_scrollOffset = 0;
 bool Input::m_closeRequested = false;
 SDL_Window* Input::m_window;
 
-void Input::update() {
+void Input::update(const ProcessCallback& customProcess) {
 	for (auto& kv : m_keyboard) {
 		kv.second.pressed = false;
 		kv.second.released = false;
@@ -24,6 +24,9 @@ void Input::update() {
 	}
 
 	while (SDL_PollEvent(&m_sdlEvent)) {
+		if (customProcess) {
+			customProcess(m_sdlEvent);
+		}
 		switch (m_sdlEvent.type) {
 			case SDL_QUIT: m_closeRequested = true; break;
 			case SDL_KEYDOWN:

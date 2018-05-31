@@ -128,7 +128,7 @@ float PCF(in sampler2D sbuffer, vec3 coord, float bias, float radius) {
 		return 0.0;
 	}
 
-	float fd = coord.z;
+	float fd = coord.z - bias;
 	float sum = 0.0;
 	for (int i = 0; i < 64; i++) {
 		vec2 uvc = coord.xy + PoissonDisk[i % 64] * radius;
@@ -211,7 +211,7 @@ void main() {
 				att = lightAttenuation(uLight, L, dist);
 
 				float S = dot(L, normalize(-uLight.direction));
-				float c = 1.0 - uLight.spotCutoff;
+				float c = cos(uLight.spotCutoff);
 				if (S > c) {
 					att *= (1.0 - (1.0 - S) * 1.0 / (1.0 - c));
 				} else {
@@ -219,16 +219,16 @@ void main() {
 				}
 			}
 
-			float NoL = max(dot(N, L), 0.0);
+			float NoL = min(max(dot(N, L), 0.0), 1.0);
 			if (uShadowEnabled) {
 				vec4 sc = mBias * uLightViewProj * vec4(wP, 1.0);
-				vec3 coord = sc.xyz;
+				vec3 coord = (sc.xyz / sc.w);
 
-				float bias = 0.0001 * tan(acos(NoL));
+				float bias = 0.00001 * tan(acos(NoL));
 				bias = clamp(bias, 0.0, 0.01);
 
 				if (uLight.type == 0) vis = PCSS(tShadowMap, coord, bias, uLight.size);
-				else if (uLight.type == 2) vis = 1.0 - PCF(tShadowMap, coord, bias, 0.0035);
+				else if (uLight.type == 2) vis = 1.0 - PCF(tShadowMap, coord, bias, uLight.size * 0.0035);
 			}
 
 			float fact = NoL * att * vis;

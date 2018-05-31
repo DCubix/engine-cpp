@@ -6,6 +6,8 @@
 #include "types.h"
 #include "../math/vec.h"
 
+using ProcessCallback = Fn<void(SDL_Event&)>;
+
 struct State {
 	bool pressed, released, down;
 };
@@ -13,7 +15,7 @@ struct State {
 class Input {
 	friend class Application;
 public:
-	static void update();
+	static void update(const ProcessCallback& customProcess = nullptr);
 
 	static const State getKeyboardState(int key);
 	static const State getMouseState(int button);

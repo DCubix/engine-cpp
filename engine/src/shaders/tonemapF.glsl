@@ -13,14 +13,21 @@ const float F = 0.30;
 const float W = 11.2;
 
 vec3 Uncharted2Tonemap(vec3 x) {
-   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
-}
-
-vec4 Uncharted2Tonemap(vec4 x) {
-   return vec4(Uncharted2Tonemap(x.rgb), x.a);
+	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
 void main() {
-	fragColor = Uncharted2Tonemap(texture(tScreen, oScreenPosition));
+	vec4 color = texture(tScreen, oScreenPosition);
+//	color.rgb *= 16.0;
+
+	float ExposureBias = 3.0;
+	vec3 curr = Uncharted2Tonemap(ExposureBias * color.rgb);
+
+	vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
+	vec3 ncolor = curr * whiteScale;
+
+	vec3 gcorrect = pow(ncolor, vec3(1.0 / 2.2));
+
+	fragColor = vec4(gcorrect, color.a);
 }
 )"
