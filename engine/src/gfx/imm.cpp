@@ -3,6 +3,8 @@
 
 #include "../core/logging/log.h"
 
+#include <iterator>
+
 NS_BEGIN
 
 Vector<ImmDrawable> Imm::g_drawables;
@@ -10,6 +12,7 @@ Vector<ImmBatch> Imm::g_batches;
 Vector<ImmVertex> Imm::g_vertices;
 Vector<u32> Imm::g_indices;
 PrimitiveType Imm::g_beginPrimitive = PrimitiveType::Triangles;
+float Imm::g_lineWidth = 1.0f;
 
 VertexArray Imm::g_vao;
 VertexBuffer Imm::g_vbo;
@@ -17,6 +20,7 @@ VertexBuffer Imm::g_ibo;
 ShaderProgram Imm::g_shader;
 
 Mat4 Imm::g_modelMatrix = Mat4(1.0f);
+Mat4 Imm::g_viewMatrix = Mat4(1.0f);
 bool Imm::g_noDepth = false;
 
 static const String ImmVS = R"(#version 330 core
@@ -69,6 +73,8 @@ void Imm::initialize() {
 }
 
 void Imm::render(const Mat4& view, const Mat4& projection) {
+	g_viewMatrix = view;
+
 	generateBatches();
 
 	g_vao.bind();
@@ -79,6 +85,7 @@ void Imm::render(const Mat4& view, const Mat4& projection) {
 
 	for (ImmBatch b : g_batches) {
 		if (b.noDepth) glDisable(GL_DEPTH_TEST);
+		glLineWidth(b.lineWidth);
 		glDrawElements(b.primitiveType, b.indexCount, GL_UNSIGNED_INT, (void*)(4 * b.offset));
 		if (b.noDepth) glEnable(GL_DEPTH_TEST);
 	}
@@ -89,6 +96,10 @@ void Imm::render(const Mat4& view, const Mat4& projection) {
 
 	g_drawables.clear();
 	g_batches.clear();
+}
+
+void Imm::lineWidth(float value) {
+	g_lineWidth = value;
 }
 
 void Imm::setModel(const Mat4& m) {
@@ -115,6 +126,7 @@ void Imm::end() {
 	dw.indices.insert(dw.indices.end(), g_indices.begin(), g_indices.end());
 	dw.primitiveType = g_beginPrimitive;
 	dw.noDepth = g_noDepth;
+	dw.lineWidth = g_lineWidth;
 
 	g_vertices.clear();
 	g_indices.clear();
@@ -123,22 +135,130 @@ void Imm::end() {
 
 	g_modelMatrix = Mat4(1.0f);
 	g_noDepth = false;
+	g_lineWidth = 1.0f;
 }
 
 void Imm::vertex(const Vec3 &pos, const Vec4 &col, bool index) {
 	ImmVertex vert;
 	vert.position = pos;
 	vert.color = col;
+
+	if (index) g_indices.push_back(g_vertices.size());
 	g_vertices.push_back(vert);
-	if (index) g_indices.push_back(g_indices.size());
 }
 
 void Imm::vertex(const Vec3& pos, bool index) {
 	vertex(pos, Vec4(1.0f), index);
 }
 
-void Imm::reuse(u32 index) {
-	g_indices.push_back(index);
+void Imm::addIndex(u32 index) {
+	g_indices.push_back(g_vertices.size() + index);
+}
+
+void Imm::addIndices(const Vector<u32>& indices) {
+	for (u32 i : indices) addIndex(i);
+}
+
+void Imm::line(const Vec3& a, const Vec3& b, const Vec4 color) {
+	vertex(a, color);
+	vertex(b, color);
+}
+
+void Imm::cube(const Vec3& halfExtents, const Vec4 color) {
+	const u32 indices[] = {
+		// front
+		0, 1, 2,
+		2, 3, 0,
+		// right
+		1, 5, 6,
+		6, 2, 1,
+		// back
+		7, 6, 5,
+		5, 4, 7,
+		// left
+		4, 0, 3,
+		3, 7, 4,
+		// bottom
+		4, 5, 1,
+		1, 0, 4,
+		// top
+		3, 2, 6,
+		6, 7, 3
+	};
+
+	Vector<u32> indices_v(std::begin(indices), std::end(indices));
+	addIndices(indices_v);
+
+	float x = halfExtents.x;
+	float y = halfExtents.y;
+	float z = halfExtents.z;
+
+	vertex(Vec3(-x, -y, z), color, false);
+	vertex(Vec3(x, -y, z), color, false);
+	vertex(Vec3(x, y, z), color, false);
+	vertex(Vec3(-x, y, z), color, false);
+	vertex(Vec3(-x, -y, -z), color, false);
+	vertex(Vec3(x, -y, -z), color, false);
+	vertex(Vec3(x, y, -z), color, false);
+	vertex(Vec3(-x, y, -z), color, false);
+}
+
+void Imm::sphere(const Vec3 &pos, float radius, const Vec4 &color, u32 stacks, u32 slices) {
+	// Calc The Index Positions
+	for (int i = 0; i < slices * stacks + slices; ++i){
+		addIndex(i);
+		addIndex(i + slices);
+		addIndex(i + slices + 1);
+
+		addIndex(i + slices + 1);
+		addIndex(i);
+		addIndex(i + 1);
+	}
+
+	// Calc The Vertices
+	for (u32 i = 0; i <= stacks; ++i) {
+		float V   = float(i) / float(stacks);
+		float phi = V * Pi;
+
+		// Loop Through Slices
+		for (int j = 0; j <= slices; ++j) {
+			float U = float(j) / float(slices);
+			float theta = U * (Pi * 2.0f);
+
+			// Calc The Vertex Positions
+			float x = std::cos(theta) * std::sin(phi);
+			float y = std::cos(phi);
+			float z = std::sin(theta) * std::sin(phi);
+
+			// Push Back Vertex Data
+			vertex(pos + Vec3(x, y, z) * radius, color, false);
+		}
+	}
+}
+
+void Imm::cone(const Vec3& pos, const Vec3& dir, float base, float height, const Vec4& color) {
+	const i32 slices = 24;
+
+	u32 i = 0;
+	for (i = 1; i < slices; i++) {
+		addIndex(0); addIndex(i); addIndex(i+1);
+	}
+	addIndex(0); addIndex(i); addIndex(1);
+
+	vertex(pos + dir * height, color, false);
+
+	for (u32 i = 0; i < slices; i++) {
+		float V   = float(i) / float(slices);
+		float phi = V * TwoPi;
+		float x = std::cos(phi);
+		float z = std::sin(phi);
+		Vec3 ax = Vec3(x, 0, z);
+		vertex(pos + ax * base, color, false);
+	}
+}
+
+void Imm::arrow(const Vec3& pos, const Vec3& dir, float len, const Vec4& color, float thickness) {
+
 }
 
 void Imm::generateBatches() {
@@ -164,13 +284,15 @@ void Imm::generateBatches() {
 		ImmDrawable curr = g_drawables[i];
 		ImmDrawable prev = g_drawables[i - 1];
 		if (curr.primitiveType != prev.primitiveType ||
-			curr.noDepth != prev.noDepth) {
+			curr.noDepth != prev.noDepth ||
+			curr.lineWidth != prev.lineWidth) {
 			off += g_batches.back().indexCount;
 			ImmBatch b;
 			b.primitiveType = curr.primitiveType;
 			b.noDepth = curr.noDepth;
 			b.indexCount = curr.indices.size();
 			b.offset = off;
+			b.lineWidth = curr.lineWidth;
 			g_batches.push_back(b);
 		} else {
 			g_batches.back().indexCount += curr.indices.size();
@@ -189,38 +311,6 @@ void Imm::generateBatches() {
 	g_ibo.bind();
 	g_ibo.setData<u32>(indices.size(), indices.data(), BufferUsage::Dynamic);
 	g_ibo.unbind();
-}
-
-void Imm::sphere(const Vec3 &pos, float radius, const Vec4 &color) {
-	const i32 lats = 16;
-	const i32 longs = 8;
-
-	u32 indicator = 0;
-
-	for(i32 i = 0; i <= lats; i++) {
-		float lat0 = Pi * (-0.5f + float(i - 1) / lats);
-		float z0 = sinf(lat0);
-		float zr0 = cosf(lat0);
-
-		float lat1 = Pi * (-0.5 + float(i) / lats);
-		float z1 = sinf(lat1);
-		float zr1 = cosf(lat1);
-
-		for(i32 j = 0; j <= longs; j++) {
-			float lng = 2.0f * Pi * float(j - 1) / longs;
-			float x = cosf(lng);
-			float y = sinf(lng);
-
-			vertex(Vec3(x * zr0, y * zr0, z0), false);
-			reuse(indicator);
-			indicator++;
-
-			vertex(Vec3(x * zr1, y * zr1, z1), false);
-			reuse(indicator);
-			indicator++;
-		}
-		reuse(UINT_MAX);
-	}
 }
 
 NS_END

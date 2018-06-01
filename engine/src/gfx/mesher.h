@@ -59,6 +59,7 @@ enum Axis {
 };
 
 class Mesh {
+	friend class Builder<Mesh>;
 public:
 	Mesh() : m_vertexCount(0), m_indexCount(0) {}
 	Mesh(const VertexBuffer& vbo, const VertexBuffer& ibo, const VertexArray& vao)
@@ -103,6 +104,16 @@ public:
 
 	AABB aabb() const { return m_aabb; }
 
+	bool valid() const {
+		return m_vbo.id() != 0 && m_vao.id() != 0 && m_ibo.id() != 0 && m_vertexCount > 0 && m_indexCount > 0;
+	}
+
+	void invalidate() {
+		m_vbo = VertexBuffer();
+		m_ibo = VertexBuffer();
+		m_vao = VertexArray();
+	}
+
 protected:
 	VertexBuffer m_vbo, m_ibo;
 	VertexArray m_vao;
@@ -129,6 +140,14 @@ public:
 					Builder<VertexBuffer>::build(),
 					Builder<VertexArray>::build()
 		);
+	}
+
+	static void destroy(Mesh ob) {
+		if (ob.valid()) {
+			Builder<VertexBuffer>::destroy(ob.m_vbo);
+			Builder<VertexBuffer>::destroy(ob.m_ibo);
+			Builder<VertexArray>::destroy(ob.m_vao);
+		}
 	}
 };
 

@@ -3,6 +3,7 @@
 
 #include "../core/types.h"
 #include "../core/msg.h"
+#include "../gfx/framebuffer.h"
 
 #include <memory>
 #include <typeindex>
@@ -87,7 +88,13 @@ public:
 
 	u64 id() const { return m_id; }
 
+	ComponentMap& components() { return m_components; }
+
+	String name() const;
+	void setName(const String& name);
+
 protected:
+	String m_name;
 	ComponentMap m_components;
 	u64 m_id;
 };
@@ -97,7 +104,7 @@ class EntitySystem {
 public:
 	virtual ~EntitySystem() = default;
 	virtual void update(EntityWorld& world, float dt) {}
-	virtual void render(EntityWorld& world) {}
+	virtual void render(EntityWorld& world, FrameBuffer* target) {}
 	virtual void entityCreated(EntityWorld& world, Entity& ent) {}
 	virtual void entityDestroyed(EntityWorld& world, Entity& ent) {}
 	virtual void messageReceived(EntityWorld& world, const Message& msg) {}
@@ -113,7 +120,7 @@ public:
 
 	void processMessage(const Message& msg) override;
 
-	Entity& create();
+	Entity& create(const String& name = "");
 	void destroy(Entity& entity);
 
 	template<class... Cs>
@@ -145,7 +152,9 @@ public:
 	}
 
 	void update(float dt);
-	void render();
+	void render(FrameBuffer* target = nullptr);
+
+	EntityList& entities() { return m_entities; }
 
 private:
 	Vector<Entity*> m_recentlyCreated, m_recentlyDestroyed;

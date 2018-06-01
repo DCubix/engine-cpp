@@ -22,35 +22,38 @@ struct TextureSlot {
 	Texture texture;
 	TextureSlotType type;
 	Sampler sampler;
-	
+
 	TextureSlot()
 		: enabled(false), uvTransform(Vec4(0, 0, 1, 1)), type(TextureSlotType::Albedo0),
 		sampler(Texture::DEFAULT_SAMPLER)
-	{}
+	{
+		texture.invalidate();
+	}
 };
 
 class Material {
 public:
-	Material() 
+	Material()
 		: roughness(0.5f), metallic(0.0f), emission(0.0f), baseColor(Vec3(1.0f)), heightScale(1.0f),
 			discardParallaxEdges(false), instanced(false), m_id(++g_matID), castsShadow(true)
-	{}
-	
+	{
+	}
+
 	Vec3 baseColor;
 	float metallic;
 	float roughness;
 	float emission;
 	float heightScale;
 	bool discardParallaxEdges, instanced, castsShadow;
-	
+
 	Material& setTextureEnabled(u32 index, bool enabled);
 	Material& setTextureUVTransform(u32 index, Vec4 uvt);
 	Material& setTexture(u32 index, const Texture& texture);
 	Material& setTextureType(u32 index, TextureSlotType type);
 	Material& setTextureSampler(u32 index, Sampler sampler);
-	
+
 	Array<TextureSlot, TextureSlotCount> textures;
-	
+
 	u32 id() const { return m_id; }
 private:
 	static u32 g_matID;

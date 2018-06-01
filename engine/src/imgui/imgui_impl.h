@@ -1,4 +1,5 @@
 #include "../gfx/shader.h"
+#include "../gfx/texture.h"
 #include "../core/types.h"
 #include "../math/mat.h"
 
@@ -7,14 +8,16 @@ typedef union SDL_Event SDL_Event;
 
 NS_BEGIN
 
-IMGUI_API bool ImGui_Impl_Init(SDL_Window* window);
-IMGUI_API void ImGui_Impl_Shutdown();
-IMGUI_API void ImGui_Impl_NewFrame(SDL_Window* window);
-IMGUI_API void ImGui_Impl_RenderDrawData(ImDrawData* draw_data);
-IMGUI_API bool ImGui_Impl_ProcessEvent(SDL_Event* event);
+namespace ImGuiSystem {
+	IMGUI_API bool Init(SDL_Window* window);
+	IMGUI_API void Shutdown();
+	IMGUI_API void NewFrame(u32 ww = 0, u32 wh = 0);
+	IMGUI_API void Render();
+	IMGUI_API bool ProcessEvent(SDL_Event* event);
 
-// Use if you want to reset your rendering device without losing ImGui state.
-IMGUI_API void ImGui_Impl_InvalidateDeviceObjects();
-IMGUI_API bool ImGui_Impl_CreateDeviceObjects();
+	// Use if you want to reset your rendering device without losing ImGui state.
+	IMGUI_API void InvalidateDeviceObjects();
+	IMGUI_API bool CreateDeviceObjects();
+}
 
 NS_END

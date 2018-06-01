@@ -16,10 +16,12 @@ struct ApplicationConfig {
 	bool fullScreen;
 	String title;
 	i32 frameCap;
-	bool notifyResize;
+	bool notifyResize, maximized;
+	SDL_Window *window;
 
 	ApplicationConfig()
-		: width(640), height(480), fullScreen(false), title("Engine"), frameCap(60), notifyResize(true)
+		: width(640), height(480), fullScreen(false), title("Engine"),
+		  frameCap(60), notifyResize(true), maximized(false), window(nullptr)
 	{}
 };
 
@@ -28,6 +30,10 @@ public:
 	virtual void init() = 0;
 	virtual void update(float timeDelta) = 0;
 	virtual void render() = 0;
+	virtual void gui() {}
+	virtual void windowResized(u32 width, u32 height) {}
+	virtual void applicationExited() {}
+
 	virtual ~IApplicationAdapter() {}
 
 	ApplicationConfig config;

@@ -72,7 +72,7 @@ public:
 	virtual ~PhysicsSystem();
 
 	void update(EntityWorld& world, float dt);
-	void render(EntityWorld& world);
+	void render(EntityWorld& world, FrameBuffer* target);
 	void entityCreated(EntityWorld& world, Entity& ent) override;
 	void entityDestroyed(EntityWorld& world, Entity& ent) override;
 

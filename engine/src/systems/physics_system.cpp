@@ -68,8 +68,8 @@ void PhysicsSystem::update(EntityWorld& world, float dt) {
 	m_world->stepSimulation(dt, 10);
 }
 
-void PhysicsSystem::render(EntityWorld& world) {
-	m_world->debugDrawWorld();
+void PhysicsSystem::render(EntityWorld& world, FrameBuffer* target) {
+//	m_world->debugDrawWorld();
 }
 
 void PhysicsSystem::entityCreated(EntityWorld& world, Entity& ent) {

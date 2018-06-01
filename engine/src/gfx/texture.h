@@ -70,7 +70,7 @@ public:
 
 	static Sampler DEFAULT_SAMPLER;
 
-	void invalidate() { m_id = 0; }
+	void invalidate() { m_id = 0; m_width = 0; m_height = 0; }
 
 protected:
 	GLuint m_id;

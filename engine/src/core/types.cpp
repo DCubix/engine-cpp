@@ -46,3 +46,18 @@ String Util::replace(const String& str, const String& what, const String& by) {
 
 	return rep;
 }
+
+Vector<String> Util::split(const String& text, const String& delimiter) {
+	Vector<String> arr;
+	String::size_type start = 0;
+	String::size_type end = text.find(delimiter.c_str(), start);
+	while (end != String::npos) 	{
+		String token = text.substr(start, end - start);
+		if (token != "")
+			arr.push_back(token);
+		start = end + 1;
+		end = text.find(delimiter.c_str(), start);
+	}
+	arr.push_back(text.substr(start));
+	return arr;
+}

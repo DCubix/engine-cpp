@@ -8,15 +8,15 @@
 #include "../gfx/filter.h"
 #include "../gfx/framebuffer.h"
 #include "../gfx/material.h"
-#include "../gfx/imm.h"
-
 #include "../components/light.h"
 
 NS_BEGIN
 
 struct Drawable3D : public Component {
 	Drawable3D() = default;
-	Drawable3D(Mesh mesh, Material material) : mesh(mesh), material(material) {}
+	Drawable3D(Mesh mesh, Material material)
+		: mesh(mesh), material(material)
+	{}
 
 	Mesh mesh;
 	Material material;
@@ -58,7 +58,7 @@ public:
 	RendererSystem(u32 width, u32 height);
 
 	void update(EntityWorld& world, float dt);
-	void render(EntityWorld& world);
+	void render(EntityWorld& world, FrameBuffer* target);
 	void messageReceived(EntityWorld& world, const Message& msg);
 
 	void resizeBuffers(u32 width, u32 height);
@@ -88,7 +88,8 @@ private:
 
 	// Buffers
 	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer,
-			m_captureBuffer, m_pickingBuffer, m_shadowBuffer;
+			m_captureBuffer, m_pickingBuffer, m_shadowBuffer,
+			m_screenBuffer;
 
 	bool m_IBLGenerated;
 
@@ -126,7 +127,7 @@ private:
 	void pickingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
 	void gbufferPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
 	void lightingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
-	void finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables);
+	void finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables, FrameBuffer* target);
 
 	void render(ShaderProgram& shader, const Vector<RenderMesh>& renderables,
 				bool textures = true, const RenderCondition& cond = nullptr);

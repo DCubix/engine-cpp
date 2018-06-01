@@ -96,13 +96,18 @@ void Application::run() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, contextFlags);
 #endif
 
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
+	if (m_config.maximized) {
+		flags |= SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED;
+	}
+
 	m_window = SDL_CreateWindow(
 		m_config.title.c_str(),
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		m_config.width,
 		m_config.height,
-		SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+		flags
 	);
 
 	if (m_window == nullptr) {
@@ -145,16 +150,18 @@ void Application::run() {
 			.setWrap();
 
 	Input::m_window = m_window;
+	m_config.window = m_window;
 
-	ImGui::CreateContext();
-	ImGui_Impl_Init(m_window);
+	ImGuiSystem::Init(m_window);
 
 	LogInfo("Application Started...");
 	eng_mainloop();
 
+	if (m_applicationAdapter)
+		m_applicationAdapter->applicationExited();
+
 	// Free resources
-	ImGui_Impl_Shutdown();
-	ImGui::DestroyContext();
+	ImGuiSystem::Shutdown();
 
 	Builder<VertexArray>::clean();
 	Builder<VertexBuffer>::clean();
@@ -191,13 +198,16 @@ void Application::eng_mainloop() {
 			accum -= timeStep;
 
 			Input::update([&](SDL_Event& evt) {
-				ImGui_Impl_ProcessEvent(&evt);
+				ImGuiSystem::ProcessEvent(&evt);
 				if (evt.type == SDL_WINDOWEVENT &&
-					evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED &&
-					m_config.notifyResize)
+					evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
 				{
-					Vec2 *sz = new Vec2(evt.window.data1, evt.window.data2);
-					MessageSystem::get().submit("app_window_resized", sz);
+					if (m_config.notifyResize) {
+						Vec2 *sz = new Vec2(evt.window.data1, evt.window.data2);
+						MessageSystem::get().submit("app_window_resized", sz);
+					}
+					if (m_applicationAdapter)
+						m_applicationAdapter->windowResized(evt.window.data1, evt.window.data2);
 				}
 			});
 
@@ -208,12 +218,15 @@ void Application::eng_mainloop() {
 		}
 
 		if (canRender) {
-			ImGui_Impl_NewFrame(m_window);
+			if (m_applicationAdapter)
+				m_applicationAdapter->render();
 
-			m_applicationAdapter->render();
+			ImGuiSystem::NewFrame();
 
-			ImGui::Render();
-			ImGui_Impl_RenderDrawData(ImGui::GetDrawData());
+			if (m_applicationAdapter)
+				m_applicationAdapter->gui();
+
+			ImGuiSystem::Render();
 
 			SDL_GL_SwapWindow(m_window);
 		}

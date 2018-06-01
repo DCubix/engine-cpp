@@ -54,6 +54,7 @@ file(GLOB SRC
 	"engine/src/components/*.cpp"
 	"engine/src/systems/*.cpp"
 	"engine/src/imgui/*.cpp"
+	"engine/src/imgui/*.c"
 )
 
 file(GLOB SHADERS

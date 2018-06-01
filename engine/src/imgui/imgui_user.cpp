@@ -3,7 +3,34 @@
 #define IMGUI_DEFINE_PLACEMENT_NEW
 #include "imgui_internal.h"
 
+#include <algorithm>
+#include <cstdlib>
+#include <sstream>
+
 #define ASSERT(x) IM_ASSERT(x)
+
+#if defined(WIN32)
+#include <windows.h>
+#include <direct.h>
+#include <tchar.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#define GetCurrentDir getcwd
+#endif
+
+#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
+
+#if defined(ICON_FA_CARET_DOWN)
+#define CARET_DOWN ICON_FA_CARET_DOWN
+#else
+#define CARET_DOWN "v"
+#endif
+
+using namespace std;
+using namespace ImGui;
 
 namespace ImGui
 {
@@ -1165,26 +1192,252 @@ bool BeginDock(const char* label, bool* opened, ImGuiWindowFlags extra_flags)
 	return g_dock.begin(label, opened, extra_flags);
 }
 
-
 void EndDock()
 {
 	g_dock.end();
 }
-
-
 
 void SaveDock()
 {
 	g_dock.save();
 }
 
-
-
-
 void LoadDock()
 {
 	g_dock.load();
 }
 
+#include <algorithm>
+
+uptr<ImGuiFileDialog> ImGuiFileDialog::g_instance = uptr<ImGuiFileDialog>(new ImGuiFileDialog());
+
+static bool stringComparator(VFSFileInfo a, VFSFileInfo b) {
+	return !a.directory && !a.link;
+}
+
+void ImGuiFileDialog::ScanDir(std::string vPath) {
+	m_FileList.clear();
+
+	if (m_CurrentPath_Decomposition.empty()) {
+		Vector<VFSFileInfo> finfos = VFS::get().listFiles(vPath);
+		if (!finfos.empty()) {
+			VFSFileInfo fi;
+			fi.directory = true;
+			fi.link = false;
+			fi.ext = "";
+			fi.fileName = "..";
+			finfos.insert(finfos.begin(), fi);
+		}
+		m_FileList = finfos;
+		SetCurrentDir(vPath);
+	}
+}
+
+void ImGuiFileDialog::SetCurrentDir(std::string vPath) {
+	if (VFS::get().exists(vPath)) {
+		m_CurrentPath = vPath;
+		m_CurrentPath_Decomposition = Util::split(m_CurrentPath, "/");
+	}
+}
+
+void ImGuiFileDialog::ComposeNewPath(std::vector<std::string>::iterator vIter) {
+	m_CurrentPath = "";
+	while (vIter != m_CurrentPath_Decomposition.begin()) {
+		if (!m_CurrentPath.empty())
+			m_CurrentPath = *vIter + "/" + m_CurrentPath;
+		else
+			m_CurrentPath = *vIter;
+		vIter--;
+	}
+}
+
+bool ImGuiFileDialog::FileDialog(const char* vName, const std::string& vFilters, std::string vPath, std::string vDefaultFileName) {
+	bool res = false;
+
+	IsOk = false;
+
+	Vector<String> filters = Util::split(vFilters, ";");
+
+	ImGui::SetNextWindowSize(ImVec2(512, 320));
+	ImGui::Begin(vName, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+	if (m_FileList.empty()) {
+		if (vDefaultFileName.empty()) {
+			m_SelectedFileName = vDefaultFileName;
+		}
+
+		ScanDir(vPath);
+	}
+
+	// show current path
+	bool pathClick = false;
+	ImGui::Text("Dir: ");
+	ImGui::SameLine();
+
+	for (auto itPathDecomp = m_CurrentPath_Decomposition.begin();
+		 itPathDecomp != m_CurrentPath_Decomposition.end();
+		 ++itPathDecomp)
+	{
+		if (itPathDecomp != m_CurrentPath_Decomposition.begin())
+			ImGui::SameLine();
+
+		String n = (*itPathDecomp);
+		if (n.empty()) n = ".";
+
+		if (ImGui::Button(n.c_str())) {
+			ComposeNewPath(itPathDecomp);
+			pathClick = true;
+			break;
+		}
+	}
+
+	ImVec2 size = ImGui::GetContentRegionAvail() - ImVec2(0.0f, 50.0f);
+
+	ImGui::BeginChild("##FileDialog_FileList", size, true);
+
+	for (std::vector<VFSFileInfo>::iterator it = m_FileList.begin(); it != m_FileList.end(); ++it) {
+		VFSFileInfo infos = *it;
+		bool isFile = !infos.directory && !infos.link;
+
+		String extNoDot = filters.empty() ? "" : filters.at(m_currentExtIndex);
+		if (isFile && !extNoDot.empty() && infos.ext != extNoDot) {
+			continue;
+		}
+
+		std::string str;
+		if (infos.directory) str = "[D]";
+		else if (infos.link) str = "[L]";
+		else str = "[F]";
+
+		ImGui::TextColored(ImVec4(0.3f, 0.3f, 0.3f, 1.0f), str.c_str());
+
+		ImGui::SameLine();
+
+		bool sel = (infos.fileName == m_SelectedFileName);
+		if (ImGui::Selectable(infos.fileName.c_str(), &sel)) {
+			if (infos.directory) {
+				if (infos.fileName == "..") {
+					if (m_CurrentPath_Decomposition.size() > 1) {
+						std::vector<std::string>::iterator itPathDecomp = m_CurrentPath_Decomposition.end() - 1;
+						ComposeNewPath(itPathDecomp);
+					}
+				} else {
+					m_CurrentPath += infos.fileName + "/";
+				}
+				pathClick = true;
+			} else {
+				m_SelectedFileName = infos.fileName;
+			}
+			break;
+		}
+	}
+
+	// Directory change
+	if (pathClick == true) {
+		m_CurrentPath_Decomposition.clear();
+		ScanDir(m_CurrentPath);
+	}
+
+	ImGui::EndChild();
+
+	ImGui::Text("File Name: ");
+
+	ImGui::SameLine();
+
+	float width = ImGui::GetContentRegionAvailWidth();
+	if (!vFilters.empty()) width -= 120.0f;
+
+	ImGui::PushItemWidth(width);
+	ImGui::InputText(
+				"##FileName",
+				(char*)m_SelectedFileName.c_str(),
+				MAX_FILE_DIALOG_NAME_BUFFER,
+				ImGuiInputTextFlags_ReadOnly
+	);
+	ImGui::PopItemWidth();
+
+	if (!vFilters.empty()) {
+		ImGui::SameLine();
+
+		ImGui::PushItemWidth(100.0f);
+		ImGui::Combo("##Filters", &m_currentExtIndex, filters);
+		ImGui::PopItemWidth();
+	}
+
+	if (ImGui::Button("Ok")) {
+		IsOk = true;
+		res = true;
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Cancel")) {
+		IsOk = false;
+		res = true;
+	}
+
+	ImGui::End();
+
+	if (res == true) {
+		m_FileList.clear();
+	}
+
+	return res;
+}
+
+std::string ImGuiFileDialog::GetFilepathName()
+{
+	String path = GetCurrentPath() + "/" + GetCurrentFileName();
+	m_CurrentPath = "";
+	m_SelectedFileName = "";
+	m_FileList.clear();
+	m_CurrentPath_Decomposition.clear();
+	return path;
+}
+
+std::string ImGuiFileDialog::GetCurrentPath()
+{
+	return m_CurrentPath;
+}
+
+std::string ImGuiFileDialog::GetCurrentFileName()
+{
+	return m_SelectedFileName;
+}
+
+bool FileDialog(const char* vName, const string& filters, string vPath, string vDefaultFileName) {
+	return ImGuiFileDialog::instance().FileDialog(
+				vName,
+				filters.c_str(),
+				vPath,
+				vDefaultFileName
+	);
+}
+
+bool FileDialogOk() {
+	return ImGuiFileDialog::instance().IsOk;
+}
+
+String GetFileDialogFileName() {
+	return ImGuiFileDialog::instance().GetFilepathName();
+}
+
+static bool vector_getter(void* vec, int idx, const char** out_text) {
+	auto& vector = *static_cast<std::vector<std::string>*>(vec);
+	if (idx < 0 || idx >= static_cast<int>(vector.size())) { return false; }
+	*out_text = vector.at(idx).c_str();
+	return true;
+}
+
+bool Combo(const char* label, int* currIndex, std::vector<string>& values) {
+	if (values.empty()) { return false; }
+	return ImGui::Combo(label, currIndex, vector_getter, static_cast<void*>(&values), values.size());
+}
+
+bool ListBox(const char* label, int* currIndex, std::vector<string>& values) {
+	if (values.empty()) { return false; }
+	return ImGui::ListBox(label, currIndex, vector_getter, static_cast<void*>(&values), values.size());
+}
 
 } // namespace ImGui
+

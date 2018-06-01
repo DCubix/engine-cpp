@@ -40,6 +40,8 @@
 #include <tuple>
 #include <algorithm>
 #include <memory>
+#include <sstream>
+#include <type_traits>
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -95,6 +97,25 @@ public:
 	static float random(float min, float max);
 	static double getTime();
 	static String replace(const String& str, const String& what, const String& by);
+	static Vector<String> split(const String& text, const String& delimiter);
+
+	template <typename T>
+	static std::enable_if_t<std::is_arithmetic<T>::value, String> toStr(T value) {
+		return std::to_string(value);
+	}
+
+	template <typename T>
+	static std::enable_if_t<!std::is_arithmetic<T>::value, String> toStr(T value) {
+		return static_cast<std::ostringstream&>(std::ostringstream() << value).str();
+	}
+
+	template <typename... Args>
+	static String strCat(const Args&... args) {
+		std::stringstream stm;
+		using List = int[];
+		(void)List{0, ( (void)(stm << args), 0 ) ... };
+		return stm.str();
+	}
 };
 
 #define SAFE_RELEASE(x) if (x) { delete x; x = nullptr; }

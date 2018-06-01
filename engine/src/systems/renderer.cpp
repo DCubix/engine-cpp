@@ -5,6 +5,8 @@
 NS_BEGIN
 
 Mat4 Camera::getProjection(u32 width, u32 height) {
+	width = width == 0 ? 1 : width;
+	height = height == 0 ? 1 : height;
 	if (type == CameraType::Orthographic) {
 		return glm::ortho(-orthoScale, orthoScale, -orthoScale, orthoScale, zNear, zFar);
 	}
@@ -228,15 +230,13 @@ RendererSystem::RendererSystem(u32 width, u32 height) {
 			.setFilter(TextureFilter::Linear, TextureFilter::Linear)
 			.setWrap(TextureWrap::ClampToEdge, TextureWrap::ClampToEdge, TextureWrap::ClampToEdge)
 			.setSeamlessCubemap(true);
-
-	Imm::initialize();
 }
 
 void RendererSystem::update(EntityWorld& world, float dt) {
 	m_time += dt;
 }
 
-void RendererSystem::render(EntityWorld& world) {
+void RendererSystem::render(EntityWorld& world, FrameBuffer* target) {
 	if (m_activeCamera == nullptr || m_activeCameraTransform == nullptr) {
 		Entity *cameraEnt = world.find<Camera>();
 		if (cameraEnt) {
@@ -277,14 +277,13 @@ void RendererSystem::render(EntityWorld& world) {
 	pickingPass(world, projMat, viewMat, renderMeshes);
 	gbufferPass(projMat, viewMat, renderMeshes);
 	lightingPass(world, projMat, viewMat, renderMeshes);
-	finalPass(projMat, viewMat, renderMeshes);
+	finalPass(projMat, viewMat, renderMeshes, target);
 
 	// Immediate geom
 	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	Imm::render(viewMat, projMat);
 }
 
 void RendererSystem::messageReceived(EntityWorld& world, const Message& msg) {
@@ -454,7 +453,7 @@ void RendererSystem::computeIBL() {
 void RendererSystem::pickingPass(EntityWorld& world, const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	glDepthFunc(GL_LESS);
+	glDepthFunc(GL_GREATER);
 
 	/// Fill picking buffer
 	m_pickingBuffer.bind();
@@ -533,7 +532,7 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 	// Lights
 	m_finalBuffer.bind();
 
-	clear(ClearBufferMask::ColorBuffer, 0, 0, 0, 0);
+	clear(ClearBufferMask::ColorBuffer, 0, 0, 0, 1);
 
 	m_lightingShader.bind();
 	m_lightingShader.get("mProjection").set(projection);
@@ -776,10 +775,13 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 		glEnable(GL_CULL_FACE);
 	}
 
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
 	m_finalBuffer.unbind();
 }
 
-void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables) {
+void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const Vector<RenderMesh>& renderables, FrameBuffer* target) {
 	/// Final render
 	m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
 	m_finalBuffer.getColorAttachment(0).generateMipmaps();
@@ -791,6 +793,10 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 
 	/// Post processing
 	if (m_postEffects.empty()) {
+		if (target) {
+			target->bind();
+			clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer);
+		}
 		m_finalShader.bind();
 
 		m_finalBuffer.getColorAttachment(0).bind(m_screenMipSampler, 0);
@@ -866,6 +872,10 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 		}
 		m_pingPongBuffer.unbind();
 
+		if (target) {
+			target->bind();
+			clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer);
+		}
 		m_finalShader.bind();
 
 		m_pingPongBuffer.getColorAttachment(currActive).bind(m_screenTextureSampler, 0);
@@ -879,7 +889,11 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 	m_plane.unbind();
 
 	m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	if (target) {
+		target->bind(FrameBufferTarget::DrawFramebuffer);
+	} else {
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	}
 	glBlitFramebuffer(
 			0, 0, m_gbuffer.width(), m_gbuffer.height(),
 			0, 0, m_gbuffer.width(), m_gbuffer.height(),
@@ -939,7 +953,13 @@ void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& ren
 
 		if (textures) {
 			int sloti = 0;
-			for (TextureSlot slot : rm.material.textures) {
+			shader.get("tAlbedo0.opt.enabled").set(false);
+			shader.get("tAlbedo1.opt.enabled").set(false);
+			shader.get("tNormalMap.opt.enabled").set(false);
+			shader.get("tRMEMap.opt.enabled").set(false);
+			shader.get("tHeightMap.opt.enabled").set(false);
+
+			for (TextureSlot& slot : rm.material.textures) {
 				if (!slot.enabled || slot.texture.id() == 0) continue;
 
 				String tname = "";
@@ -975,6 +995,7 @@ void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& ren
 
 		rm.mesh.bind();
 		rm.mesh.drawIndexed(PrimitiveType::Triangles, 0, rm.mesh.indexCount());
+
 	}
 }
 
@@ -1030,7 +1051,13 @@ void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderM
 
 		if (textures) {
 			int sloti = 0;
-			for (TextureSlot slot : mat.textures) {
+			shader.get("tAlbedo0.opt.enabled").set(false);
+			shader.get("tAlbedo1.opt.enabled").set(false);
+			shader.get("tNormalMap.opt.enabled").set(false);
+			shader.get("tRMEMap.opt.enabled").set(false);
+			shader.get("tHeightMap.opt.enabled").set(false);
+
+			for (TextureSlot& slot : mat.textures) {
 				if (!slot.enabled || slot.texture.id() == 0) continue;
 
 				String tname = "";

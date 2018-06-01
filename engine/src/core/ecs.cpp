@@ -10,9 +10,10 @@ void EntityWorld::processMessage(const Message& msg) {
 	}
 }
 
-Entity& EntityWorld::create() {
+Entity& EntityWorld::create(const String& name) {
 	m_entities.push_back(uptr<Entity>(new Entity()));
 	m_entities.back()->m_id = m_entities.size();
+	m_entities.back()->setName(name);
 	m_recentlyCreated.push_back(m_entities.back().get());
 	return *m_entities.back().get();
 }
@@ -45,14 +46,22 @@ void EntityWorld::update(float dt) {
 	}
 }
 
-void EntityWorld::render() {
+void EntityWorld::render(FrameBuffer* target) {
 	for (uptr<EntitySystem>& sys : m_systems) {
-		sys->render(*this);
+		sys->render(*this, target);
 	}
 }
 
 void Entity::removeAll() {
 	m_components.clear();
+}
+
+String Entity::name() const {
+	return m_name;
+}
+
+void Entity::setName(const String& name) {
+	m_name = name;
 }
 
 NS_END
