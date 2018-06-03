@@ -218,10 +218,11 @@ void Application::eng_mainloop() {
 		}
 
 		if (canRender) {
+			ImGuiSystem::NewFrame();
+			ImGuizmo::BeginFrame();
+
 			if (m_applicationAdapter)
 				m_applicationAdapter->render();
-
-			ImGuiSystem::NewFrame();
 
 			if (m_applicationAdapter)
 				m_applicationAdapter->gui();

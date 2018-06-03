@@ -35,7 +35,7 @@ public:
 
 	void resize(u32 newWidth, u32 newHeight);
 
-	void bind(FrameBufferTarget target = FrameBufferTarget::Framebuffer);
+	void bind(FrameBufferTarget target = FrameBufferTarget::Framebuffer, Attachment readBuffer = Attachment::NoAttachment);
 	void unbind(bool resetViewport = true);
 
 	void setDrawBuffer(u32 index);

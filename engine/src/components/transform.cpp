@@ -57,7 +57,7 @@ void Transform::setParent(Transform* parent) {
 }
 
 Quat Transform::worldRotation() {
-	Quat parentRotation(0, 0, 0, 1);
+	Quat parentRotation(1, 0, 0, 0);
 
 	if (m_parent) {
 		parentRotation = m_parent->worldRotation();
@@ -88,8 +88,26 @@ Mat4 Transform::getParentTransform() {
 	return m_parentMatrix;
 }
 
+void Transform::setFromMatrix(const Mat4& mat) {
+	Mat4 m = mat;
+	position = Vec3(m[3]);
+	m[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	scale = Vec3(
+			glm::length(Vec3(m[0])),
+			glm::length(Vec3(m[1])),
+			glm::length(Vec3(m[2]))
+	);
+
+	m[0] /= scale.x;
+	m[1] /= scale.y;
+	m[2] /= scale.z;
+
+	rotation = glm::quat_cast(m);
+}
+
 void Transform::rotate(const Quat& rot) {
-	rotation = glm::normalize(rotation * rot);
+	rotation *= rot;
 }
 
 void Transform::rotate(const Vec3& axis, float angle) {

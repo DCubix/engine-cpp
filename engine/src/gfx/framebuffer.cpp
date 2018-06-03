@@ -19,11 +19,13 @@ FrameBuffer::FrameBuffer(GLuint fbo)
 	}
 }
 
-void FrameBuffer::bind(FrameBufferTarget target) {
+void FrameBuffer::bind(FrameBufferTarget target, Attachment readBuffer) {
 	m_boundTarget = target;
 	glGetIntegerv(GL_VIEWPORT, m_previousViewport);
 	glBindFramebuffer(target, m_fbo);
 	glViewport(0, 0, m_width, m_height);
+	if (target == FrameBufferTarget::ReadFramebuffer)
+		glReadBuffer(readBuffer);
 }
 
 void FrameBuffer::unbind(bool resetViewport) {

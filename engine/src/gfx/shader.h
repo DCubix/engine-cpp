@@ -20,6 +20,7 @@ public:
 	void set(u64 v) { glUniform(1ui, v); }
 	void set(i32 v) { glUniform(1i, v); }
 	void set(float v) { glUniform(1f, v); }
+	void set(bool v) { glUniform(1i, v ? 1 : 0); }
 	void set(Vec2 v) { glUniform(2f, v.x, v.y); }
 	void set(Vec3 v) { glUniform(3f, v.x, v.y, v.z); }
 	void set(Vec4 v) { glUniform(4f, v.x, v.y, v.z, v.w); }

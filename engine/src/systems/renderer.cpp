@@ -18,15 +18,13 @@ const String RendererSystem::POST_FX_VS =
 ;
 
 RendererSystem::RendererSystem() : RendererSystem(640, 480) {
-
 }
 
 RendererSystem::RendererSystem(u32 width, u32 height) {
-	m_activeCamera = nullptr;
-	m_activeCameraTransform = nullptr;
 	m_IBLGenerated = false;
 	m_renderWidth = width;
 	m_renderHeight = height;
+	m_pov = nullptr;
 
 	m_gbuffer = Builder<FrameBuffer>::build()
 			.setSize(width, height)
@@ -236,27 +234,26 @@ void RendererSystem::update(EntityWorld& world, float dt) {
 	m_time += dt;
 }
 
-void RendererSystem::render(EntityWorld& world, FrameBuffer* target) {
-	if (m_activeCamera == nullptr || m_activeCameraTransform == nullptr) {
+void RendererSystem::render(EntityWorld& world, FrameBuffer* target, Entity* pov) {
+	Entity* _pov = pov == nullptr ? m_pov : pov;
+	if (_pov == nullptr) {
 		Entity *cameraEnt = world.find<Camera>();
-		if (cameraEnt) {
-			m_activeCamera = cameraEnt->get<Camera>();
-			m_activeCameraTransform = cameraEnt->get<Transform>();
+		if (cameraEnt && cameraEnt->has<Transform>()) {
+			_pov = m_pov = cameraEnt;
 		}
 	}
+	m_pov = _pov;
 
-	Mat4 projMat(1.0f);
-	if (m_activeCamera) {
-		projMat = m_activeCamera->getProjection(m_renderWidth, m_renderHeight);
-	}
+	if (_pov == nullptr) return;
 
+	Mat4 projMat = _pov->get<Camera>()->getProjection(m_renderWidth, m_renderHeight);
+
+	Transform *camT = _pov->get<Transform>();
 	Mat4 viewMat(1.0f);
-	if (m_activeCameraTransform) {
-		Quat qRot = glm::conjugate(m_activeCameraTransform->worldRotation());
-		Mat4 rot = glm::mat4_cast(qRot);
-		Mat4 loc = glm::translate(Mat4(1.0f), m_activeCameraTransform->worldPosition() * -1.0f);
-		viewMat = rot * loc;
-	}
+	Quat qRot = glm::conjugate(camT->worldRotation());
+	Mat4 rot = glm::mat4_cast(qRot);
+	Mat4 loc = glm::translate(Mat4(1.0f), camT->worldPosition() * -1.0f);
+	viewMat = rot * loc;
 
 	if (!m_IBLGenerated && m_envMap.id() != 0) {
 		computeIBL();
@@ -277,6 +274,7 @@ void RendererSystem::render(EntityWorld& world, FrameBuffer* target) {
 	pickingPass(world, projMat, viewMat, renderMeshes);
 	gbufferPass(projMat, viewMat, renderMeshes);
 	lightingPass(world, projMat, viewMat, renderMeshes);
+
 	finalPass(projMat, viewMat, renderMeshes, target);
 
 	// Immediate geom
@@ -501,8 +499,8 @@ void RendererSystem::gbufferPass(const Mat4& projection, const Mat4& view, const
 	m_gbufferShader.get("mProjection").set(projection);
 	m_gbufferShader.get("mView").set(view);
 
-	if (m_activeCameraTransform) {
-		m_gbufferShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+	if (m_pov) {
+		m_gbufferShader.get("uEye").set(m_pov->get<Transform>()->worldPosition());
 	}
 
 	if (!renderables.empty()) {
@@ -515,8 +513,8 @@ void RendererSystem::gbufferPass(const Mat4& projection, const Mat4& view, const
 	m_gbufferInstancedShader.get("mProjection").set(projection);
 	m_gbufferInstancedShader.get("mView").set(view);
 
-	if (m_activeCameraTransform) {
-		m_gbufferInstancedShader.get("uEye").set(m_activeCameraTransform->worldPosition());
+	if (m_pov) {
+		m_gbufferInstancedShader.get("uEye").set(m_pov->get<Transform>()->worldPosition());
 	}
 
 	renderInstanced(m_gbufferInstancedShader, renderables);
@@ -548,9 +546,10 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 	m_lightingShader.get("tRME").set(2);
 	m_lightingShader.get("tDepth").set(3);
 
-	if (m_activeCameraTransform) {
-		m_lightingShader.get("uEye").set(m_activeCameraTransform->worldPosition());
-		m_lightingShader.get("uNF").set(Vec2(m_activeCamera->zNear, m_activeCamera->zFar));
+	if (m_pov) {
+		Camera *cam = m_pov->get<Camera>();
+		m_lightingShader.get("uEye").set(m_pov->get<Transform>()->worldPosition());
+		m_lightingShader.get("uNF").set(Vec2(cam->zNear, cam->zFar));
 	}
 
 	glEnable(GL_BLEND);
@@ -599,10 +598,7 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 
 			float s = L.shadowFrustumSize;
 			Mat4 projMatLight = glm::ortho(-s, s, -s, s, -s, s);
-
-			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
-			Mat4 vT = glm::translate(Mat4(1.0f), T.worldPosition() * -1.0f);
-			Mat4 viewMatLight = vR * vT;
+			Mat4 viewMatLight = glm::inverse(T.getTransformation());
 
 			lightVP = projMatLight * viewMatLight;
 
@@ -681,10 +677,7 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 
 			float fov = L.spotCutOff * 2.0f;
 			Mat4 projMatLight = glm::perspective(fov, 1.0f, 0.01f, L.radius * 4.0f);
-
-			Mat4 vR = glm::mat4_cast(glm::conjugate(T.worldRotation()));
-			Mat4 vT = glm::translate(Mat4(1.0f), T.worldPosition() * -1.0f);
-			Mat4 viewMatLight = vR * vT;
+			Mat4 viewMatLight = glm::inverse(T.getTransformation());
 
 			lightVP = projMatLight * viewMatLight;
 
@@ -795,7 +788,10 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 	if (m_postEffects.empty()) {
 		if (target) {
 			target->bind();
-			clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer);
+			i32 mask = ClearBufferMask::ColorBuffer;
+			if (target->getDepthAttachment().id() != 0)
+				mask |= ClearBufferMask::DepthBuffer;
+			clear(mask);
 		}
 		m_finalShader.bind();
 
@@ -873,8 +869,10 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 		m_pingPongBuffer.unbind();
 
 		if (target) {
-			target->bind();
-			clear(ClearBufferMask::ColorBuffer | ClearBufferMask::DepthBuffer);
+			i32 mask = ClearBufferMask::ColorBuffer;
+			if (target->getDepthAttachment().id() != 0)
+				mask |= ClearBufferMask::DepthBuffer;
+			clear(mask);
 		}
 		m_finalShader.bind();
 
@@ -889,7 +887,7 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 	m_plane.unbind();
 
 	m_gbuffer.bind(FrameBufferTarget::ReadFramebuffer);
-	if (target) {
+	if (target && target->getDepthAttachment().id() != 0) {
 		target->bind(FrameBufferTarget::DrawFramebuffer);
 	} else {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -900,6 +898,9 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 			ClearBufferMask::DepthBuffer,
 			TextureFilter::Nearest
 	);
+	if (target) {
+		target->getColorAttachment(0).generateMipmaps();
+	}
 	m_gbuffer.unbind();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1102,6 +1103,14 @@ void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderM
 
 u32 RendererSystem::renderWidth() const {
 	return m_renderWidth;
+}
+
+Entity* RendererSystem::POV() const {
+	return m_pov;
+}
+
+void RendererSystem::setPOV(Entity* pov) {
+	m_pov = pov;
 }
 
 u32 RendererSystem::renderHeight() const {

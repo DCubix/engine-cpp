@@ -58,7 +58,7 @@ public:
 	RendererSystem(u32 width, u32 height);
 
 	void update(EntityWorld& world, float dt);
-	void render(EntityWorld& world, FrameBuffer* target);
+	void render(EntityWorld& world, FrameBuffer* target, Entity* POV);
 	void messageReceived(EntityWorld& world, const Message& msg);
 
 	void resizeBuffers(u32 width, u32 height);
@@ -74,6 +74,8 @@ public:
 
 	FrameBuffer& GBuffer() { return m_gbuffer; }
 	FrameBuffer& finalBuffer() { return m_finalBuffer; }
+	FrameBuffer& pickingBuffer() { return m_pickingBuffer; }
+	FrameBuffer& shadowBuffer() { return m_shadowBuffer; }
 
 	float time() const { return m_time; }
 
@@ -82,9 +84,12 @@ public:
 	u32 renderHeight() const;
 	u32 renderWidth() const;
 
+	Entity* POV() const;
+	void setPOV(Entity* POV);
+
 private:
-	Camera *m_activeCamera;
-	Transform *m_activeCameraTransform;
+	// Camera
+	Entity* m_pov;
 
 	// Buffers
 	FrameBuffer m_gbuffer, m_finalBuffer, m_pingPongBuffer,

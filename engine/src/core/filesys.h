@@ -47,7 +47,6 @@ private:
 	VFS() { if (!PHYSFS_isInit()) PHYSFS_init(NULL); }
 
 	static VFS g_instance;
-	Map<String, Vector<String>> m_mountPoints;
 
 	PHYSFS_File* m_file;
 

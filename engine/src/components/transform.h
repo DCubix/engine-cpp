@@ -36,6 +36,8 @@ public:
 	Mat4 getTransformationLocal();
 	Mat4 getParentTransform();
 
+	void setFromMatrix(const Mat4& mat);
+
 private:
 	Transform* m_parent;
 

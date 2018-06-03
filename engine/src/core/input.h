@@ -28,7 +28,7 @@ public:
 	static bool isMouseButtonReleased(int btn);
 	static bool isMouseButtonDown(int btn);
 
-	static i32 getScrollOffset() { return m_scrollOffset; }
+	static i32 getScrollOffset() { i32 off = m_scrollOffset; m_scrollOffset = 0; return off; }
 	static i32 getMouseX() { return m_mouseX; }
 	static i32 getMouseY() { return m_mouseY; }
 

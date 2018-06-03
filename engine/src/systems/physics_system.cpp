@@ -23,7 +23,7 @@ PhysicsSystem::PhysicsSystem() {
 
 	m_debugDraw = new EngDebugDraw();
 	m_debugDraw->setDebugMode(
-				btIDebugDraw::DBG_DrawWireframe
+				btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawAabb
 	);
 	m_world->setDebugDrawer(m_debugDraw);
 }
@@ -39,18 +39,11 @@ PhysicsSystem::~PhysicsSystem() {
 }
 
 void PhysicsSystem::update(EntityWorld& world, float dt) {
+	m_world->stepSimulation(dt, 10);
 	world.each([=](Entity& ent, RigidBody& R, Transform& T) {
 		btRigidBody *body = R.rigidBody();
 
 		btTransform trans; body->getMotionState()->getWorldTransform(trans);
-
-		Vec3 pos = T.position;
-		Quat rot = T.rotation;
-		body->getMotionState()->setWorldTransform(btTransform(
-													  btQuaternion(rot.x, rot.y, rot.z, rot.w),
-													  btVector3(pos.x, pos.y, pos.z)
-												  )
-		);
 
 		Vec3 position(trans.getOrigin().x(), trans.getOrigin().y(), trans.getOrigin().z());
 		Quat rotation(
@@ -60,16 +53,9 @@ void PhysicsSystem::update(EntityWorld& world, float dt) {
 					trans.getRotation().getZ()
 		);
 
-//		LogInfo(pos.x, ", ", pos.y, ", ", pos.z);
-
 		T.position = position;
 		T.rotation = rotation;
 	});
-	m_world->stepSimulation(dt, 10);
-}
-
-void PhysicsSystem::render(EntityWorld& world, FrameBuffer* target) {
-//	m_world->debugDrawWorld();
 }
 
 void PhysicsSystem::entityCreated(EntityWorld& world, Entity& ent) {

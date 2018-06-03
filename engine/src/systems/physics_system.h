@@ -20,9 +20,9 @@ public:
 
 	void draw3dText(const btVector3& location,const char* textString) {}
 
-	void setDebugMode(int debugMode) {}
+	void setDebugMode(int debugMode) { this->debugMode = debugMode; }
 
-	int getDebugMode() const {}
+	int getDebugMode() const { return debugMode; }
 
 	void drawContactPoint(
 			const btVector3& PointOnB,
@@ -35,11 +35,10 @@ public:
 	}
 
 	void clearLines() {
-		Imm::begin(PrimitiveType::Lines);
 	}
 
 	void flushLines() {
-		Imm::end();
+
 	}
 
 	void drawLine(
@@ -48,10 +47,13 @@ public:
 			const btVector3& color)
 	{
 		Vec4 col(color.x(), color.y(), color.z(), 1.0f);
-
+		Imm::begin(PrimitiveType::Lines);
 		Imm::vertex(Vec3(from.x(), from.y(), from.z()), col);
 		Imm::vertex(Vec3(to.x(), to.y(), to.z()), col);
+		Imm::end();
 	}
+
+	int debugMode;
 };
 
 class RigidBody : public Component {
@@ -72,9 +74,10 @@ public:
 	virtual ~PhysicsSystem();
 
 	void update(EntityWorld& world, float dt);
-	void render(EntityWorld& world, FrameBuffer* target);
 	void entityCreated(EntityWorld& world, Entity& ent) override;
 	void entityDestroyed(EntityWorld& world, Entity& ent) override;
+
+	btDynamicsWorld* bulletWorld() { return m_world; }
 
 private:
 	btBroadphaseInterface *m_broadPhase;

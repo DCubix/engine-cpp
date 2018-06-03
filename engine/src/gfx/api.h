@@ -129,7 +129,8 @@ DEF_GL_TYPE_TRAIT_R(name, { GLuint v; gen(1, &v); return v; }, { del(1, &v); })
 		ColorAttachment = GL_COLOR_ATTACHMENT0,
 		DepthAttachment = GL_DEPTH_ATTACHMENT,
 		StencilAttachment = GL_STENCIL_ATTACHMENT,
-		DepthStencilAttachment = GL_DEPTH_STENCIL_ATTACHMENT
+		DepthStencilAttachment = GL_DEPTH_STENCIL_ATTACHMENT,
+		NoAttachment = GL_NONE
 	};
 
 	enum DataAccess {

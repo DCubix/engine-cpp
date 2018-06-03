@@ -43,7 +43,7 @@ protected:
 
 class Texture {
 public:
-	Texture() : m_id(0) {}
+	Texture() : m_id(0), m_width(0), m_height(0) {}
 	Texture(GLuint id) : m_id(id) {}
 
 	Texture& setFromFile(const String& file, TextureTarget tgt);

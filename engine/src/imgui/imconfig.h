@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
-
+#define IMGUI_DEFINE_MATH_OPERATORS
 //---- Define assertion handler. Defaults to calling assert().
 //#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)
 //#define IM_ASSERT(_EXPR)  ((void)(_EXPR))     // Disable asserts
@@ -69,4 +69,3 @@ namespace ImGui
 	void MyFunction(const char* name, const MyMatrix44& v);
 }
 */
-#define IMGUI_DEFINE_MATH_OPERATORS

@@ -46,10 +46,17 @@ void EntityWorld::update(float dt) {
 	}
 }
 
-void EntityWorld::render(FrameBuffer* target) {
+void EntityWorld::render(FrameBuffer* target, Entity* pov) {
 	for (uptr<EntitySystem>& sys : m_systems) {
-		sys->render(*this, target);
+		sys->render(*this, target, pov);
 	}
+}
+
+Entity* EntityWorld::getEntity(u64 id) {
+	for (uptr<Entity>& ent : m_entities) {
+		if (ent->id() == id) return ent.get();
+	}
+	return nullptr;
 }
 
 void Entity::removeAll() {

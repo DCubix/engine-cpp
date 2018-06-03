@@ -104,7 +104,7 @@ class EntitySystem {
 public:
 	virtual ~EntitySystem() = default;
 	virtual void update(EntityWorld& world, float dt) {}
-	virtual void render(EntityWorld& world, FrameBuffer* target) {}
+	virtual void render(EntityWorld& world, FrameBuffer* target, Entity* pov) {}
 	virtual void entityCreated(EntityWorld& world, Entity& ent) {}
 	virtual void entityDestroyed(EntityWorld& world, Entity& ent) {}
 	virtual void messageReceived(EntityWorld& world, const Message& msg) {}
@@ -152,9 +152,10 @@ public:
 	}
 
 	void update(float dt);
-	void render(FrameBuffer* target = nullptr);
+	void render(FrameBuffer* target = nullptr, Entity* pov = nullptr);
 
 	EntityList& entities() { return m_entities; }
+	Entity* getEntity(u64 id);
 
 private:
 	Vector<Entity*> m_recentlyCreated, m_recentlyDestroyed;

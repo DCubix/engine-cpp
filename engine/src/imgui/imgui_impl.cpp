@@ -83,7 +83,7 @@ void Render() {
 	g_ShaderHandle.bind();
 	g_ShaderHandle.get("Texture").set(0);
 	g_ShaderHandle.get("ProjMtx").set(proj);
-//	Texture::DEFAULT_SAMPLER.bind(0);
+	glBindSampler(0, 0);
 
 	// Recreate the VAO every time
 	// (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
@@ -117,6 +117,8 @@ void Render() {
 			else {
 				GLuint tid = (GLuint)(intptr_t)pcmd->TextureId;
 				glBindTexture(GL_TEXTURE_2D, tid);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
 				glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
 			}
@@ -240,7 +242,7 @@ bool CreateDeviceObjects()
 		void main() {
 			Frag_UV = UV;
 			Frag_Color = Color;
-			gl_Position = ProjMtx * vec4(Position.xy,0,1);
+			gl_Position = ProjMtx * vec4(Position.xy, 0.0, 1.0);
 		})";
 
 	const String fragment_shader =
@@ -250,7 +252,7 @@ bool CreateDeviceObjects()
 		in vec4 Frag_Color;
 		out vec4 Out_Color;
 		void main() {
-			Out_Color = Frag_Color * texture( Texture, Frag_UV.st);
+			Out_Color = Frag_Color * texture(Texture, Frag_UV);
 		})";
 
 	g_ShaderHandle = Builder<ShaderProgram>::build()
