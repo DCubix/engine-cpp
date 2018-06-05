@@ -25,13 +25,14 @@ RendererSystem::RendererSystem(u32 width, u32 height) {
 	m_renderWidth = width;
 	m_renderHeight = height;
 	m_pov = nullptr;
+	m_materialID = 0;
 
 	m_gbuffer = Builder<FrameBuffer>::build()
 			.setSize(width, height)
 			.addRenderBuffer(TextureFormat::Depthf, Attachment::DepthAttachment)
 			.addColorAttachment(TextureFormat::RGf) // Normals
 			.addColorAttachment(TextureFormat::RGB) // Albedo
-			.addColorAttachment(TextureFormat::RGBf) // RME
+			.addColorAttachment(TextureFormat::RGB) // RME
 			.addDepthAttachment();
 
 	m_finalBuffer = Builder<FrameBuffer>::build()
@@ -266,8 +267,11 @@ void RendererSystem::render(EntityWorld& world, FrameBuffer* target, Entity* pov
 	world.each([&](Entity &ent, Transform &T, Drawable3D &D) {
 		RenderMesh rm;
 		rm.mesh = D.mesh;
-		rm.material = D.material;
+		rm.materialID = D.materialID;
 		rm.modelMatrix = T.getTransformation();
+		if (ent.has<Texturer>()) {
+			rm.texturer = *ent.get<Texturer>();
+		}
 		renderMeshes.push_back(rm);
 	});
 
@@ -468,13 +472,16 @@ void RendererSystem::pickingPass(EntityWorld& world, const Mat4& projection, con
 
 		// Scale the cube to the same size of the object
 		Vec3 scale = Vec3(1.0f);
+		Vec3 center(0.0f);
 		if (ent.has<Drawable3D>()) {
 			Drawable3D *drw = ent.get<Drawable3D>();
+			center = (drw->mesh.aabb().max() + drw->mesh.aabb().min()) * 0.5f;
 			scale = (drw->mesh.aabb().max() - drw->mesh.aabb().min()) * 0.5f;
 		} else {
 			scale = Vec3(0.1f);
 		}
-		modelMat = modelMat * glm::scale(Mat4(1.0f), scale);
+		modelMat = glm::translate(modelMat, center);
+		modelMat = glm::scale(modelMat, scale);
 
 		m_pickingShader.get("mModel").set(modelMat);
 		m_pickingShader.get("uEID").set(ent.id());
@@ -579,7 +586,7 @@ void RendererSystem::lightingPass(EntityWorld& world, const Mat4& projection, co
 	m_lightingShader.get("uEmit").set(false);
 
 	RenderCondition shadowRenderCond = [&](RenderMesh& rm) {
-		return rm.material.castsShadow;
+		return getMaterial(rm.materialID).castsShadow;
 	};
 
 	// Directional Lights
@@ -808,6 +815,10 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 		m_pingPongBuffer.bind();
 		for (Filter& filter : m_postEffects) {
 			filter.shader().bind();
+			if (filter.passes().empty()) {
+				filter.addPass([](Filter& f){});
+			}
+
 			for (Pass pass : filter.passes()) {
 				int src = currActive;
 				int dest = 1 - currActive;
@@ -831,7 +842,7 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 				}
 
 				if (filter.shader().has("tDepth")) {
-					m_gbuffer.getDepthAttachment().bind(m_screenMipSampler, slot);
+					m_gbuffer.getDepthAttachment().bind(m_screenDepthSampler, slot);
 					filter.shader().get("tDepth").set(slot);
 					slot++;
 				}
@@ -848,6 +859,13 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 				if (filter.shader().has("uResolution")) {
 					filter.shader().get("uResolution").set(
 						Vec2(m_finalBuffer.width(), m_finalBuffer.height())
+					);
+				}
+
+				if (filter.shader().has("uNF") && m_pov != nullptr) {
+					Camera *cam = m_pov->get<Camera>();
+					filter.shader().get("uNF").set(
+						Vec2(cam->zNear, cam->zFar)
 					);
 				}
 
@@ -869,6 +887,7 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 		m_pingPongBuffer.unbind();
 
 		if (target) {
+			target->bind();
 			i32 mask = ClearBufferMask::ColorBuffer;
 			if (target->getDepthAttachment().id() != 0)
 				mask |= ClearBufferMask::DepthBuffer;
@@ -903,6 +922,7 @@ void RendererSystem::finalPass(const Mat4& projection, const Mat4& view, const V
 	}
 	m_gbuffer.unbind();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glLineWidth(1.0f);
 }
 
 RendererSystem& RendererSystem::addPostEffect(Filter effect) {
@@ -938,18 +958,19 @@ void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& ren
 							bool textures, const RenderCondition& cond)
 {
 	for (RenderMesh rm : renderables) {
-		if (rm.material.instanced) continue;
+		Material& mat = getMaterial(rm.materialID);
+		if (mat.instanced) continue;
 		if (cond && !cond(rm)) continue;
 
 		shader.get("mModel").set(rm.modelMatrix);
 
 		if (shader.has("material.roughness")) {
-			shader.get("material.roughness").set(rm.material.roughness);
-			shader.get("material.metallic").set(rm.material.metallic);
-			shader.get("material.emission").set(rm.material.emission);
-			shader.get("material.baseColor").set(rm.material.baseColor);
-			shader.get("material.heightScale").set(rm.material.heightScale);
-			shader.get("material.discardEdges").set(rm.material.discardParallaxEdges);
+			shader.get("material.roughness").set(mat.roughness);
+			shader.get("material.metallic").set(mat.metallic);
+			shader.get("material.emission").set(mat.emission);
+			shader.get("material.baseColor").set(mat.baseColor);
+			shader.get("material.heightScale").set(mat.heightScale);
+			shader.get("material.discardEdges").set(mat.discardParallaxEdges);
 		}
 
 		if (textures) {
@@ -960,7 +981,7 @@ void RendererSystem::render(ShaderProgram& shader, const Vector<RenderMesh>& ren
 			shader.get("tRMEMap.opt.enabled").set(false);
 			shader.get("tHeightMap.opt.enabled").set(false);
 
-			for (TextureSlot& slot : rm.material.textures) {
+			for (TextureSlot& slot : rm.texturer.textures) {
 				if (!slot.enabled || slot.texture.id() == 0) continue;
 
 				String tname = "";
@@ -1004,22 +1025,24 @@ void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderM
 									 bool textures, const RenderCondition& cond)
 {
 	UMap<u32, Material> instancedMaterials;
-	Map<u32, MeshInstance> instancedMeshes;
+	Map<u32, InstancedMesh> instancedMeshes;
 
 	for (RenderMesh rm : renderables) {
+		Material& mat = getMaterial(rm.materialID);
 		if (cond && !cond(rm)) continue;
-		if (rm.material.instanced) {
-			instancedMaterials[rm.material.id()] = rm.material;
-			instancedMeshes[rm.material.id()].mesh = rm.mesh;
-			instancedMeshes[rm.material.id()].models.push_back(rm.modelMatrix);
+		if (mat.instanced) {
+			instancedMaterials[rm.materialID] = mat;
+			instancedMeshes[rm.materialID].mesh = rm.mesh;
+			instancedMeshes[rm.materialID].models.push_back(rm.modelMatrix);
+			instancedMeshes[rm.materialID].texturer = rm.texturer;
 		} else { continue; }
 	}
 
 	if (instancedMeshes.empty()) return;
 
-	for (Map<u32, MeshInstance>::value_type &e : instancedMeshes) {
+	for (Map<u32, InstancedMesh>::value_type &e : instancedMeshes) {
 		Material mat = instancedMaterials[e.first];
-		MeshInstance mi = e.second;
+		InstancedMesh mi = e.second;
 		Vector<Mat4> modelMats;
 
 		for (Mat4 &m : mi.models) {
@@ -1058,7 +1081,7 @@ void RendererSystem::renderInstanced(ShaderProgram& shader, const Vector<RenderM
 			shader.get("tRMEMap.opt.enabled").set(false);
 			shader.get("tHeightMap.opt.enabled").set(false);
 
-			for (TextureSlot& slot : mat.textures) {
+			for (TextureSlot& slot : mi.texturer.textures) {
 				if (!slot.enabled || slot.texture.id() == 0) continue;
 
 				String tname = "";
@@ -1111,6 +1134,31 @@ Entity* RendererSystem::POV() const {
 
 void RendererSystem::setPOV(Entity* pov) {
 	m_pov = pov;
+}
+
+Material& RendererSystem::createMaterial(const String& name) {
+	assert(m_materialID < MAX_MATERIALS && "Too many materials!");
+
+	String _name = name;
+	if (_name.empty()) {
+		_name = Util::strCat("material_", m_materialID);
+	}
+
+	m_materials[m_materialID++].name = _name;
+
+	u32 id = m_materialID - 1;
+	Material& mat = m_materials[id].mat;
+	mat.m_id = id;
+
+	return mat;
+}
+
+Material& RendererSystem::getMaterial(u32 id) {
+	return m_materials[id].mat;
+}
+
+String RendererSystem::getMaterialName(u32 id) const {
+	return m_materials[id].name;
 }
 
 u32 RendererSystem::renderHeight() const {

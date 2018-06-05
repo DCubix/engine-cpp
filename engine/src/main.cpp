@@ -2,6 +2,7 @@
 
 #include "components/transform.h"
 #include "components/light.h"
+#include "components/texturer.h"
 
 #include "systems/renderer.h"
 #include "systems/physics_system.h"
@@ -63,7 +64,54 @@ void drawCameraEditor(Camera& t) {
 	ImGui::DragFloat("zFar", &t.zFar, 0.1f, 0.0001f, 9999.0f, "%.4f");
 }
 
-void drawDrawable3DEditor(const String& entity, Drawable3D& d) {
+void drawTexturerEditor(Texturer& txt) {
+	for (u32 i = 0; i < TextureSlotType::TextureSlotCount; i++) {
+		String texTitle = Util::strCat("Texture #", i);
+		if (ImGui::TreeNode(texTitle.c_str())) {
+			static bool openTexDialog = false;
+
+			TextureSlot* slot = &txt.textures[i];
+
+			ImGui::Checkbox("Enabled", &slot->enabled);
+			if (slot->enabled) {
+				const char* textureTypes[] = { "Albedo #0", "Albedo #1", "Normal Map", "RME", "Height Map" };
+				int selectedTextureType = (int) slot->type;
+				if (ImGui::Combo("Type", &selectedTextureType, textureTypes, TextureSlotType::TextureSlotCount)) {
+					slot->type = (TextureSlotType) selectedTextureType;
+				}
+
+				if (ImGui::ImageButton(
+						(ImTextureID)slot->texture.id(),
+						ImVec2(100.0f, 100.0f)
+						))
+				{
+					openTexDialog = true;
+				}
+
+				ImGui::DragFloat4("Transform", glm::value_ptr(slot->uvTransform), 0.0025f);
+
+				if (openTexDialog) {
+					if (ImGui::FileDialog("Load Texture", ".png;.jpg;.tga")) {
+						if (ImGui::FileDialogOk()) {
+							if (slot->texture.id() != 0) {
+								Builder<Texture>::destroy(slot->texture);
+								slot->texture.invalidate();
+							}
+							slot->texture = Builder<Texture>::build();
+							slot->texture.bind(TextureTarget::Texture2D);
+							slot->texture.setFromFile(ImGui::GetFileDialogFileName());
+							slot->texture.generateMipmaps();
+						}
+						openTexDialog = false;
+					}
+				}
+			}
+			ImGui::TreePop();
+		}
+	}
+}
+
+void drawDrawable3DEditor(const String& entity, Drawable3D& d, RendererSystem* rsys) {
 	if (ImGui::TreeNode("Mesh")) {
 		static bool openMeshDialog = false;
 
@@ -90,80 +138,81 @@ void drawDrawable3DEditor(const String& entity, Drawable3D& d) {
 	}
 
 	if (ImGui::TreeNode("Material")) {
+		Vector<String> matNames;
+		for (u32 i = 0; i < rsys->materialCount(); i++) {
+			matNames.push_back(rsys->getMaterialName(i));
+		}
+
+		int mid = d.materialID;
+		if (ImGui::Combo("Material ID", &mid, matNames)) {
+			d.materialID = u32(mid);
+		}
+
 		if (ImGui::CollapsingHeader("Parameters")) {
-			ImGui::PushItemWidth(160.0f);
+			Material* mat = &rsys->getMaterial((&d)->materialID);
+			ImGui::PushItemWidth(140.0f);
 			ImGui::ColorPicker3(
 						"Base",
-						glm::value_ptr((&d)->material.baseColor),
+						glm::value_ptr(mat->baseColor),
 						ImGuiColorEditFlags_RGB | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_PickerHueWheel
 			);
 
-			ImGui::SliderFloat("Roughness", &d.material.roughness, 0.0001f, 1.0f);
-			ImGui::SliderFloat("Metallic", &d.material.metallic, 0.0f, 1.0f);
-			ImGui::SliderFloat("Emission", &d.material.emission, 0.0f, 1.0f);
+			ImGui::SliderFloat("Roughness", &mat->roughness, 0.0001f, 1.0f);
+			ImGui::SliderFloat("Metallic", &mat->metallic, 0.0f, 1.0f);
+			ImGui::SliderFloat("Emission", &mat->emission, 0.0f, 1.0f);
 
 			ImGui::Separator();
 
-			ImGui::Checkbox("Instanced", &d.material.instanced);
-			ImGui::Checkbox("Casts Shadow", &d.material.castsShadow);
+			ImGui::Checkbox("Instanced", &mat->instanced);
+			ImGui::Checkbox("Casts Shadow", &mat->castsShadow);
 
 			ImGui::Separator();
 
-			ImGui::SliderFloat("Height Scale", &d.material.heightScale, 0.0f, 1.0f);
-			ImGui::Checkbox("Discard Parallax Edges", &d.material.discardParallaxEdges);
+			ImGui::SliderFloat("Height Scale", &mat->heightScale, 0.0f, 1.0f);
+			ImGui::Checkbox("Discard Parallax Edges", &mat->discardParallaxEdges);
 
 			ImGui::PopItemWidth();
 		}
 
-		if (ImGui::CollapsingHeader("Textures")) {
-			Drawable3D *dp = &d;
-			for (u32 i = 0; i < TextureSlotType::TextureSlotCount; i++) {
-				String texTitle = Util::strCat("Texture #", i);
-				if (ImGui::TreeNode(texTitle.c_str())) {
-					static bool openTexDialog = false;
-
-					TextureSlot* slot = &dp->material.textures[i];
-					ImGui::Checkbox("Enabled", &slot->enabled);
-					if (slot->enabled) {
-						const char* textureTypes[] = { "Albedo #0", "Albedo #1", "Normal Map", "RME", "Height Map" };
-						int selectedTextureType = (int) slot->type;
-						if (ImGui::Combo("Type", &selectedTextureType, textureTypes, TextureSlotType::TextureSlotCount)) {
-							slot->type = (TextureSlotType) selectedTextureType;
-						}
-
-						if (ImGui::ImageButton(
-								(ImTextureID)slot->texture.id(),
-								ImVec2(100.0f, 100.0f)
-								))
-						{
-							openTexDialog = true;
-						}
-
-						ImGui::DragFloat4("Transform", glm::value_ptr(slot->uvTransform), 0.0025f);
-
-						if (openTexDialog) {
-							if (ImGui::FileDialog("Load Texture", ".png;.jpg;.tga")) {
-								if (ImGui::FileDialogOk()) {
-									if (slot->texture.id() != 0) {
-										Builder<Texture>::destroy(slot->texture);
-										slot->texture.invalidate();
-									}
-									slot->texture = Builder<Texture>::build();
-									slot->texture.bind(TextureTarget::Texture2D);
-									slot->texture.setFromFile(ImGui::GetFileDialogFileName());
-									slot->texture.generateMipmaps();
-								}
-								openTexDialog = false;
-							}
-						}
-					}
-					ImGui::TreePop();
-				}
-			}
-		}
-
 		ImGui::TreePop();
 	}
+}
+
+void drawLightBaseEditor(LightBase* l) {
+	ImGui::PushItemWidth(140.0f);
+	ImGui::DragFloat("Intensity", &l->intensity, 0.01f, 0.0f, 10.0f);
+	ImGui::ColorPicker3(
+				"Color",
+				glm::value_ptr(l->color),
+				ImGuiColorEditFlags_RGB | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_PickerHueWheel
+	);
+	ImGui::PopItemWidth();
+}
+
+void drawDirectionalLightEditor(DirectionalLight& l) {
+	drawLightBaseEditor(&l);
+	ImGui::PushItemWidth(140.0f);
+	ImGui::Checkbox("Shadows", &l.shadows);
+	ImGui::InputFloat("Shadow Frustum Size", &l.shadowFrustumSize, 0.25f, 1.0f);
+	ImGui::SliderFloat("Shadow Softness", &l.size, 0.0001f, 1.0f);
+	ImGui::PopItemWidth();
+}
+
+void drawPointLightEditor(PointLight* l) {
+	drawLightBaseEditor(l);
+	ImGui::PushItemWidth(140.0f);
+	ImGui::DragFloat("Radius", &l->radius, 0.05f, 0.0f);
+//	ImGui::SliderFloat("Light CutOff", &l->lightCutOff, 0.0f, 1.0f);
+	ImGui::PopItemWidth();
+}
+
+void drawSpotLightEditor(SpotLight& l) {
+	drawPointLightEditor(&l);
+	ImGui::PushItemWidth(140.0f);
+	ImGui::Checkbox("Shadows", &l.shadows);
+	ImGui::SliderAngle("Spot CutOff", &l.spotCutOff, 0.1f, 179.0f);
+	ImGui::SliderFloat("Shadow Softness", &l.size, 0.0001f, 1.0f);
+	ImGui::PopItemWidth();
 }
 
 void editTransform(
@@ -265,9 +314,18 @@ public:
 	void init() {
 		VFS::get().mountDefault(); // mounts to where the application resides
 
-		sensitivity = 0.005f;
+		sensitivity = 0.0035f;
+		cameraAnimating = false;
+		gridSize = 8;
 
 		rsys = &eworld.registerSystem<RendererSystem>(config.width, config.height);
+
+		String dofF =
+#include "shaders/dofF.glsl"
+				;
+		Filter dof;
+		dof.setSource(dofF);
+		rsys->addPostEffect(dof);
 
 		sceneFbo = Builder<FrameBuffer>::build()
 				.setSize(config.width, config.height)
@@ -283,7 +341,7 @@ public:
 
 		Texture envMap = Builder<Texture>::build()
 				.bind(TextureTarget::CubeMap)
-				.setCubemap("skybox.jpg")
+				.setCubemap("cubemap.jpg")
 				.generateMipmaps();
 
 		rsys->setEnvironmentMap(envMap);
@@ -294,7 +352,7 @@ public:
 				.generateMipmaps();
 
 		// Floor
-		Material floorMat;
+		Material& floorMat = rsys->createMaterial();
 		floorMat.baseColor = Vec3(0.7f, 1.0f, 0.7f);
 		floorMat.metallic = 0.0f;
 		floorMat.roughness = 1.0f;
@@ -303,7 +361,7 @@ public:
 		floor.addPlane(Axis::Y, 32.0f, Vec3(0.0f)).calculateNormals().calculateTangents().flush();
 
 		Entity& floorEnt = eworld.create("ground");
-		floorEnt.assign<Drawable3D>(floor, floorMat);
+		floorEnt.assign<Drawable3D>(floor, floorMat.id());
 		floorEnt.assign<Transform>();
 
 		// Physics
@@ -320,11 +378,8 @@ public:
 		defaultCamera->assign<Camera>(0.02f, 100.0f, glm::radians(45.0f));
 		Transform &dct = defaultCamera->assign<Transform>();
 		dct.position.z = 10.0f;
-		dct.position.y = 0.0f;
-
-		cameraPivot = uptr<Entity>(new Entity());
-		Transform &piv = cameraPivot->assign<Transform>();
-		dct.setParent(&piv);
+		dct.position.y = 4.0f;
+		dct.lookAt(dct.position, cameraPivot, Vec3(0, 1, 0));
 		//
 
 		// Example camera
@@ -334,20 +389,22 @@ public:
 		ct.position.z = 4.0f;
 
 		// Models
-		Material def;
+		Material& def = rsys->createMaterial();
 		def.roughness = 0.04f;
 		def.metallic = 0.25f;
 		def.heightScale = 0.02f;
 
 		ShapeWrapper sw = BoxShape::create(Vec3(1.0f));
 
-		const i32 COUNT = 10;
+		const i32 COUNT = 12;
 		const i32 COUNT_1 = COUNT > 1 ? COUNT-1 : 1;
 		for (i32 i = 0; i < COUNT; i++) {
 			float fact = float(i) / float(COUNT_1);
 
 			Entity& mod1 = eworld.create(Util::strCat("box_", i));
-			mod1.assign<Drawable3D>(model, def);
+			mod1.assign<Drawable3D>(model, def.id());
+			mod1.assign<Texturer>();
+
 			Transform& modt = mod1.assign<Transform>();
 			modt.rotate(Vec3(0, 0, 1), glm::radians(180.0f));
 			modt.rotate(Vec3(0, 1, 0), glm::radians(45.0f));
@@ -377,6 +434,14 @@ public:
 		s1p.intensity = 1.0f;
 		s1p.shadows = true;
 		s1p.spotCutOff = glm::radians(30.0f);
+
+		Entity& s2 = eworld.create("point_light0");
+		Transform& s2t = s2.assign<Transform>();
+		PointLight& s2p = s2.assign<PointLight>();
+
+		s2t.position = Vec3(4.0f, 4.0f, 4.0f);
+		s2p.intensity = 1.0f;
+		s2p.radius = 5.0f;
 
 		ImGui::LoadDock();
 		Imm::initialize();
@@ -408,23 +473,82 @@ public:
 			rsys->pickingBuffer().unbind();
 		}
 
+		if (Input::isKeyPressed(SDLK_SPACE)) {
+			if (selected) {
+				Transform* t = defaultCamera->get<Transform>();
+				Vec3 vec = t->position - cameraPivot;
+
+				cameraPivot = selected->get<Transform>()->worldPosition();
+				t->position = cameraPivot + vec;
+			}
+		}
+
 		if (Input::isMouseButtonDown(SDL_BUTTON_MIDDLE) && mouseLocked) {
-			Transform* piv = cameraPivot->get<Transform>();
-			Vec2 cen(config.width/2, config.height/2);
-			Vec2 mp = Input::getMousePosition();
+			Vec2 curr = Input::getMousePosition();
+			if (curr.x < viewportX) {
+				curr.x = viewportX + viewportW;
+				Input::setMousePosition(curr);
+				prevMp = curr;
+			} else if (curr.x > viewportX + viewportW) {
+				curr.x = viewportX;
+				Input::setMousePosition(curr);
+				prevMp = curr;
+			}
+			if (curr.y < viewportY) {
+				curr.y = viewportY + viewportH;
+				Input::setMousePosition(curr);
+				prevMp = curr;
+			} else if (curr.y > viewportY + viewportH) {
+				curr.y = viewportY;
+				Input::setMousePosition(curr);
+				prevMp = curr;
+			}
 
-			Vec2 delta = (cen - mp) * sensitivity;
-			piv->rotate(Vec3(0, 1, 0), -delta.x);
-			piv->rotate(Vec3(1, 0, 0), delta.y);
+			Vec2 delta = (curr - prevMp) * sensitivity;
 
-			Input::setMousePosition(cen);
+			Transform* t = defaultCamera->get<Transform>();
+
+			if (Input::isKeyDown(SDLK_LSHIFT) || Input::isKeyDown(SDLK_RSHIFT)) {
+				Vec3 dirX = t->right();
+				Vec3 dirY = t->up();
+				cameraPivot += dirX * -delta.x;
+				cameraPivot += dirY * delta.y;
+				t->position += dirX * -delta.x;
+				t->position += dirY * delta.y;
+			} else {
+				Mat4 pitch = glm::rotate(Mat4(1.0f), -delta.y, t->right());
+				Mat4 yaw = glm::rotate(Mat4(1.0f), -delta.x, Vec3(0, 1, 0));
+
+				Vec3 dir = t->position - cameraPivot;
+				t->position = Vec3(pitch * Vec4(dir, 1.0)) + cameraPivot;
+				t->position = Vec3(yaw * Vec4(t->position - cameraPivot, 1.0)) + cameraPivot;
+
+				t->rotation = glm::conjugate(glm::quat_cast(glm::lookAt(t->position, cameraPivot, Vec3(0, 1, 0))));
+			}
+			prevMp = curr;
+		} else {
+			Vec2 curr = Input::getMousePosition();
+			if (curr.x < viewportX) {
+				curr.x = viewportX + viewportW;
+			} else if (curr.x > viewportX + viewportW) {
+				curr.x = viewportX;
+			}
+			if (curr.y < viewportY) {
+				curr.y = viewportY + viewportH;
+			} else if (curr.y > viewportY + viewportH) {
+				curr.y = viewportY;
+			}
+			prevMp = curr;
 		}
 
 		i32 scr = Input::getScrollOffset();
 		if (std::abs(scr) > 0 && mouseLocked) {
 			Transform* cam = defaultCamera->get<Transform>();
-			float fac = -0.3f * float(scr);
-			cam->position.z += fac;
+			float fac = -0.4f * float(scr);
+			Vec3 vec = cam->position - cameraPivot;
+			Vec3 dir = glm::normalize(vec);
+			if (glm::length(vec) > 0.0f)
+			cam->position += fac * dir;
 		}
 
 		if (playing) {
@@ -438,6 +562,9 @@ public:
 						btVector3(pos.x, pos.y, pos.z)
 				);
 				if (b.rigidBody()) {
+					b.rigidBody()->getCollisionShape()->setLocalScaling(btVector3(t.scale.x, t.scale.y, t.scale.z));
+					psys->bulletWorld()->updateSingleAabb(b.rigidBody());
+
 					b.rigidBody()->setWorldTransform(xform);
 					b.rigidBody()->getMotionState()->setWorldTransform(xform);
 				}
@@ -607,11 +734,22 @@ public:
 		ImGui::EndDock();
 
 		if (ImGui::BeginDock("Entity World")) {
+			if (ImGui::Button("New")) {
+				selected = &eworld.create();
+			}
+			if (selected) {
+				ImGui::SameLine();
+				if (ImGui::Button("Delete")) {
+					eworld.destroy(*selected);
+					selected = nullptr;
+				}
+			}
+			ImGui::Separator();
 			for (uptr<Entity>& e : eworld.entities()) {
 				u64 id = e->id();
 				String title = e->name().empty() ? Util::strCat("ent_", id) : e->name();
-				if (ImGui::CollapsingHeader(title.c_str())) {
-					u32 id = 0;
+				bool sel = selected != nullptr && selected->id() == id;
+				if (ImGui::TreeNodeEx(title.c_str(), sel ? ImGuiTreeNodeFlags_Selected : 0)) {
 					for (auto const& [k, v] : e->components()) {
 						if (ImGui::TreeNode(&k, k.name())) {
 							if (k == getTypeIndex<Transform>()) {
@@ -619,12 +757,72 @@ public:
 							} else if (k == getTypeIndex<Camera>()) {
 								drawCameraEditor(*((Camera*) v.get()));
 							} else if (k == getTypeIndex<Drawable3D>()) {
-								drawDrawable3DEditor(title, *((Drawable3D*) v.get()));
+								drawDrawable3DEditor(title, *((Drawable3D*) v.get()), rsys);
+							} else if (k == getTypeIndex<Texturer>()) {
+								drawTexturerEditor(*((Texturer*) v.get()));
+							} else if (k == getTypeIndex<DirectionalLight>()) {
+								drawDirectionalLightEditor(*((DirectionalLight*) v.get()));
+							} else if (k == getTypeIndex<PointLight>()) {
+								drawPointLightEditor(((PointLight*) v.get()));
+							} else if (k == getTypeIndex<SpotLight>()) {
+								drawSpotLightEditor(*((SpotLight*) v.get()));
 							}
 							ImGui::TreePop();
 						}
-						id++;
 					}
+					ImGui::TreePop();
+				}
+			}
+		}
+		ImGui::EndDock();
+
+		if (ImGui::BeginDock("Renderer System")) {
+			if (ImGui::CollapsingHeader("Post Processing")) {
+				i32 id = 0;
+				for (Filter& filter : rsys->postEffects()) {
+					ShaderProgram* shader = &filter.shader();
+					String name = filter.name().empty() ? Util::strCat("filter_", id) : filter.name();
+					if (ImGui::TreeNode(name.c_str())) {
+						shader->bind();
+						for (auto& [name, loc] : shader->uniforms()) {
+							if (name.rfind("VAR_", 0) == 0) {
+								String nname = name.substr(4);
+								Uniform uni = shader->get(name);
+								UniformValue& val = shader->getValue(name);
+								switch (uni.type()) {
+									case GL_UNSIGNED_INT:
+									case GL_INT: {
+										if (ImGui::InputInt(nname.c_str(), &val.value.val_i)) {
+											uni.set(val.value.val_i);
+										}
+									} break;
+									case GL_FLOAT: {
+										if (ImGui::DragFloat(nname.c_str(), &val.value.val_f, 0.1f)) {
+											uni.set(val.value.val_f);
+										}
+									} break;
+									case GL_FLOAT_VEC2: {
+										if (ImGui::DragFloat2(nname.c_str(), glm::value_ptr(val.value.val_vec2), 0.1f)) {
+											uni.set(val.value.val_vec2);
+										}
+									} break;
+									case GL_FLOAT_VEC3: {
+										if (ImGui::DragFloat3(nname.c_str(), glm::value_ptr(val.value.val_vec3), 0.1f)) {
+											uni.set(val.value.val_vec3);
+										}
+									} break;
+									case GL_FLOAT_VEC4: {
+										if (ImGui::DragFloat4(nname.c_str(), glm::value_ptr(val.value.val_vec4), 0.1f)) {
+											uni.set(val.value.val_vec4);
+										}
+									} break;
+								}
+							}
+						}
+						shader->unbind();
+						ImGui::TreePop();
+					}
+					id++;
 				}
 			}
 		}
@@ -640,8 +838,31 @@ public:
 		if (playing)
 			psys->bulletWorld()->debugDrawWorld();
 
+		Imm::begin(PrimitiveType::Lines);
+		const Vec4 gridcol(0.5f, 0.5f, 0.5f, 0.8f);
+		const Vec4 red = Vec4(1.0, 0.0, 0.0, 0.8);
+		const Vec4 green = Vec4(0.0, 1.0, 0.0, 0.8);
+
+		for (i32 y = -gridSize; y <= gridSize; y++) {
+			for (i32 x = -gridSize; x <= gridSize; x++) {
+				if (x == 0 && y == 0) {
+					Imm::vertex(Vec3(-gridSize, 0, y), red);
+					Imm::vertex(Vec3( gridSize, 0, y), red);
+					Imm::vertex(Vec3(x, 0, -gridSize), green);
+					Imm::vertex(Vec3(x, 0,  gridSize), green);
+				} else {
+					Imm::vertex(Vec3(-gridSize, 0, y), gridcol);
+					Imm::vertex(Vec3( gridSize, 0, y), gridcol);
+					Imm::vertex(Vec3(x, 0, -gridSize), gridcol);
+					Imm::vertex(Vec3(x, 0,  gridSize), gridcol);
+				}
+			}
+		}
+		Imm::end();
+
 		eworld.each([&](Entity& ent, Transform& t, Drawable3D& d) {
-			Vec3 he = ((d.mesh.aabb().max() - d.mesh.aabb().min()) * 0.5f) * t.scale;
+			Vec3 aabbCenter = (d.mesh.aabb().max() + d.mesh.aabb().min()) * 0.5f;
+			Vec3 he = ((d.mesh.aabb().max() - d.mesh.aabb().min()) * 0.5f);
 
 			Vec3 cubePos[] = {
 				Vec3(-1.0f, -1.0f, -1.0f),
@@ -662,12 +883,13 @@ public:
 				4, 5, 6, 7
 			};
 
-			const Vec4 cubecol(0.6f);
+			const Vec4 cubecol(0.7f);
 
 			Imm::begin(PrimitiveType::Lines);
+			Imm::lineWidth(1.0f);
 			Imm::setModel(t.getTransformation());
 			for (u32 i = 0; i < 24; i++) {
-				Imm::vertex(cubePos[cubeInd[i]]*he, cubecol);
+				Imm::vertex(cubePos[cubeInd[i]]*he + aabbCenter, cubecol);
 			}
 			Imm::end();
 
@@ -720,9 +942,10 @@ public:
 				4, 5, 6, 7
 			};
 
-			const Vec4 cubecol(0.6f);
+			const Vec4 cubecol(0.7f);
 
 			Imm::begin(PrimitiveType::Lines);
+			Imm::lineWidth(1.0f);
 			Imm::setModel(t.getTransformation());
 			for (u32 i = 0; i < 24; i++) {
 				Imm::vertex(cubePos[cubeInd[i]], cubecol);
@@ -751,17 +974,32 @@ public:
 			Imm::end();
 		});
 
+		eworld.each([&](Entity& ent, Transform& t, PointLight& l) {
+			Mat4 viewMatLight = t.getTransformation();
+
+			Imm::begin(PrimitiveType::Triangles);
+			Imm::setModel(viewMatLight);
+			Imm::sphere(l.radius, Vec4(1.0f, 1.0f, 1.0f, 0.1f), 12, 24);
+			Imm::end();
+
+			Imm::begin(PrimitiveType::Triangles);
+			Imm::disableDepth();
+			Imm::texture(icons);
+			Imm::billboardAtlas(t.worldPosition(), 8, 8, ICON_LIGHT, ICON_SIZE, Vec4(1.0f, 1.0f, 1.0f, 0.5f));
+			Imm::end();
+		});
+
 		eworld.each([&](Entity& ent, Transform& t, SpotLight& l) {
 			Mat4 viewMatLight = t.getTransformation();
 
 			Imm::begin(PrimitiveType::Triangles);
 			Imm::setModel(viewMatLight);
 			Imm::cone(
-						l.spotCutOff*l.radius*2.0f,
-						l.radius*2.0f,
-						Vec4(1.0f, 1.0f, 1.0f, 0.15f),
-						Vec3(0.0f, 0.0f, -l.radius*2.0f),
-						16, true
+						l.spotCutOff*l.radius,
+						l.radius,
+						Vec4(1.0f, 1.0f, 1.0f, 0.1f),
+						Vec3(0.0f, 0.0f, -l.radius),
+						24, true
 			);
 			Imm::end();
 
@@ -796,10 +1034,11 @@ public:
 
 	Entity* selected;
 	uptr<Entity> defaultCamera;
-	uptr<Entity> cameraPivot;
+	Vec3 cameraPivot, orbitDelta;
+	Vec2 prevMp;
 
 	float sensitivity;
-	bool mouseLocked, screenResizing, playing;
+	bool mouseLocked, screenResizing, playing, cameraAnimating;
 
 	RendererSystem* rsys;
 	PhysicsSystem* psys;
@@ -810,6 +1049,7 @@ public:
 
 	u32 ww, wh;
 	u32 viewportX, viewportY, viewportW, viewportH;
+	i32 gridSize;
 	ImVec2 lastSz;
 };
 

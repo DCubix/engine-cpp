@@ -85,6 +85,8 @@ void Imm::initialize() {
 }
 
 void Imm::render(const Mat4& view, const Mat4& projection) {
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	g_viewMatrix = view;
 
 	generateBatches();
@@ -260,14 +262,15 @@ void Imm::cube(const Vec3& halfExtents, const Vec4 color, const Vec3& origin) {
 
 void Imm::sphere(float radius, const Vec4 &color, u32 stacks, u32 slices) {
 	// Calc The Index Positions
-	for (int i = 0; i < slices * stacks + slices; ++i){
-		addIndex(i);
-		addIndex(i + slices);
-		addIndex(i + slices + 1);
-
-		addIndex(i + slices + 1);
-		addIndex(i);
-		addIndex(i + 1);
+	for (u32 i = 0; i < stacks; ++i) {
+		for (u32 j = 0; j < slices; ++j) {
+			addIndex(i * slices + j);
+			addIndex(i * slices + (j+1));
+			addIndex((i+1) * slices + (j+1));
+			addIndex((i+1) * slices + (j+1));
+			addIndex((i+1) * slices + j);
+			addIndex(i * slices + j);
+		}
 	}
 
 	// Calc The Vertices
@@ -276,7 +279,7 @@ void Imm::sphere(float radius, const Vec4 &color, u32 stacks, u32 slices) {
 		float phi = V * Pi;
 
 		// Loop Through Slices
-		for (int j = 0; j <= slices; ++j) {
+		for (u32 j = 0; j <= slices; ++j) {
 			float U = float(j) / float(slices);
 			float theta = U * (Pi * 2.0f);
 

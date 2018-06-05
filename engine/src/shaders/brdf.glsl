@@ -1,5 +1,22 @@
 R"(
 float sqr(float x) { return x*x; }
+vec3 sqr(vec3 x) { return vec3(sqr(x.x), sqr(x.y), sqr(x.z)); }
+
+float Pow5(float x) {
+	float xx = x*x;
+	return xx * xx * x;
+}
+
+vec3 Diffuse_Lambert(vec3 DiffuseColor) {
+	return DiffuseColor * (1.0 / PI);
+}
+
+vec3 Diffuse_Burley(vec3 DiffuseColor, float Roughness, float NoV, float NoL, float VoH) {
+	float FD90 = 0.5 + 2 * VoH * VoH * Roughness;
+	float FdV = 1 + (FD90 - 1) * Pow5( 1 - NoV );
+	float FdL = 1 + (FD90 - 1) * Pow5( 1 - NoL );
+	return DiffuseColor * ( (1 / PI) * FdV * FdL );
+}
 
 float D_GGX(float Roughness, float NoH) {
 	float alpha   = Roughness * Roughness;
@@ -7,6 +24,13 @@ float D_GGX(float Roughness, float NoH) {
 
 	float denom = (NoH * NoH) * (alphaSq - 1.0) + 1.0;
 	return alphaSq / (PI * denom * denom);
+}
+
+float Vis_SmithJointApprox(float Roughness, float NoV, float NoL) {
+	float a = sqr(Roughness);
+	float Vis_SmithV = NoL * (NoV * (1.0 - a) + a);
+	float Vis_SmithL = NoV * (NoL * (1.0 - a) + a);
+	return 0.5 * (1.0 / (Vis_SmithV + Vis_SmithL));
 }
 
 float G_SchlickG1(float cosTheta, float k) {
@@ -19,41 +43,42 @@ float G_Schlick(float Roughness, float NoV, float NoL) {
 	return G_SchlickG1(NoL, k) * G_SchlickG1(NoV, k);
 }
 
-vec3 F_Schlick(vec3 F0, float VoH, float roughness) {
-	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - VoH, 5.0);
+vec3 F_Schlick(vec3 SpecularColor, float VoH) {
+	float Fc = Pow5(1.0 - VoH);
+	return saturate(50.0 * SpecularColor.g) * Fc + (1.0 - Fc) * SpecularColor;
 }
 
-/// Principled BRDF (https://github.com/wdas/brdf/blob/master/src/brdfs/disney.brdf)
-float fresnelSchlick(float u) {
-	float m = saturate(1.0 - u);
-	float m2 = m * m;
-	return m2 * m2 * m; // pow(m, 5)
+vec3 F_Fresnel(vec3 SpecularColor, float VoH) {
+	vec3 SpecularColorSqrt = sqrt(clamp(vec3(0, 0, 0), vec3(0.99, 0.99, 0.99), SpecularColor));
+	vec3 n = (1.0 + SpecularColorSqrt) / (1.0 - SpecularColorSqrt);
+	vec3 g = sqrt(n*n + VoH*VoH - 1.0);
+	return 0.5 * sqr((g - VoH) / (g + VoH)) * (1.0 + sqr(((g + VoH) * VoH - 1) / ((g-VoH)*VoH + 1)));
 }
 
 vec3 mon2lin(vec3 x) {
 	return vec3(pow(x.r, 2.2), pow(x.g, 2.2), pow(x.b, 2.2));
 }
 
-// X is tangent, Y is biTangent
-vec3 principledBRDF(Material params, vec3 L, vec3 V, vec3 N) {
-	float NoL = max(dot(N, L), 0.0);
-	float NoV = max(dot(N, V), 0.0);
+vec3 BRDF(Material params, vec3 specColor, vec3 L, vec3 V, vec3 N, float energy) {
+	float NoL = dot(N, L);
+	float NoV = dot(N, V);
+	float LoV = dot(L, V);
+	float InvLenH = inversesqrt(2.0 + 2.0 * LoV);
+	float NoH = saturate((NoL + NoV) * InvLenH);
+	float VoH = saturate(InvLenH + InvLenH * LoV);
+	NoL = saturate(NoL);
+	NoV = saturate(abs(NoV) + 1e-5);
 
-	vec3 H = normalize(L + V);
-	float NoH = max(dot(N, H), 0.0);
-	float LoH = max(dot(L, H), 0.0);
+	// Generalized microfacet specular
+	float D = D_GGX(params.roughness, NoH) * energy;
+	float Vis = Vis_SmithJointApprox(params.roughness, NoV, NoL);
+//	vec3 F = F_Schlick(specColor, VoH);
+	vec3 F = F_Fresnel(specColor, VoH);
 
-	vec3 Cdlin = mon2lin(params.baseColor);
-	vec3 Cspec0 = mix(vec3(0.08), Cdlin, params.metallic);
+//	vec3 Diffuse = Diffuse_Lambert(params.baseColor);
+	vec3 Diffuse = Diffuse_Burley(mon2lin(params.baseColor), params.roughness, NoV, NoL, VoH);
 
-	float Ds = D_GGX(params.roughness, NoH);
-	float FH = fresnelSchlick(LoH);
-	vec3 Fs = mix(Cspec0, vec3(1.0), FH);
-	float Gs = G_Schlick(params.roughness, NoV, NoL);
-
-	return ((1.0 / PI) * Cdlin)
-			* (1.0 - params.metallic)
-			+ Gs * Fs * Ds;
+	return Diffuse * energy + (D * Vis) * F;
 }
 
 vec3 envBRDFApprox(vec3 SpecularColor, float Roughness, float NoV) {

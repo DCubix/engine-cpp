@@ -103,5 +103,7 @@ void main() {
 		vec2 uv = transformUV(TexSlotGet(RMEMap).opt, iuv);
 		oRME *= texture(TexSlotGet(RMEMap).img, uv).rgb;
 	}
+	oRME = saturate(oRME);
+
 }
 )"

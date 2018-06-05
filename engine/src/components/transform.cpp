@@ -88,6 +88,17 @@ Mat4 Transform::getParentTransform() {
 	return m_parentMatrix;
 }
 
+bool Transform::moveTowards(const Vec3& target, float mdd) {
+	Vec3 a = target - position;
+	float l = glm::length(a);
+	if (l <= mdd || l == 0.0f) {
+		position = target;
+		return true;
+	}
+	position = position + a / l * mdd;
+	return false;
+}
+
 void Transform::setFromMatrix(const Mat4& mat) {
 	Mat4 m = mat;
 	position = Vec3(m[3]);
@@ -115,7 +126,7 @@ void Transform::rotate(const Vec3& axis, float angle) {
 }
 
 void Transform::lookAt(const Vec3& eye, const Vec3& at, const Vec3& up) {
-	rotation = glm::lookAt(eye, at, up);
+	rotation = glm::conjugate(glm::quat_cast(glm::lookAt(eye, at, up)));
 }
 
 NS_END

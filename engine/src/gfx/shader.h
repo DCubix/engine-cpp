@@ -14,6 +14,19 @@ NS_BEGIN
 
 #define glUniform(T, ...) glUniform##T(location, __VA_ARGS__)
 
+struct UniformValue {
+	enum { VInt = 0, VBool, VFloat, VVec2, VVec3, VVec4, VMat4 } type;
+	union {
+		int val_i;
+		bool val_b;
+		float val_f;
+		Vec2 val_vec2;
+		Vec3 val_vec3;
+		Vec4 val_vec4;
+		Mat4 val_mat4;
+	} value;
+};
+
 class Uniform {
 	friend class ShaderProgram;
 public:
@@ -44,8 +57,14 @@ public:
 		glUniform(Matrix4fv, v.size(), false, mv.data());
 	}
 
+	GLenum type() const { return m_type; }
+	String name() const { return m_name; }
+
 protected:
 	i32 location;
+	GLenum m_type;
+	String m_name;
+
 	Uniform(i32 loc) : location(loc) {}
 };
 
@@ -64,16 +83,22 @@ public:
 	i32 getUniformLocation(const String& name);
 
 	Uniform get(const String& name);
+	UniformValue& getValue(const String& name);
+
 	bool has(const String& name);
+	Map<String, i32> uniforms() const { return m_uniforms; }
 
 	bool valid() const { return m_valid; }
 
 	GLuint id() const { return m_program; }
 
+	void cacheUniforms();
+
 protected:
 	GLuint m_program;
 	bool m_valid;
 	Map<String, i32> m_uniforms, m_attributes;
+	Map<i32, UniformValue> m_uniformValues;
 };
 
 template <>

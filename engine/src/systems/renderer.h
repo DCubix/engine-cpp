@@ -9,17 +9,20 @@
 #include "../gfx/framebuffer.h"
 #include "../gfx/material.h"
 #include "../components/light.h"
+#include "../components/texturer.h"
 
 NS_BEGIN
 
+#define MAX_MATERIALS 2048
+
 struct Drawable3D : public Component {
 	Drawable3D() = default;
-	Drawable3D(Mesh mesh, Material material)
-		: mesh(mesh), material(material)
+	Drawable3D(Mesh mesh, u32 materialID)
+		: mesh(mesh), materialID(materialID)
 	{}
 
 	Mesh mesh;
-	Material material;
+	u32 materialID;
 };
 
 enum class CameraType {
@@ -27,15 +30,22 @@ enum class CameraType {
 	Perspective
 };
 
-struct MeshInstance {
+struct InstancedMesh {
 	Vector<Mat4> models;
 	Mesh mesh;
+	Texturer texturer;
 };
 
 struct RenderMesh {
 	Mesh mesh;
-	Material material;
+	u32 materialID;
 	Mat4 modelMatrix;
+	Texturer texturer;
+};
+
+struct MaterialSlot {
+	String name;
+	Material mat;
 };
 
 struct Camera : public Component {
@@ -86,6 +96,13 @@ public:
 
 	Entity* POV() const;
 	void setPOV(Entity* POV);
+
+	Material& createMaterial(const String& name = "");
+	Material& getMaterial(u32 id);
+	String getMaterialName(u32 id) const;
+	u32 materialCount() const { return m_materialID; }
+
+	Vector<Filter>& postEffects() { return m_postEffects; }
 
 private:
 	// Camera
@@ -140,6 +157,9 @@ private:
 						bool textures = true, const RenderCondition& cond = nullptr);
 
 	u32 m_renderWidth, m_renderHeight;
+
+	Array<MaterialSlot, MAX_MATERIALS> m_materials;
+	u32 m_materialID;
 };
 
 NS_END

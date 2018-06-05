@@ -7,37 +7,16 @@
 
 NS_BEGIN
 
-enum TextureSlotType {
-	Albedo0 = 0,
-	Albedo1,
-	NormalMap,
-	RougnessMetallicEmission,
-	HeightMap,
-	TextureSlotCount
-};
-
-struct TextureSlot {
-	bool enabled;
-	Vec4 uvTransform;
-	Texture texture;
-	TextureSlotType type;
-	Sampler sampler;
-
-	TextureSlot()
-		: enabled(false), uvTransform(Vec4(0, 0, 1, 1)), type(TextureSlotType::Albedo0),
-		sampler(Texture::DEFAULT_SAMPLER)
-	{
-		texture.invalidate();
-	}
-};
-
 class Material {
-public:
-	Material()
+	friend class RendererSystem;
+private:
+	Material(u32 id)
 		: roughness(0.5f), metallic(0.0f), emission(0.0f), baseColor(Vec3(1.0f)), heightScale(1.0f),
-			discardParallaxEdges(false), instanced(false), m_id(++g_matID), castsShadow(true)
-	{
-	}
+			discardParallaxEdges(false), instanced(false), m_id(id), castsShadow(true)
+	{}
+
+public:
+	Material() : Material(-1) {}
 
 	Vec3 baseColor;
 	float metallic;
@@ -46,17 +25,8 @@ public:
 	float heightScale;
 	bool discardParallaxEdges, instanced, castsShadow;
 
-	Material& setTextureEnabled(u32 index, bool enabled);
-	Material& setTextureUVTransform(u32 index, Vec4 uvt);
-	Material& setTexture(u32 index, const Texture& texture);
-	Material& setTextureType(u32 index, TextureSlotType type);
-	Material& setTextureSampler(u32 index, Sampler sampler);
-
-	Array<TextureSlot, TextureSlotCount> textures;
-
 	u32 id() const { return m_id; }
-private:
-	static u32 g_matID;
+protected:
 	u32 m_id;
 };
 

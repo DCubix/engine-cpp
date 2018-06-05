@@ -26,7 +26,7 @@ public:
 
 class DirectionalLight : public LightBase {
 public:
-	DirectionalLight() : LightBase(), shadows(false), shadowFrustumSize(10.0f), size(0.5f) {}
+	DirectionalLight() : LightBase(), shadows(false), shadowFrustumSize(10.0f), size(1.0f) {}
 
 	bool shadows;
 	float shadowFrustumSize, size;
@@ -36,17 +36,16 @@ public:
 
 class PointLight : public LightBase {
 public:
-	PointLight() : LightBase(), radius(5.0f), lightCutOff(0.003f), volumetric(false) {}
+	PointLight() : LightBase(), radius(5.0f), lightCutOff(0.005f) {}
 
 	float radius, lightCutOff;
-	bool volumetric;
 
 	LightType getType() const { return LightType::Point; }
 };
 
 class SpotLight : public PointLight {
 public:
-	SpotLight() : PointLight(), shadows(false), spotCutOff(0.5f), size(0.5f) {}
+	SpotLight() : PointLight(), shadows(false), spotCutOff(0.5f), size(1.0f) {}
 
 	bool shadows;
 	float spotCutOff, size;

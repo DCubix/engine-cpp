@@ -10,6 +10,7 @@
 #include <typeinfo>
 #include <type_traits>
 #include <cassert>
+#include <algorithm>
 
 #define ECS_INVALID_ENTITY 0
 
@@ -125,10 +126,10 @@ public:
 
 	template<class... Cs>
 	void each(void(*f)(Entity&, Cs...)) {
-		each_internal<Cs...>(f);
+		each_internal_parallel<Cs...>(f);
 	}
 
-	template<class F>
+	template <class F>
 	void each(F&& func) {
 		lambda_each_internal(&F::operator(), func);
 	}
@@ -163,6 +164,15 @@ private:
 	SystemList m_systems;
 
 	template<class... Cs, class F>
+	void each_internal_parallel(F&& func) {
+		std::for_each(m_entities.begin(), m_entities.end(), [func](uptr<Entity>& ent){
+			if(ent->has<Cs...>()) {
+				func(*ent, *ent->get<Cs>()...);
+			}
+		});
+	}
+
+	template<class... Cs, class F>
 	void each_internal(F&& func) {
 		for(uptr<Entity>& ent : m_entities) {
 			if(ent->has<Cs...>()) {
@@ -173,12 +183,12 @@ private:
 
 	template<class G, class... Cs, class F>
 	void lambda_each_internal(void (G::*)(Entity&, Cs&...), F&& f) {
-		each_internal<Cs...>(std::forward<F>(f));
+		each_internal_parallel<Cs...>(std::forward<F>(f));
 	}
 
 	template<class G, class... Cs, class F>
 	void lambda_each_internal(void (G::*)(Entity&, Cs&...) const, F&& f) {
-		each_internal<Cs...>(std::forward<F>(f));
+		each_internal_parallel<Cs...>(std::forward<F>(f));
 	}
 };
 

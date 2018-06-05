@@ -36,6 +36,9 @@ public:
 	Mat4 getTransformationLocal();
 	Mat4 getParentTransform();
 
+	// Utilities
+	bool moveTowards(const Vec3& target, float mdd);
+
 	void setFromMatrix(const Mat4& mat);
 
 private:

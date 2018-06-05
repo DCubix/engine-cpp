@@ -31,7 +31,7 @@ uniform vec2 uNF;
 uniform bool uIBL;
 uniform bool uEmit;
 
-const vec3 Fdielectric = vec3(0.08);
+const vec3 Fdielectric = vec3(0.07);
 const float MAX_REFLECTION_LOD = 7.0;
 const mat4 mBias = mat4(
 	vec4(0.5, 0.0, 0.0, 0.0),
@@ -164,28 +164,32 @@ void main() {
 	vec3 wP = worldPosition(mProjection, mView, oScreenPosition, D);
 	vec3 V = normalize(uEye - wP);
 
+	vec3 F0 = mix(0.08 * vec3(R), A, M);
+
 	fragColor = vec4(0.0);
 	if (uIBL && !uEmit) {
 		float NoV = saturate(dot(N, V));
-		vec3 F0 = mix(Fdielectric, A, M);
-		vec3 F = F_Schlick(F0, NoV, R);
+		vec3 F = F_Fresnel(F0, NoV);
+
+		vec3 Rf = reflect(-V, N);
 
 		vec3 kS = F;
 		vec3 kD = 1.0 - kS;
 			 kD *= 1.0 - M;
 
-		vec3 Rf = reflect(-V, N);
-		vec2 envBRDF = texture(tBRDFLUT, vec2(NoV, R)).rg;
+		vec3 irradiance = texture(tIrradiance, N).rgb;
+		vec3 diff = irradiance * A;
 
-		vec3 diff = texture(tIrradiance, N).rgb * A;
-		vec3 spec = textureLod(tRadiance, Rf, R * MAX_REFLECTION_LOD).rgb * (F * envBRDF.x + envBRDF.y);
+		vec3 pColor = textureLod(tRadiance, Rf, R * MAX_REFLECTION_LOD).rgb;
+		vec2 envBRDF  = texture(tBRDFLUT, vec2(NoV, R)).rg;
+		vec3 spec = pColor * (F * envBRDF.x + envBRDF.y);
 
-		fragColor = vec4(diff * kD + spec, 1.0);
+		fragColor = vec4(kD * diff + spec, 1.0);
 	} else if (!uIBL && uEmit) {
 		fragColor = vec4(A * E, 1.0);
 	} else {
 		Material mat;
-		mat.roughness = R;
+		mat.roughness = clamp(R, 0.0001, 1.0);
 		mat.metallic = M;
 		mat.emission = E;
 		mat.baseColor = A;
@@ -203,7 +207,9 @@ void main() {
 				L = Lp - wP;
 				float dist = length(L); L = normalize(L);
 
-				att = lightAttenuation(uLight, L, dist);
+				if (dist < uLight.radius) {
+					att = lightAttenuation(uLight, L, dist);
+				} else { att = 0.0; }
 			} else if (uLight.type == 2) {
 				L = Lp - wP;
 				float dist = length(L); L = normalize(L);
@@ -215,11 +221,11 @@ void main() {
 				if (S > c) {
 					att *= (1.0 - (1.0 - S) * 1.0 / (1.0 - c));
 				} else {
-					att *= 0.0;
+					att = 0.0;
 				}
 			}
 
-			float NoL = min(max(dot(N, L), 0.0), 1.0);
+			float NoL = saturate(dot(N, L));
 			if (uShadowEnabled) {
 				vec4 sc = mBias * uLightViewProj * vec4(wP, 1.0);
 				vec3 coord = (sc.xyz / sc.w);
@@ -231,11 +237,13 @@ void main() {
 				else if (uLight.type == 2) vis = 1.0 - PCF(tShadowMap, coord, bias, uLight.size * 0.0035);
 			}
 
-			float fact = NoL * att * vis;
+			if (att > 0.0) {
+				float fact = NoL * att * vis;
 
-			vec3 b = principledBRDF(mat, L, V, N) * fact;
+				vec3 b = BRDF(mat, F0, L, V, N, uLight.intensity) * fact;
 
-			fragColor = vec4(uLight.color * uLight.intensity * b, 1.0);
+				fragColor = vec4(uLight.color * b, 1.0);
+			}
 //			fragColor = vec4(wP, 1.0);
 		}
 	}

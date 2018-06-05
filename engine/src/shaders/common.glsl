@@ -50,7 +50,7 @@ struct Material {
 struct Light {
 	vec3 color;
 	float intensity;
-	
+
 	float radius;
 	float size;
 	float nearPlane;
@@ -89,21 +89,34 @@ vec3 worldPosition(mat4 projection, mat4 view, vec2 uv, float z) {
 	return wp.xyz / wp.w;
 }
 
+float Sqr(float x) { return x * x; }
+
+#define MAX_LIGHT_RANGE 256.0
+
 float lightAttenuation(Light light, vec3 L, float dist) {
 	float r = light.radius;
-	float d = max(dist - r, 0.0);
+//	float d = max(dist - r, 0.0);
 
-	// calculate basic attenuation
-	float denom = d / r + 1.0;
-	float attenuation = 1.0 / (denom * denom);
+//	// calculate basic attenuation
+//	float denom = d / r + 1.0;
+//	float attenuation = 1.0 / Sqr(denom);
 
-	// scale and bias attenuation such that:
-	//   attenuation == 0 at extent of max influence
-	//   attenuation == 1 when d == 0
-	attenuation = (attenuation - light.lightCutoff) / (1.0 - light.lightCutoff);
-	attenuation = max(attenuation, 0.0);
+//	// scale and bias attenuation such that:
+//	//   attenuation == 0 at extent of max influence
+//	//   attenuation == 1 when d == 0
+//	attenuation = (attenuation - 0.0005) / (1.0 - 0.0005);
+//	attenuation = max(attenuation, 0.0);
 
-	return attenuation;
+//	return attenuation;
+
+	return Sqr(clamp(1.0 - Sqr(dist) / Sqr(r), 0.0, 1.0));
+
+//	return smoothstep(light.radius, 0, dist);
+
+//	return max(1.0 / Sqr(dist) - 1.0 / Sqr(light.radius), 0.0);
+
+//	return 1.0f / Sqr((dist / light.radius) + 1.0);
+
 }
 
 vec2 encodeNormals(vec3 n) {

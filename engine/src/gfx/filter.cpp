@@ -18,6 +18,7 @@ void Filter::setSource(const String& frag) {
 			 .add(POST_FX_VS, ShaderType::VertexShader)
 			 .add(frag, ShaderType::FragmentShader);
 	m_shader.link();
+	m_shader.cacheUniforms();
 }
 
 NS_END

@@ -19,9 +19,13 @@ public:
 	PassList passes() const { return m_passes; }
 	ShaderProgram& shader() { return m_shader; }
 
+	String name() const { return m_name; }
+	void setName(const String& name) { m_name = name; }
+
 private:
 	ShaderProgram m_shader;
 	PassList m_passes;
+	String m_name;
 };
 
 NS_END
